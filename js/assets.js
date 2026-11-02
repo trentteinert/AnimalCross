@@ -45,10 +45,7 @@ function charSprite(look, face, fr) {
   const layer = (img, fn) => { const t = mk(CW, CH); t.g.drawImage(img, sx, sy, CW, CH, 0, 0, CW, CH); if (fn) recolorCanvas(t, fn); c.g.drawImage(t, 0, 0); };
   const skinRamp = rampFn(SKIN[look.skin], 0.34, 0.72, -40, 22);
   layer(ASSET.img.body, (r, g, b) => lumOf(r, g, b) < 0.33 ? [44, 26, 22] : skinRamp(r, g, b)); // keep the eyes dark whatever the skin tone
-  layer(ASSET.img.pants, rampFn(PANTSC[look.pc | 0] || PANTSC[0], 0.14, 0.5, -52, 30));
-  layer(ASSET.img.top, topFn(look.topc || SHIRTC[look.shirt], look.style));
-  if (look.hair === 0) layer(ASSET.img.hair, rampFn(HAIRC[look.hc], 0.14, 0.42, -52, 36));
-  if (look.hat) drawHat(c, look, face);
+  // clothing, hair and hat layers are intentionally disabled: bare animated body only
   c.ax = 12; c.ay = CH - 1; charCache2.set(key, c); return c;
 }
 function drawHat(c, look, face) { // hats are still drawn in code: they sit over the head of the painted body
