@@ -94,7 +94,7 @@ function burst(x, y, col, n, sp, life, grav, sz) {
 function floater(x, y, txt, col) { FL.push({ x, y, txt, col: col || '#fff', t: 0 }); }
 function ripple(x, y, big) { RP.push({ x, y, t: 0, max: big ? 1.1 : 0.9, big }); }
 function doEmote(e) {
-  ME.bubble = e; ME.bt = 2.6; sfx('pop');
+  ME.bubble = e; ME.bt = 2.6; sfx('pop'); if (e === '👋' && !A) ME.wave = { t: 0 };
   NPCS.forEach(n => { if (Math.hypot(n.x - ME.x, n.y - ME.y) < 90 && Math.random() < 0.4) setTimeout(() => { n.bubble = pick(['👋', '❤️', '😄', '✨']); n.bt = 2.4; }, rnd(700, 1600)); });
 }
 
@@ -333,6 +333,7 @@ function updateMe(dt) {
   const v = inputVec(), mag = Math.hypot(v[0], v[1]);
   ME.moving = false;
   if (mag > 0.4) UI.hideNote();
+  if (ME.wave) { ME.wave.t += dt; if (ME.wave.t > 1.3 || mag > 0.3) ME.wave = null; }
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
   if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite')) && A.k !== 'shake') { ME.t += 0; return; }
   if (UI.isOpen) return;
@@ -403,7 +404,10 @@ function tick(dt) {
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
-  cam.x = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)); cam.y = clamp(ME.y - VH / 2 - 10, 0, Math.max(0, PH - VH));
+  // the camera eases toward the player instead of being locked to them (snaps on teleports / first frame)
+  const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y - VH / 2 - 10, 0, Math.max(0, PH - VH));
+  if (Math.hypot(ctx_ - cam.x, cty_ - cam.y) > 120) { cam.x = ctx_; cam.y = cty_; }
+  else { const k = 1 - Math.exp(-dt * 6); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
 }
 
 // ---- render ---------------------------------------------------------------
@@ -412,12 +416,12 @@ function lineG(x0, y0, x1, y1, col) {
   const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy, n = 0;
   for (; n++ < 200;) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
 }
-function drawFishing(e, f, cx, cy, now) {
+function drawFishing(e, f, cx, cy, now, tip) {
   const s = e.dir === 'l' ? -1 : 1; const hx = e.x + 6 * s, hy = e.y - 14; let tx = e.x + 14 * s, ty = e.y - 27; if (e.dir === 'u') { tx = e.x + 10 * s; ty = e.y - 32; } if (e.dir === 'd') { tx = e.x + 11 * s; ty = e.y - 26; }
-  if (f.ph === 'cast') ty += Math.sin(Math.min(1, f.t / 0.4) * Math.PI) * 7;
-  if (f.ph === 'charge') { tx -= 5 * s; ty -= 3; lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a');
+  if (f.ph === 'charge') {
     if (f.on) { const bx0 = Math.round(e.x - 13 - cx), by0 = Math.round(e.y - 48 - cy); g.fillStyle = '#101826'; g.fillRect(bx0 - 1, by0 - 1, 28, 6); g.fillStyle = f.pw > 0.85 ? '#e8483a' : '#f2b632'; g.fillRect(bx0, by0, Math.round(26 * f.pw), 4); } return; }
-  lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a');
+  if (tip) { tx = e.x + tip[0] - 24; ty = e.y + tip[1] - 48; } // the rod is part of the painted frame: the line starts at its tip
+  else { if (f.ph === 'cast') ty += Math.sin(Math.min(1, f.t / 0.4) * Math.PI) * 7; lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a'); }
   let bx = f.bx, by = f.by, arc = 0;
   if (f.ph === 'cast') { const u = Math.min(1, f.t / 0.4); bx = tx + (f.bx - tx) * u; by = ty + (f.by - ty) * u; arc = Math.sin(u * Math.PI) * 14; }
   else if (f.ph === 'reel' || f.ph === 'pull') { const u = f.ph === 'reel' ? f.p * 0.7 : 0.7 + 0.3 * Math.min(1, f.t / 0.5); bx = f.bx + (e.x - f.bx) * u; by = f.by + (e.y - 6 - f.by) * u; arc = f.ph === 'pull' ? Math.sin(Math.min(1, f.t / 0.5) * Math.PI) * 14 : 0; }
@@ -429,14 +433,26 @@ function drawFishing(e, f, cx, cy, now) {
   if (f.ph === 'reel') { g.fillStyle = 'rgba(20,40,70,0.45)'; const r = 3 + Math.sin(now * 12) * 1.5; g.fillRect(Math.round(bx - r - cx), Math.round(by + 2 - cy), Math.round(r * 2), 2); }
   if (f.ph === 'bite') { g.fillStyle = '#fff'; g.font = 'bold 9px "Pixelify Sans", monospace'; g.textAlign = 'center'; g.fillStyle = (f.item && S.gearOwned.includes('finder')) ? RAR[ITEM[f.item.id].r].c : '#e8483a'; g.fillText('!', Math.round(e.x - cx), Math.round(e.y - 42 - cy + Math.sin(now * 20))); g.textAlign = 'left'; }
 }
+function mePose(now) { // which painted action frame the player is in right now (null = normal walking sprite)
+  const D = AROW[ME.dir] || 0;
+  if (ME.hold) return ['gather', 4 + D, 7, true];
+  if (A) switch (A.k) {
+    case 'fish': return fishPose(ME.dir, A, now, A.hit);
+    case 'net': return ['net', 8 + D, 1 + Math.min(2, Math.floor(A.t / 0.15))];
+    case 'dig': { const u = A.t / A.dur; return ['gather', D, u < 0.85 ? Math.min(3, Math.floor(u * 6)) : 4]; }
+    case 'shake': return ['emote', 4 + D, 1];
+    case 'pick': return ['gather', 8 + D, 1 + (Math.floor(A.t * 6) % 3)];
+  }
+  if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
+  return null;
+}
 function drawChar(e, cx, cy, now) {
-  const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, spr = charSprite(look, holding ? 0 : faceIdx(e), holding ? 1 : fr);
+  const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? fishPose(e.dir, e.rod, now, false) : null),
+    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : charSprite(look, faceIdx(e), fr);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
   let off = 0; if (A && e === ME && A.k === 'shake') off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
   if (holding) {
-    const X0 = Math.round(e.x - spr.ax - cx), Y0 = Math.round(e.y - spr.ay - cy), sk = SKIN[look.skin], tp = look.topc || SHIRTC[look.shirt];
-    g.fillStyle = tp; g.fillRect(X0 + 1, Y0 + 16, 3, 5); g.fillRect(X0 + 20, Y0 + 16, 3, 5); g.fillStyle = sk; g.fillRect(X0 + 1, Y0 + 7, 3, 10); g.fillRect(X0 + 20, Y0 + 7, 3, 10);
     const h = ME.hold, m = h.groups[0], ic = itemIcon(m.id), u = Math.min(1, h.t / 0.24), k = 1.70158 + 1, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
     const fade = clamp((h.dur - h.t) / 0.35, 0, 1), sz = Math.round(ic.width * 2 * eb), bob = Math.round(Math.sin(now * 4) * 1), top = Math.round(e.y - 38 - sz + bob - cy);
     g.globalAlpha = fade;
@@ -445,12 +461,7 @@ function drawChar(e, cx, cy, now) {
     h.groups.slice(1, 3).forEach((gr, i) => { const ic2 = itemIcon(gr.id), sd = i === 0 ? -1 : 1; g.drawImage(ic2, Math.round(e.x + sd * (sz / 2 + 14) - ic2.width / 2 - cx), Math.round(e.y - 50 - cy + bob)); });
     g.globalAlpha = 1;
   }
-  const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawFishing(e, f, cx, cy, now);
-  if (e === ME && A) {
-    const s = e.dir === 'l' ? -1 : 1;
-    if (A.k === 'dig') { const bob = Math.abs(Math.sin(A.t / (A.dur / 3) * Math.PI)) * 5; g.drawImage(SPR.shovel, Math.round(e.x + 7 * s - 2 - cx), Math.round(e.y - 28 + bob - cy)); }
-    if (A.k === 'net') { const v = DV[A.dir], u = Math.sin(Math.min(1, A.t / 0.45) * Math.PI), hx = e.x + v[0] * (5 + 12 * u), hy = e.y - 14 + v[1] * (5 + 10 * u) - 4 * u; lineG(e.x + 5 * s - cx, e.y - 14 - cy, hx - cx, hy - cy, '#a8743a'); g.drawImage(SPR.hoop, Math.round(hx - 5 - cx), Math.round(hy - 5 - cy)); }
-  }
+  const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawFishing(e, f, cx, cy, now, spr.tip);
 }
 function drawBug(b, cx, cy) {
   const z = b.z, open = Math.sin(b.ph * (b.st === 'rest' ? 1 : 1)) > 0 || b.st === 'rest' && Math.sin(b.ph) > 0.3, [a, c2] = b.it.cols, x = Math.round(b.x - cx), y = Math.round(b.y - z - cy);

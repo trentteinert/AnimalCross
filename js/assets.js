@@ -8,7 +8,7 @@ const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
   let left = Object.keys(list).length + 1; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
@@ -47,6 +47,38 @@ function charSprite(look, face, fr) {
   layer(ASSET.img.body, (r, g, b) => lumOf(r, g, b) < 0.33 ? [44, 26, 22] : skinRamp(r, g, b)); // keep the eyes dark whatever the skin tone
   // clothing, hair and hat layers are intentionally disabled: bare animated body only
   c.ax = 12; c.ay = CH - 1; charCache2.set(key, c); return c;
+}
+// ---- painted action frames (fishing, net, digging, picking, waving, hold-up): 48x48 cells, 8 frames x 12 rows ----
+// rows = 3 animations x 4 directions (d, l, r, u). Only the body/skin pixels are tinted; rods, nets, fish and apples keep their own colours.
+const AROW = { d: 0, l: 1, r: 2, u: 3 };
+const actCache = new Map();
+function actSprite(look, sheet, row, col, noItem) {
+  const key = [sheet, row, col, look.skin, noItem ? 1 : 0].join();
+  let s = actCache.get(key); if (s) return s;
+  const c = mk(48, 48); c.g.drawImage(ASSET.img['act_' + sheet], col * 48, row * 48, 48, 48, 0, 0, 48, 48);
+  const id = c.g.getImageData(0, 0, 48, 48), d = id.data, ramp = rampFn(SKIN[look.skin], 0.34, 0.72, -40, 22);
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue; let r = d[i], g_ = d[i + 1], b = d[i + 2];
+    if (noItem && g_ > 205 && r > 232) { r = 206; g_ = 145; b = 102; }                // the shell baked into the hold-up pose becomes skin
+    const dark = r < 128 && g_ < 78;                                                  // eyes, rod: left as drawn
+    const skin = !dark && r >= g_ && g_ >= b - 4 && r - b > 40 && r - g_ < 90 && r > 90;
+    if (skin) { const o = ramp(r, g_, b); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; } else { d[i] = r; d[i + 1] = g_; d[i + 2] = b; }
+  }
+  c.g.putImageData(id, 0, 0); c.ax = 24; c.ay = 48; c.sheet = sheet; c.row = row; c.col = col;
+  c.tip = sheet === 'fish' && typeof ACT_TIPS !== 'undefined' ? ACT_TIPS.fish[row * 8 + col] : null;
+  actCache.set(key, c); return c;
+}
+function fishPose(dir, f, now, hit) { // [sheet, row, col] for each fishing phase (player and NPCs)
+  const D = AROW[dir] || 0;
+  switch (f.ph) {
+    case 'charge': return ['fish', D, 1];
+    case 'cast': return ['fish', D, 1 + Math.min(2, Math.floor(f.t / 0.14))];
+    case 'wait': return ['fish', D, 4];
+    case 'bite': return ['fish', 4 + D, 4 + (Math.floor(now * 14) % 2)];
+    case 'reel': return ['fish', 4 + D, hit ? 7 : 5 + (Math.floor(now * 8) % 2)];
+    case 'pull': return ['fish', D, 2];
+  }
+  return null;
 }
 function drawHat(c, look, face) { // hats are still drawn in code: they sit over the head of the painted body
   const m = look.hatc, side = face === 2 ? -1 : face === 6 ? 1 : 0, x = 12 + side, T = CH - 31; // T = top row of the head
