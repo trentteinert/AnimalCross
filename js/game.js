@@ -70,6 +70,11 @@ function actDown() { if (held) return; held = true; audioInit(); if (UI.isOpen) 
 function actUp() { held = false; }
 actEl.addEventListener('pointerdown', e => { e.preventDefault(); actDown(); });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => actEl.addEventListener(ev, actUp));
+// the pop-up mini games take the same press / hold as the action button
+const miniBox = $('#mini');
+miniBox.addEventListener('pointerdown', e => { if (e.target.id === 'mx') return; if (MINI.mode === 'reel' || MINI.mode === 'tap') { e.preventDefault(); actDown(); } });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => miniBox.addEventListener(ev, actUp));
+$('#mx').addEventListener('click', () => { if (A) { if (A.ref && A.ref.hold) A.ref.hold = false; endAct(A.k === 'fish' ? 'It got away...' : 'You gave up.'); } actUp(); });
 addEventListener('keydown', e => {
   if (EDIT || (e.target && e.target.tagName === 'INPUT')) return; keys[e.code] = true;
   if (['Space', 'KeyE', 'Enter'].includes(e.code)) { e.preventDefault(); if (!e.repeat) actDown(); }
@@ -101,7 +106,7 @@ function doEmote(e) {
 // ---- targets --------------------------------------------------------------
 const SHOPK = ['portal', 'stall', 'board', 'tackle', 'gemshop', 'outfitshop', 'tank', 'leaders'];
 const ICON = { portal: 'portal', tackle: 'tackle', gemshop: 'gem', outfitshop: 'shirt', tank: 'tank', leaders: 'trophy', water: 'rod', tree: 'tree', bush: 'bush', bug: 'bug', clutter: 'beach', stall: 'stall', board: 'board', note: 'board', npc: 'wave' };
-const HINT = { portal: 'Press to go through', tackle: 'Press to enter the fishing shop', gemshop: 'Press to open the gem shop', outfitshop: 'Press to see today\'s outfits', tank: 'Press to open the fish tank', leaders: 'Press to see the leaderboard', water: 'Press to cast your line', tree: 'Hold to shake the tree', bush: 'Press to pick berries', bug: 'Press to swing your net', clutter: 'Press to dig here', stall: 'Press to open the market', board: 'Press to read the board', note: 'Press to read the note', npc: 'Press to wave hello' };
+const HINT = { portal: 'Press to go through', tackle: 'Press to enter the fishing shop', gemshop: 'Press to open the gem shop', outfitshop: 'Press to see today\'s outfits', tank: 'Press to open the fish tank', leaders: 'Press to see the leaderboard', water: 'Press to cast your line', tree: 'Press to shake the tree and catch the fruit', bush: 'Press to pick berries', bug: 'Press to catch it, then tap fast', clutter: 'Press to dig here', stall: 'Press to open the market', board: 'Press to read the board', note: 'Press to read the note', npc: 'Press to wave hello' };
 function findTarget() {
   if (A || UI.isOpen) return null;
   const px = ME.x, py = ME.y, fv = DV[ME.dir]; let best = null;
@@ -205,10 +210,19 @@ function startAction() {
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   const rod = TOOLS.rod[S.tools.rod], net = TOOLS.net[S.tools.net], sh = TOOLS.shovel[S.tools.shovel];
   if (t.kind === 'water') { A = { k: 'fish', ph: 'charge', t: 0, pw: 0, pd: 1, on: held, dir: t.dir, d0: t.dist, p: 0, idle: 0, rt: 0 }; return; }
-  if (t.kind === 'tree') { A = { k: 'shake', ref: t.ref, t: 0, need: 0.9, rel: 0 }; return; }
-  if (t.kind === 'bush') { A = { k: 'pick', ref: t.ref, t: 0, need: 0.6 }; return; }
-  if (t.kind === 'bug') { A = { k: 'net', t: 0, dir: ME.dir, done: false, ref: t.ref, ok: false }; sfx('cast'); return; }
+  if (t.kind === 'tree') { A = { k: 'catch', ref: t.ref, kind: t.ref.kind, t: 0, total: 6, spawned: 0, next: 0.5, fr: [], caught: 0, bonusCaught: 0, bx: 0.5, tx: 0.5, bonusAt: Math.random() < 0.16 + S.tools.net * 0.02 ? Math.floor(rnd(1, 6)) : -1 }; return; }
+  if (t.kind === 'bush') { A = { k: 'berries', ref: t.ref, kind: t.ref.kind, t: 0, berries: genBerries(Math.random() < 0.12 + S.tools.net * 0.02), got: 0, bonusGot: 0 }; return; }
+  if (t.kind === 'bug') {
+    const bug = t.ref, r = bug.it.r || 0, net = TOOLS.net[S.tools.net], need = Math.max(5, Math.round((7 + r * 3 + (bug.st === 'rest' ? 0 : 3)) * (1.3 - net.fly * 0.5)));
+    bug.hold = true; A = { k: 'net', ph: 'tap', t: 0, dir: ME.dir, ref: bug, fill: 0.15, per: 0.9 / need, drain: 0.16 + r * 0.06, tl: 5.5, flash: 0, done: false, ok: false }; sfx('cast'); return;
+  }
   if (t.kind === 'clutter') { A = { k: 'dig', ref: t.ref, t: 0, dur: 1.2 / sh.spd, stroke: 0 }; return; }
+}
+function genBerries(bonus) { // 7 berries pop up one after another at spread-out spots on the bush
+  const out = []; let tries = 0;
+  while (out.length < 7 && tries++ < 200) { const x = rnd(30, 170), y = rnd(36, 190); if (out.every(b => Math.hypot(b.x - x, b.y - y) > 36)) out.push({ x, y, t0: 0, life: 1.7, shown: false, done: false }); }
+  out.forEach((b, i) => { b.t0 = 0.3 + i * 0.55 + rnd(0, 0.25); }); if (bonus) out[Math.floor(rnd(2, out.length))].inst = rollItem('forage', { where: 'bush', night: isNight(), rain: isRain(), luck: 1 }, i => ['elderberry', 'glowberry'].includes(i.id));
+  return out;
 }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const walkSp = () => 58 * (S.gearOwned.includes('sandals') ? 1.08 : 1);
@@ -270,36 +284,55 @@ function updateAct(dt) {
       } else if (A.ph === 'pull') { if (A.t >= 0.5) { const it = A.item; endAct(); gain([it], 'fish'); } }
       break;
     }
-    case 'shake': {
-      if (held) { A.rel = 0; A.t += 0; } else { A.rel += dt; A.t -= dt * 2.2; if (A.rel > 0.35 || A.t <= 0) { endAct(); return; } }
-      if (moving && A.t < 0.1) { endAct(); return; }
-      A.ref.shake = 0.5; if (Math.random() < dt * 14) { burst(A.ref.x + rnd(-14, 14), A.ref.y - rnd(22, 40), pick(['#e07a2f', '#e6b830', '#c9442f', '#8fc25a']), 1, 18, 1.2, 28, 2); }
-      if (Math.floor(A.t * 9) !== Math.floor((A.t - dt) * 9)) sfx('shake');
-      if (A.t >= A.need) {
-        const t = A.ref, n = Math.random() < 0.5 ? 2 : 3, list = []; for (let i = 0; i < n; i++) list.push(makeInst(ITEM[t.kind]));
-        if (Math.random() < 0.16 + S.tools.net * 0.02) list.push(rollItem('forage', { where: 'tree', night: isNight(), luck: 0.8 }, i => !['apple', 'orange', 'pear', 'plum'].includes(i.id) && i.where.includes('tree')));
+    case 'catch': { // fruit tree: shake it, then catch the falling fruit in a basket
+      const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+      if (kx) { A.tx = clamp(A.tx + kx * dt * 0.9, 0.08, 0.92); MINI.ptr = A.tx; } else A.tx = clamp(MINI.ptr, 0.08, 0.92);
+      A.bx += (A.tx - A.bx) * Math.min(1, dt * 14); A.ref.shake = 0.5;
+      while (A.spawned < A.total && A.t >= A.next) {
+        const f = { x: rnd(18, MNW - 18), y: -10, vy: rnd(40, 70) };
+        if (A.spawned === A.bonusAt) f.inst = rollItem('forage', { where: 'tree', night: isNight(), luck: 0.8 }, i => !['apple', 'orange', 'pear', 'plum'].includes(i.id) && i.where.includes('tree'));
+        A.fr.push(f); A.spawned++; A.next += rnd(0.35, 0.8); sfx('shake');
+      }
+      for (let i = A.fr.length - 1; i >= 0; i--) {
+        const f = A.fr[i]; f.vy += 160 * dt; f.y += f.vy * dt;
+        if (f.y >= MNH - 36 && f.y <= MNH - 16 && Math.abs(f.x - A.bx * MNW) < 26) { if (f.inst) { A.bonusCaught++; A.bonus = f.inst; } else A.caught++; A.fr.splice(i, 1); sfx('pop'); vib(10); }
+        else if (f.y > MNH + 12) A.fr.splice(i, 1);
+      }
+      if (A.spawned >= A.total && !A.fr.length) {
+        const t = A.ref, list = []; for (let i = 0; i < A.caught; i++) list.push(makeInst(ITEM[A.kind])); if (A.bonus && A.bonusCaught) list.push(A.bonus);
         t.fruit = false; t.regrow = timeNow + 70; t.shake = 0.8;
-        for (let i = 0; i < 5; i++) burst(t.x + rnd(-12, 12), t.y - rnd(20, 34), ITEM[t.kind].cols[0], 1, 20, 0.9, 140, 2);
-        endAct(); gain(list, 'tree');
+        for (let i = 0; i < 5; i++) burst(t.x + rnd(-12, 12), t.y - rnd(20, 34), ITEM[A.kind].cols[0], 1, 20, 0.9, 140, 2);
+        endAct(list.length ? null : 'Missed them all! The tree needs time to grow more.'); if (list.length) gain(list, 'tree');
       }
       break;
     }
-    case 'pick': {
-      A.ref.shake = 0.3; if (Math.random() < dt * 20) burst(A.ref.x + rnd(-6, 6), A.ref.y - 8, '#5f9a3a', 1, 14, 0.8, 40, 1);
-      if (A.t >= A.need) {
-        const b = A.ref, n = Math.random() < 0.5 ? 2 : 3, list = []; for (let i = 0; i < n; i++) list.push(makeInst(ITEM[b.kind]));
-        if (Math.random() < 0.12 + S.tools.net * 0.02) list.push(rollItem('forage', { where: 'bush', night: isNight(), rain: isRain(), luck: 1 }, i => ['elderberry', 'glowberry'].includes(i.id)));
-        b.berry = false; b.regrow = timeNow + 50; endAct(); gain(list, 'bush');
+    case 'berries': { // bush: berries pop up one by one, tap them before they drop
+      A.ref.shake = 0.3;
+      for (const b of A.berries) { if (!b.shown && A.t >= b.t0) b.shown = true; if (b.shown && !b.done && A.t >= b.t0 + b.life) b.done = true; }
+      for (const tp of MINI.taps) {
+        let best = null, bd = 24; for (const b of A.berries) if (b.shown && !b.done) { const d = Math.hypot(b.x - tp.x, b.y - tp.y); if (d < bd) { bd = d; best = b; } }
+        if (best) { best.done = true; if (best.inst) { A.bonusGot++; A.bonus = best.inst; } else A.got++; sfx('pop'); vib(10); burst(A.ref.x + rnd(-6, 6), A.ref.y - 8, '#8fc25a', 3, 16, 0.6, 40, 1); }
+      }
+      MINI.taps.length = 0;
+      if (A.berries.every(b => b.done)) {
+        const b = A.ref, list = []; for (let i = 0; i < A.got; i++) list.push(makeInst(ITEM[A.kind])); if (A.bonus && A.bonusGot) list.push(A.bonus);
+        b.berry = false; b.regrow = timeNow + 50; endAct(list.length ? null : 'They all dropped! Try again later.'); if (list.length) gain(list, 'bush');
       }
       break;
     }
     case 'net': {
+      if (A.ph === 'tap') { // butterfly: tap to fill the bar before the time runs out or the bar drains empty
+        const bb = A.ref; if (!bb || bb.leave || !W.bugs.includes(bb)) { if (bb) bb.hold = false; endAct('It flew off.'); return; }
+        A.flash = Math.max(0, A.flash - dt);
+        if (pressed) { A.fill += A.per; A.flash = 0.12; sfx('ui'); vib(6); }
+        else if (A.t > 0.6) A.fill -= A.drain * dt;
+        if (A.fill >= 1) { A.ph = 'swing'; A.t = 0; sfx('cast'); }
+        else if (A.fill <= 0 || A.t >= A.tl) { bb.hold = false; bb.flee = 1.4; bb.st = 'fly'; bb.t = 1.4; bb.tx = bb.x + rnd(-40, 40); bb.ty = bb.y + rnd(-30, 10); sfx('no'); endAct('It fluttered away!'); }
+        break;
+      }
       if (A.t >= 0.2 && !A.done) {
-        A.done = true; const v = DV[A.dir], nx = ME.x + v[0] * 14, ny = ME.y + v[1] * 14, net = TOOLS.net[S.tools.net]; let bb = null, bd = 34;
-        for (const b of W.bugs) { if (b.leave) continue; const d = Math.hypot(b.x - nx, b.y - ny); if (d < bd) { bd = d; bb = b; } }
-        if (bb && (bb.st === 'rest' || Math.random() < net.fly)) {
-          A.ok = true; W.bugs.splice(W.bugs.indexOf(bb), 1); A.res = bb.inst; burst(bb.x, bb.y - bb.z, bb.it.cols[0], 8, 40, 0.7, 20, 1);
-        } else { A.ok = false; if (bb) { bb.flee = 1.4; bb.st = 'fly'; bb.t = 1.4; bb.tx = bb.x + rnd(-40, 40); bb.ty = bb.y + rnd(-30, 10); } sfx('no'); }
+        A.done = true; const bb = A.ref; bb.hold = false;
+        if (W.bugs.includes(bb)) { A.ok = true; W.bugs.splice(W.bugs.indexOf(bb), 1); A.res = bb.inst; burst(bb.x, bb.y - bb.z, bb.it.cols[0], 8, 40, 0.7, 20, 1); }
       }
       if (A.t >= 0.45) { const r = A.res, ok = A.ok; endAct(ok ? null : 'It fluttered away!'); if (r) gain([r], 'bug'); }
       break;
@@ -321,9 +354,9 @@ function actState() {
   if (!A) return null;
   switch (A.k) {
     case 'fish': return { icon: 'rod', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to cast!' : 'Press and hold to charge your cast', cast: 'Casting...', wait: 'Waiting for a bite... (press to reel in)', bite: 'Bite! Press now!', reel: 'Hold to lift the bar. Keep it on the fish!', pull: 'Got it!' }[A.ph] };
-    case 'shake': return { icon: 'tree', prog: A.t / A.need, hint: 'Keep holding...' };
-    case 'pick': return { icon: 'bush', prog: A.t / A.need, hint: 'Picking...' };
-    case 'net': return { icon: 'bug', prog: 0, hint: 'Swish!' };
+    case 'catch': return { icon: 'tree', prog: 0, hint: 'Catch the falling fruit!' };
+    case 'berries': return { icon: 'bush', prog: 0, hint: 'Tap the berries!' };
+    case 'net': return { icon: 'bug', prog: A.ph === 'tap' ? A.fill : 0, hint: A.ph === 'tap' ? 'Tap fast!' : 'Swish!' };
     case 'dig': return { icon: 'beach', prog: A.t / A.dur, hint: 'Digging...' };
   }
 }
@@ -335,7 +368,7 @@ function updateMe(dt) {
   if (mag > 0.4) UI.hideNote();
   if (ME.wave) { ME.wave.t += dt; if (ME.wave.t > 1.3 || mag > 0.3) ME.wave = null; }
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
-  if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite')) && A.k !== 'shake') { ME.t += 0; return; }
+  if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite'))) { ME.t += 0; return; }
   if (UI.isOpen) return;
   if (mag > 0.05 && (!A || A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite') && mag > 0.4)) {
     if (A) { endAct(); }
@@ -395,7 +428,7 @@ function tick(dt) {
   const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
-  UI.setReel(A && A.k === 'fish' && A.ph === 'reel' ? A : null);
+  UI.setMini(A);
   const st = actState();
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
@@ -438,10 +471,10 @@ function mePose(now) { // which painted action frame the player is in right now 
   if (ME.hold) return ['gather', 4 + D, 7, true];
   if (A) switch (A.k) {
     case 'fish': return fishPose(ME.dir, A, now, A.hit);
-    case 'net': return ['net', 8 + D, 1 + Math.min(2, Math.floor(A.t / 0.15))];
+    case 'net': return A.ph === 'tap' ? ['net', D, A.flash > 0 ? 1 : 0] : ['net', 8 + D, 1 + Math.min(2, Math.floor(A.t / 0.15))];
     case 'dig': { const u = A.t / A.dur; return ['gather', D, u < 0.85 ? Math.min(3, Math.floor(u * 6)) : 4]; }
-    case 'shake': return ['emote', 4 + D, 1];
-    case 'pick': return ['gather', 8 + D, 1 + (Math.floor(A.t * 6) % 3)];
+    case 'catch': return ['emote', 4 + D, 1];
+    case 'berries': return ['gather', 8 + D, 1 + (Math.floor(A.t * 6) % 3)];
   }
   if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
   return null;
@@ -450,7 +483,7 @@ function drawChar(e, cx, cy, now) {
   const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? fishPose(e.dir, e.rod, now, false) : null),
     spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : charSprite(look, faceIdx(e), fr);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
-  let off = 0; if (A && e === ME && A.k === 'shake') off = Math.sin(now * 40) * 0.5;
+  let off = 0; if (A && e === ME && A.k === 'catch') off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
   if (holding) {
     const h = ME.hold, m = h.groups[0], ic = itemIcon(m.id), u = Math.min(1, h.t / 0.24), k = 1.70158 + 1, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);

@@ -219,9 +219,9 @@ const ONB = [
   { txt: 'Sell your haul at the stall', ev: 'sell', need: 1, hint: 'The market stall is west of the fountain.' }
 ];
 const NOTES = [
-  'Welcome to the island! Press the rod button to cast. When the bobber dips, press again, then hold to reel.',
+  'Welcome to the island! Hold the rod button to charge a cast, release to throw. When the bobber dips, press again, then keep the green bar on the fish.',
   'Bigger fish live in deeper water. Try the far end of the pier, or the pond out east.',
-  'Hold the button at a fruit tree to shake it. Trees grow their fruit back after a little while.',
+  'Press the button at a fruit tree to shake it, then catch the falling fruit in your basket. Trees grow their fruit back after a little while.',
   'Your bag fills up fast. Sell at the market stall just west of the fountain.',
   'Butterflies by day, moths by night. Wait for one to land, then swing your net.',
   'Poke at seaweed, shells and driftwood on the beach. You never know what is buried.',

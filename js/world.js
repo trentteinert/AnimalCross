@@ -345,6 +345,7 @@ function updateBugs(dt, now, night) {
     const b = W.bugs[i];
     if (b.night !== night && !b.leave) b.leave = true;
     if (b.leave) { b.z += dt * 26; b.x += dt * 14; if (b.z > 70) { W.bugs.splice(i, 1); } continue; }
+    if (b.hold) { b.ph += dt * 14; continue; } // being caught in the tapping mini game
     b.t -= dt; b.ph += dt * (b.st === 'rest' ? 2 : 14);
     if (b.st === 'rest') { b.z += (1.5 - b.z) * Math.min(1, dt * 8); if (b.t <= 0) { b.st = 'fly'; b.t = rnd(1.5, 3.5); const f = Math.random() < 0.5 ? pick(b.patch.fl) : { x: b.patch.x + rnd(-26, 26), y: b.patch.y + rnd(-18, 18) }; b.tx = f.x; b.ty = f.y; } }
     else {
