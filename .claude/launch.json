@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "island",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["server.py", "5173"],
+      "port": 5173
+    }
+  ]
+}
