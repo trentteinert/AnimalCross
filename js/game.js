@@ -204,17 +204,7 @@ function startAction() {
   if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); questEvent('wave', 1); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   const rod = TOOLS.rod[S.tools.rod], net = TOOLS.net[S.tools.net], sh = TOOLS.shovel[S.tools.shovel];
-  if (t.kind === 'water') {
-    const v = DV[t.dir]; let bd = t.dist + rnd(8, 24); while (bd > t.dist && !isWater(ME.x + v[0] * bd, ME.y - 2 + v[1] * bd)) bd -= 2;
-    if (S.gearOwned.includes('glove')) bd += 8; while (bd > t.dist && !isWater(ME.x + v[0] * bd, ME.y - 2 + v[1] * bd)) bd -= 2;
-    const bx = ME.x + v[0] * bd, by = ME.y - 2 + v[1] * bd, ty = typeAt(bx, by);
-    const bait = S.baitSel && S.bait[S.baitSel] > 0 ? BAITS.find(b => b.id === S.baitSel) : null, bob = BOBBERS.find(b => b.id === S.bobberSel);
-    if (bait) { S.bait[bait.id]--; if (S.bait[bait.id] <= 0) { delete S.bait[bait.id]; S.baitSel = null; UI.toast(bait.n + ' ran out', 'info'); } UI.refresh(); }
-    A = { k: 'fish', ph: 'cast', t: 0, bx, by, where: ty === 6 ? (typeof AREA !== 'undefined' && AREA === 'cave' ? 'cave' : 'pond') : ty === 0 ? 'deep' : 'sea',
-      wait: (S.stats.fish === 0 ? 1.4 : rnd(2.2, 5.2)) * (bait ? bait.wait : 1) * (bob && bob.wait ? bob.wait : 1) * (boostOn('quick') ? 0.7 : 1) / rod.spd,
-      win: 1.2 + S.tools.rod * 0.12 + (bob && bob.win || 0) + (S.gearOwned.includes('wrist') ? 0.3 : 0), luck: rod.luck + (bait ? bait.luck : 0) + (boostOn('lucky') ? 1.5 : 0), decay: bob && bob.decay || 1, p: 0, idle: 0, rt: 0 };
-    sfx('cast'); return;
-  }
+  if (t.kind === 'water') { A = { k: 'fish', ph: 'charge', t: 0, pw: 0, pd: 1, on: held, dir: t.dir, d0: t.dist, p: 0, idle: 0, rt: 0 }; return; }
   if (t.kind === 'tree') { A = { k: 'shake', ref: t.ref, t: 0, need: 0.9, rel: 0 }; return; }
   if (t.kind === 'bush') { A = { k: 'pick', ref: t.ref, t: 0, need: 0.6 }; return; }
   if (t.kind === 'bug') { A = { k: 'net', t: 0, dir: ME.dir, done: false, ref: t.ref, ok: false }; sfx('cast'); return; }
@@ -223,6 +213,26 @@ function startAction() {
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const walkSp = () => 58 * (S.gearOwned.includes('sandals') ? 1.08 : 1);
 const boostOn = id => !!(S.boosts[id] && S.boosts[id] > Date.now());
+function castFish() { // release: the charge bar decides how far the bobber lands
+  const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir]; let bd = A.d0 + 4 + A.pw * rod.rng + (S.gearOwned.includes('glove') ? 8 : 0);
+  while (bd > A.d0 && !isWater(ME.x + v[0] * bd, ME.y - 2 + v[1] * bd)) bd -= 2;
+  const bx = ME.x + v[0] * bd, by = ME.y - 2 + v[1] * bd, ty = typeAt(bx, by);
+  const bait = S.baitSel && S.bait[S.baitSel] > 0 ? BAITS.find(b => b.id === S.baitSel) : null, bob = BOBBERS.find(b => b.id === S.bobberSel);
+  if (bait) { S.bait[bait.id]--; if (S.bait[bait.id] <= 0) { delete S.bait[bait.id]; S.baitSel = null; UI.toast(bait.n + ' ran out', 'info'); } UI.refresh(); }
+  Object.assign(A, { ph: 'cast', t: 0, bx, by, where: ty === 6 ? (typeof AREA !== 'undefined' && AREA === 'cave' ? 'cave' : 'pond') : ty === 0 ? 'deep' : 'sea',
+    wait: (S.stats.fish === 0 ? 1.4 : rnd(2.2, 5.2)) * (bait ? bait.wait : 1) * (bob && bob.wait ? bob.wait : 1) * (boostOn('quick') ? 0.7 : 1) / rod.spd,
+    win: 1.2 + S.tools.rod * 0.12 + (bob && bob.win || 0) + (S.gearOwned.includes('wrist') ? 0.3 : 0), luck: rod.luck + (bait ? bait.luck : 0) + (boostOn('lucky') ? 1.5 : 0), decay: bob && bob.decay || 1 });
+  sfx('cast');
+}
+// Stardew-style reel: keep the green bar on the fish until the meter fills. Rarer / bigger fish = smaller bar, jumpier fish.
+function startReel() {
+  const it = ITEM[A.item.id], first = S.stats.fish === 0;
+  const szn = it.sz && A.item.sz ? clamp((A.item.sz - it.sz[0]) / Math.max(1, it.sz[1] - it.sz[0]), 0, 1) : 0.5;
+  const d = first ? 0 : it.r * 0.25 + szn * 0.2; // 0 (easy) .. ~0.95 (hard)
+  const reelV = S.gear.reel ? GEAR.reel[S.gear.reel - 1].v : 0;
+  A.ph = 'reel'; A.t = 0; A.d = d; A.bsz = clamp(0.38 - d * 0.18 + S.tools.rod * 0.02 + reelV * 0.1, 0.15, 0.5);
+  A.bp = 0.25; A.bv = 0; A.fp = 0.6; A.ft = 0.6; A.fr = 0; A.p = 0.3; A.hit = false;
+}
 function rollFish(where, luck) {
   if (S.stats.fish === 0) { const inst = makeInst(ITEM.carp); inst.sz = 52; inst.val = 22; return inst; }
   if (Math.random() < 0.05 && where !== 'deep') return makeInst(ITEM.boot);
@@ -233,19 +243,28 @@ function updateAct(dt) {
   const mv = inputVec(), moving = Math.hypot(mv[0], mv[1]) > 0.4;
   switch (A.k) {
     case 'fish': {
-      if (A.ph === 'cast') { if (A.t >= 0.4) { A.ph = 'wait'; A.t = 0; ripple(A.bx, A.by, true); burst(A.bx, A.by, '#dff4f8', 6, 30, 0.5, 80); sfx('splash'); } }
+      if (A.ph === 'charge') {
+        if (!A.on) { if (pressed) A.on = true; if (moving) { endAct(); return; } break; }
+        A.pw += A.pd * dt * 1.1; if (A.pw >= 1) { A.pw = 1; A.pd = -1; } else if (A.pw <= 0) { A.pw = 0; A.pd = 1; }
+        if (!held) castFish();
+      } else if (A.ph === 'cast') { if (A.t >= 0.4) { A.ph = 'wait'; A.t = 0; ripple(A.bx, A.by, true); burst(A.bx, A.by, '#dff4f8', 6, 30, 0.5, 80); sfx('splash'); } }
       else if (A.ph === 'wait') {
         if (pressed) { endAct('Too soon! Reeled it back in'); return; } if (moving) { endAct(); return; }
         A.rt -= dt; if (A.rt <= 0) { ripple(A.bx, A.by); A.rt = rnd(0.9, 1.6); }
         if (A.t >= A.wait) { A.ph = 'bite'; A.t = 0; A.item = rollFish(A.where, A.luck); sfx('bite'); vib(40); ripple(A.bx, A.by, true); }
       } else if (A.ph === 'bite') {
-        if (pressed) { A.ph = 'reel'; A.t = 0; A.diff = [1, 1.25, 1.6, 2.1][ITEM[A.item.id].r]; A.p = 0.15; sfx('hook'); vib(25); }
+        if (pressed) { startReel(); sfx('hook'); vib(25); }
         else if (A.t > A.win) { endAct('It got away...'); }
         else if (Math.random() < dt * 8) ripple(A.bx, A.by);
       } else if (A.ph === 'reel') {
-        const rod = S.tools.rod, reelV = S.gear.reel ? GEAR.reel[S.gear.reel - 1].v : 0, lineV = S.gear.line ? GEAR.line[S.gear.line - 1].v : 0;
-        if (pressed) A.p += 0.07; if (held) A.p += dt * (0.8 + 0.1 * rod) * (1 + reelV) / A.diff; else A.p -= dt * 0.3 * (1 - lineV) * A.decay;
-        A.p = clamp(A.p, 0, 1.01); if (A.p <= 0.001) { A.idle += dt; if (A.idle > 2.4) { endAct('It slipped off...'); return; } } else A.idle = 0;
+        const lineV = S.gear.line ? GEAR.line[S.gear.line - 1].v : 0, d = A.d, h = A.bsz / 2;
+        A.fr -= dt; if (A.fr <= 0) { A.fr = rnd(0.6, 1.5) / (1 + d * 0.8); A.ft = rnd(0.05, 0.95); }
+        A.fp += (A.ft - A.fp) * Math.min(1, dt * (1.2 + d * 3)); A.fp = clamp(A.fp + (it => it.r >= 2 ? rnd(-1, 1) * dt * d * 0.5 : 0)(ITEM[A.item.id]), 0, 1);
+        A.bv += (held ? 3.2 : -2.4) * dt; A.bv *= Math.pow(0.12, dt); A.bp += A.bv * dt;
+        if (A.bp < h) { A.bp = h; A.bv = Math.max(0, -A.bv * 0.3); } if (A.bp > 1 - h) { A.bp = 1 - h; A.bv = 0; }
+        A.hit = Math.abs(A.fp - A.bp) <= h;
+        A.p += A.hit ? dt * 0.3 / (1 + d * 0.5) : -dt * 0.14 * (1 - lineV) * A.decay;
+        A.p = clamp(A.p, 0, 1.01); if (A.p <= 0) { endAct('It got away...'); return; }
         if (Math.random() < dt * 6) ripple(A.bx + rnd(-3, 3), A.by + rnd(-2, 2));
         if (A.p >= 1) { A.ph = 'pull'; A.t = 0; sfx('pop'); }
       } else if (A.ph === 'pull') { if (A.t >= 0.5) { const it = A.item; endAct(); gain([it], 'fish'); } }
@@ -301,7 +320,7 @@ function updateAct(dt) {
 function actState() {
   if (!A) return null;
   switch (A.k) {
-    case 'fish': return { icon: 'rod', prog: A.ph === 'reel' ? A.p : 0, alert: A.ph === 'bite', hint: { cast: 'Casting...', wait: 'Waiting for a bite... (press to reel in)', bite: 'Bite! Press now!', reel: 'Hold to reel it in!', pull: 'Got it!' }[A.ph] };
+    case 'fish': return { icon: 'rod', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to cast!' : 'Press and hold to charge your cast', cast: 'Casting...', wait: 'Waiting for a bite... (press to reel in)', bite: 'Bite! Press now!', reel: 'Hold to lift the bar. Keep it on the fish!', pull: 'Got it!' }[A.ph] };
     case 'shake': return { icon: 'tree', prog: A.t / A.need, hint: 'Keep holding...' };
     case 'pick': return { icon: 'bush', prog: A.t / A.need, hint: 'Picking...' };
     case 'net': return { icon: 'bug', prog: 0, hint: 'Swish!' };
@@ -315,9 +334,9 @@ function updateMe(dt) {
   ME.moving = false;
   if (mag > 0.4) UI.hideNote();
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
-  if (A && !(A.k === 'fish' && (A.ph === 'wait' || A.ph === 'bite')) && A.k !== 'shake') { ME.t += 0; return; }
+  if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite')) && A.k !== 'shake') { ME.t += 0; return; }
   if (UI.isOpen) return;
-  if (mag > 0.05 && (!A || A.k === 'fish' && (A.ph === 'wait' || A.ph === 'bite') && mag > 0.4)) {
+  if (mag > 0.05 && (!A || A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite') && mag > 0.4)) {
     if (A) { endAct(); }
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
@@ -375,6 +394,7 @@ function tick(dt) {
   const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
+  UI.setReel(A && A.k === 'fish' && A.ph === 'reel' ? A : null);
   const st = actState();
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
@@ -395,6 +415,8 @@ function lineG(x0, y0, x1, y1, col) {
 function drawFishing(e, f, cx, cy, now) {
   const s = e.dir === 'l' ? -1 : 1; const hx = e.x + 6 * s, hy = e.y - 14; let tx = e.x + 14 * s, ty = e.y - 27; if (e.dir === 'u') { tx = e.x + 10 * s; ty = e.y - 32; } if (e.dir === 'd') { tx = e.x + 11 * s; ty = e.y - 26; }
   if (f.ph === 'cast') ty += Math.sin(Math.min(1, f.t / 0.4) * Math.PI) * 7;
+  if (f.ph === 'charge') { tx -= 5 * s; ty -= 3; lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a');
+    if (f.on) { const bx0 = Math.round(e.x - 13 - cx), by0 = Math.round(e.y - 48 - cy); g.fillStyle = '#101826'; g.fillRect(bx0 - 1, by0 - 1, 28, 6); g.fillStyle = f.pw > 0.85 ? '#e8483a' : '#f2b632'; g.fillRect(bx0, by0, Math.round(26 * f.pw), 4); } return; }
   lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a');
   let bx = f.bx, by = f.by, arc = 0;
   if (f.ph === 'cast') { const u = Math.min(1, f.t / 0.4); bx = tx + (f.bx - tx) * u; by = ty + (f.by - ty) * u; arc = Math.sin(u * Math.PI) * 14; }

@@ -136,3 +136,13 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .wallet.gems{display:flex;align-items:center;gap:6px;color:#8ff0e0}.wallet.gems b{color:#8ff0e0}.row.r1{box-shadow:inset 3px 0 0 #8fe09a}.row.r2{box-shadow:inset 3px 0 0 #78bfff}.row.r3{box-shadow:inset 3px 0 0 #ffcf5a}
 
 #fade{position:fixed;inset:0;background:#0b0f18;opacity:0;pointer-events:none;transition:opacity .3s;z-index:40}#fade.on{opacity:1;pointer-events:auto}
+
+#reel{position:absolute;right:calc(var(--sar) + 120px);bottom:calc(var(--sab) + 30px);height:190px;display:none;gap:6px;pointer-events:none}
+#reel.show{display:flex}
+#reel .trk{position:relative;width:34px;height:100%;background:#1c4a6e;border:2px solid #101826}
+#reel .pg{width:10px;height:100%;background:#101826;position:relative;border:2px solid #101826}
+#reel .pg i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--amber)}
+#reelzone{position:absolute;left:0;right:0;background:rgba(110,210,90,.75);border-top:2px solid #b8f090;border-bottom:2px solid #b8f090}
+#reelzone.hit{background:rgba(140,240,110,.95)}
+#reelfish{position:absolute;left:50%;margin-left:-9px;margin-bottom:-9px;font-size:16px;line-height:18px;width:18px;text-align:center}
+body.lefty #reel{right:auto;left:calc(var(--sal) + 120px)}

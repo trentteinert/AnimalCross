@@ -142,10 +142,10 @@ function rollItem(cat, ctx, only) {
 // ---- progression ----------------------------------------------------------
 const TOOLS = {
   rod: [
-    { n: 'Twig Rod', cost: 0, lv: 1, spd: 1, luck: 0, d: 'Basic. Gets the job done.' },
-    { n: 'Bamboo Rod', cost: 80, lv: 2, spd: 1.3, luck: 0.6, d: 'Faster bites, better odds.' },
-    { n: 'Glass Rod', cost: 320, lv: 6, spd: 1.7, luck: 1.4, d: 'Quick bites, rarer fish.' },
-    { n: 'Golden Rod', cost: 1300, lv: 12, spd: 2.2, luck: 2.4, d: 'Fish practically queue up.' }],
+    { n: 'Twig Rod', rng: 22, cost: 0, lv: 1, spd: 1, luck: 0, d: 'Basic. Short casts.' },
+    { n: 'Bamboo Rod', rng: 34, cost: 80, lv: 2, spd: 1.3, luck: 0.6, d: 'Faster bites, longer casts.' },
+    { n: 'Glass Rod', rng: 48, cost: 320, lv: 6, spd: 1.7, luck: 1.4, d: 'Quick bites, long casts, rarer fish.' },
+    { n: 'Golden Rod', rng: 64, cost: 1300, lv: 12, spd: 2.2, luck: 2.4, d: 'Casts clear across the water.' }],
   net: [
     { n: 'Hand Net', cost: 0, fly: 0.45, luck: 0, d: 'Okay if they sit still.' },
     { n: 'Bamboo Net', cost: 70, lv: 2, fly: 0.6, luck: 0.6, d: 'Wider hoop, better reach.' },

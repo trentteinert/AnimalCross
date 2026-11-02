@@ -39,6 +39,12 @@ UI.setAct = function (icon, prog, alert) {
   $('#actbar').style.width = clamp(prog || 0, 0, 1) * 100 + '%'; a.classList.toggle('prog', prog != null && prog > 0); a.classList.toggle('alert', !!alert);
 };
 
+UI.setReel = function (a) {
+  const el = $('#reel'); if (!el) return; el.classList.toggle('show', !!a); if (!a) return;
+  const z = $('#reelzone'), f = $('#reelfish'); z.style.bottom = (a.bp - a.bsz / 2) * 100 + '%'; z.style.height = a.bsz * 100 + '%'; z.classList.toggle('hit', a.hit);
+  f.style.bottom = a.fp * 100 + '%'; $('#reelp').style.height = clamp(a.p, 0, 1) * 100 + '%';
+};
+
 UI.reveal = function (list, meta) {
   meta = meta || {};
   const groups = []; list.forEach(i => { const g = groups.find(x => x.id === i.id); if (g) { g.n++; g.val += i.val; g.isNew = g.isNew || i.isNew; } else groups.push({ id: i.id, n: 1, val: i.val, inst: i, isNew: i.isNew }); });
