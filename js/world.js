@@ -138,7 +138,12 @@ function drawDeck(c) { // tile-based decking: planks run along the walkway, open
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 1: shadow and pilings under the planks
     const id = DECK[ty * MW + tx]; if (!id) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
     c.g.fillStyle = 'rgba(14,34,60,0.28)'; c.g.fillRect(ox + 2, oy + 3, TS, TS);
-    if (wat(tx, ty + 1)) for (const px of [ox + 1, ox + TS - 5]) { RC(c, px, oy + TS - 2, 4, 8, st.post); RC(c, px, oy + TS - 2, 4, 1, st.beamHi); }
+    if (!deckAt(tx, ty + 1)) { // the deck stands up off the ground: a front face with slats under its south edge, and a shadow below that
+      c.g.fillStyle = 'rgba(14,34,60,0.3)'; c.g.fillRect(ox + 2, oy + TS + 5, TS, 4);
+      RC(c, ox, oy + TS, TS, 6, st.beam); RC(c, ox, oy + TS, TS, 1, st.beamHi); RC(c, ox, oy + TS + 5, TS, 1, st.post);
+      for (let x = 0; x < TS; x += 4) RC(c, ox + x, oy + TS + 1, 1, 4, st.lo);
+      if (wat(tx, ty + 1)) for (const px of [ox + 1, ox + TS - 5]) { RC(c, px, oy + TS + 1, 4, 9, st.post); RC(c, px, oy + TS + 1, 4, 1, st.beamHi); }
+    }
   }
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 2: planks and edge beams
     const id = DECK[ty * MW + tx]; if (!id) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
