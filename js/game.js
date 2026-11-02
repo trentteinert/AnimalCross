@@ -407,7 +407,7 @@ function tick(dt) {
   // the camera eases toward the player instead of being locked to them (snaps on teleports / first frame)
   const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y - VH / 2 - 10, 0, Math.max(0, PH - VH));
   if (Math.hypot(ctx_ - cam.x, cty_ - cam.y) > 120) { cam.x = ctx_; cam.y = cty_; }
-  else { const k = 1 - Math.exp(-dt * 6); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
+  else { const k = 1 - Math.exp(-dt * 3.5); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
 }
 
 // ---- render ---------------------------------------------------------------
@@ -470,9 +470,10 @@ function drawBug(b, cx, cy) {
   g.fillStyle = a; if (open) { g.fillRect(x - 4, y - 3, 3, 4); g.fillRect(x + 2, y - 3, 3, 4); g.fillStyle = c2; g.fillRect(x - 3, y, 2, 2); g.fillRect(x + 2, y, 2, 2); } else { g.fillRect(x - 2, y - 3, 2, 4); g.fillRect(x + 1, y - 3, 2, 4); g.fillStyle = c2; g.fillRect(x - 2, y + 1, 1, 1); g.fillRect(x + 2, y + 1, 1, 1); }
   g.fillStyle = '#2a2020'; g.fillRect(x, y - 3, 1, 5);
 }
+const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
-    case 'me': case 'npc': drawChar(o, cx, cy, now); break;
+    case 'me': case 'npc': if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); drawChar(o, cx, cy, now); g.restore(); } else drawChar(o, cx, cy, now); break;
     case 'bug': drawBug(o, cx, cy); break;
     case 'tree': case 'bush': {
       const spr = o.k === 'tree' ? SPR.tree[o.kind][o.fruit ? 0 : 1] : SPR.bush[o.kind][o.berry ? 0 : 1];
@@ -515,9 +516,10 @@ function drawMarker(cx, cy, now) {
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
 }
 function render(now) {
-  g.setTransform(DPR * Z, 0, 0, DPR * Z, 0, 0); g.imageSmoothingEnabled = false;
-  const cx = Math.round(cam.x), cy = Math.round(cam.y);
-  g.fillStyle = '#2c5a86'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy);
+  const cx = Math.round(cam.x), cy = Math.round(cam.y), K = DPR * Z;
+  // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
+  g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
+  g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
@@ -535,8 +537,8 @@ function render(now) {
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   // light
   const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();
-  g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(0, 0, VW, VH);
-  if (rain) { g.fillStyle = 'rgb(196,206,222)'; g.fillRect(0, 0, VW, VH); }
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4);
+  if (rain) { g.fillStyle = 'rgb(196,206,222)'; g.fillRect(-2, -2, VW + 4, VH + 4); }
   g.globalCompositeOperation = 'source-over';
   const fdt = Math.min(0.1, now - (FX.t || now)); FX.t = now;
   if (fxOn() && !cave) { fxClouds(cx, cy, now, clamp(((tc[0] + tc[1] + tc[2]) / 3 - 110) / 140, 0, 1) * (rain ? 0.4 : 1)); fxLeaves(fdt, cx, cy, now); }
@@ -566,10 +568,12 @@ function render(now) {
   }
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
+    if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); }
     const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - 38 - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; const txt = nm + ' lv' + lv, w = g.measureText(txt).width; g.strokeText(txt, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x - g.measureText(' lv' + lv).width / 2, y);
     g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
+    if (o === ME) g.restore();
   }
   g.font = 'bold 7px "Pixelify Sans", monospace';
   for (const f of FL) { const u = f.t / 1.3; g.globalAlpha = 1 - u * u; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); g.fillStyle = f.col; g.fillText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); } g.globalAlpha = 1;
