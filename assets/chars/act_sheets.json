@@ -1,0 +1,228 @@
+{
+ "frame": [
+  48,
+  48
+ ],
+ "anchor": [
+  24,
+  46
+ ],
+ "sheets": {
+  "gather": {
+   "file": "assets/chars/act_gather.png",
+   "cols": 8,
+   "rows": [
+    {
+     "dir": "d",
+     "anim": 0
+    },
+    {
+     "dir": "l",
+     "anim": 0
+    },
+    {
+     "dir": "r",
+     "anim": 0
+    },
+    {
+     "dir": "u",
+     "anim": 0
+    },
+    {
+     "dir": "d",
+     "anim": 1
+    },
+    {
+     "dir": "l",
+     "anim": 1
+    },
+    {
+     "dir": "r",
+     "anim": 1
+    },
+    {
+     "dir": "u",
+     "anim": 1
+    },
+    {
+     "dir": "d",
+     "anim": 2
+    },
+    {
+     "dir": "l",
+     "anim": 2
+    },
+    {
+     "dir": "r",
+     "anim": 2
+    },
+    {
+     "dir": "u",
+     "anim": 2
+    }
+   ]
+  },
+  "net": {
+   "file": "assets/chars/act_net.png",
+   "cols": 8,
+   "rows": [
+    {
+     "dir": "d",
+     "anim": 0
+    },
+    {
+     "dir": "l",
+     "anim": 0
+    },
+    {
+     "dir": "r",
+     "anim": 0
+    },
+    {
+     "dir": "u",
+     "anim": 0
+    },
+    {
+     "dir": "d",
+     "anim": 1
+    },
+    {
+     "dir": "l",
+     "anim": 1
+    },
+    {
+     "dir": "r",
+     "anim": 1
+    },
+    {
+     "dir": "u",
+     "anim": 1
+    },
+    {
+     "dir": "d",
+     "anim": 2
+    },
+    {
+     "dir": "l",
+     "anim": 2
+    },
+    {
+     "dir": "r",
+     "anim": 2
+    },
+    {
+     "dir": "u",
+     "anim": 2
+    }
+   ]
+  },
+  "fish": {
+   "file": "assets/chars/act_fish.png",
+   "cols": 8,
+   "rows": [
+    {
+     "dir": "d",
+     "anim": 0
+    },
+    {
+     "dir": "l",
+     "anim": 0
+    },
+    {
+     "dir": "r",
+     "anim": 0
+    },
+    {
+     "dir": "u",
+     "anim": 0
+    },
+    {
+     "dir": "d",
+     "anim": 1
+    },
+    {
+     "dir": "l",
+     "anim": 1
+    },
+    {
+     "dir": "r",
+     "anim": 1
+    },
+    {
+     "dir": "u",
+     "anim": 1
+    },
+    {
+     "dir": "d",
+     "anim": 2
+    },
+    {
+     "dir": "l",
+     "anim": 2
+    },
+    {
+     "dir": "r",
+     "anim": 2
+    },
+    {
+     "dir": "u",
+     "anim": 2
+    }
+   ]
+  },
+  "emote": {
+   "file": "assets/chars/act_emote.png",
+   "cols": 8,
+   "rows": [
+    {
+     "dir": "d",
+     "anim": 0
+    },
+    {
+     "dir": "l",
+     "anim": 0
+    },
+    {
+     "dir": "r",
+     "anim": 0
+    },
+    {
+     "dir": "u",
+     "anim": 0
+    },
+    {
+     "dir": "d",
+     "anim": 1
+    },
+    {
+     "dir": "l",
+     "anim": 1
+    },
+    {
+     "dir": "r",
+     "anim": 1
+    },
+    {
+     "dir": "u",
+     "anim": 1
+    },
+    {
+     "dir": "d",
+     "anim": 2
+    },
+    {
+     "dir": "l",
+     "anim": 2
+    },
+    {
+     "dir": "r",
+     "anim": 2
+    },
+    {
+     "dir": "u",
+     "anim": 2
+    }
+   ]
+  }
+ }
+}
