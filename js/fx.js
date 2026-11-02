@@ -6,7 +6,7 @@ const fxOn = () => typeof S === 'undefined' || S.fx !== false;
 function buildLilies() { // lily pads float on pond tiles that are not next to the bank
   W.lilies = [];
   for (let ty = 1; ty < MH - 1; ty++) for (let tx = 1; tx < MW - 1; tx++) {
-    if (GRID[ty * MW + tx] !== 6 || GRID[ty * MW + tx - 1] !== 6 || GRID[ty * MW + tx + 1] !== 6 || GRID[(ty - 1) * MW + tx] !== 6 || GRID[(ty + 1) * MW + tx] !== 6) continue;
+    if (DECK[ty * MW + tx] || GRID[ty * MW + tx] !== 6 || GRID[ty * MW + tx - 1] !== 6 || GRID[ty * MW + tx + 1] !== 6 || GRID[(ty - 1) * MW + tx] !== 6 || GRID[(ty + 1) * MW + tx] !== 6) continue;
     const h = hash2(tx, ty, 71); if (h > 0.34) continue;
     W.lilies.push({ x: tx * TS + 3 + Math.floor(hash2(tx, ty, 72) * 10), y: ty * TS + 4 + Math.floor(hash2(tx, ty, 73) * 9), v: Math.floor(hash2(tx, ty, 74) * 3), ph: h * 40 });
   }
@@ -28,7 +28,7 @@ function buildClouds() {
 function fxWater(cx, cy, now) { // drifting wave streaks on open water, only on tiles away from the shore so they never touch sand
   const tx0 = Math.max(1, Math.floor(cx / TS)), ty0 = Math.max(1, Math.floor(cy / TS)), tx1 = Math.min(MW - 2, Math.ceil((cx + VW) / TS)), ty1 = Math.min(MH - 2, Math.ceil((cy + VH) / TS));
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
-    const t = GRID[ty * MW + tx]; if (!(t <= 1 || t === 6)) continue;
+    const t = GRID[ty * MW + tx]; if (!(t <= 1 || t === 6) || DECK[ty * MW + tx]) continue;
     if (GRID[ty * MW + tx - 1] !== t || GRID[ty * MW + tx + 1] !== t || GRID[(ty - 1) * MW + tx] !== t || GRID[(ty + 1) * MW + tx] !== t) continue;
     const h = hash2(tx, ty, 70); if (h > 0.5) continue;
     const ph = (now * 0.28 + h * 9) % 1, a = Math.sin(ph * Math.PI), x = tx * TS + ph * 20 - 2, y = ty * TS + 3 + Math.floor(h * 20) % 11;

@@ -1,11 +1,12 @@
 'use strict';
 const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 32, MAP_MAX = 200;
 let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels; maps can be any size from MAP_MIN to MAP_MAX
-function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; }
+function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
 const POND = { x: 43 * TS, y: 25 * TS, r: 4 * TS };
 const PLAZA = { x: 32 * TS, y: 30 * TS, r: 5.2 * TS };
 const PATHS = [[31, 35, 31, 52, 1.3], [36, 30, 39, 28.5, 1.2], [28, 30, 14, 31.5, 1.2], [32, 25, 32, 12, 1.2]];
+let DECK = new Uint8Array(MW * MH); // wooden / stone decking laid over the tiles (piers, bridges, boardwalks): 0 = none, 1-3 = plank styles, 4-6 = the same with rails
 let STRUCTS = [], LASTD = 0, MAPDATA = null; // STRUCTS: piers and bridges (px rects laid over the tile grid)
 
 function hash2(x, y, s) {
@@ -63,7 +64,8 @@ function typeAt(px, py) {
   for (const s of STRUCTS) if (px >= s.x0 && px < s.x1 && py >= s.y0 && py < s.y1) { LASTD = -1; return 7; }
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
   if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) { LASTD = 0; return 0; }
-  const i = ty * MW + tx; LASTD = DISTG[i]; return GRID[i];
+  const i = ty * MW + tx; if (DECK[i]) { LASTD = -1; return 7; }
+  LASTD = DISTG[i]; return GRID[i];
 }
 const isWater = (x, y) => { const t = typeAt(x, y); return t === 0 || t === 1 || t === 6; };
 
@@ -81,7 +83,7 @@ function renderTerrain() {
     if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3)) : m + 16 * (hv > 0.5 ? 1 : 0);
     c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  decorate(c); for (const s of STRUCTS) drawStruct(c, s); return c;
+  decorate(c); for (const s of STRUCTS) drawStruct(c, s); drawDeck(c); return c;
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
   const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#5e8438'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#6a9040'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#5e8438'); PX(t, 3, k & 1, '#8fb853'); return t; });
@@ -129,6 +131,40 @@ function drawStruct(c, s) { // planks run across the long axis; drawn upright th
   if (vert) c.g.drawImage(tc, s.x0 - o, s.y0 - o);
   else { c.g.save(); c.g.translate(s.x0 - o, s.y0 + w + o); c.g.rotate(-Math.PI / 2); c.g.drawImage(tc, 0, 0); c.g.restore(); }
 }
+const deckAt = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? 0 : DECK[y * MW + x];
+function nearDeck(x, y, r) { const tx = Math.floor(x / TS), ty = Math.floor(y / TS), n = Math.ceil(r / TS); for (let dy = -n; dy <= n; dy++) for (let dx = -n; dx <= n; dx++) if (deckAt(tx + dx, ty + dy)) return true; return false; }
+function drawDeck(c) { // tile-based decking: planks run along the walkway, open edges get a beam, rails and pilings appear by themselves
+  const wat = (x, y) => { if (deckAt(x, y)) return false; const t = tileAt(x, y); return t <= 1 || t === 6; };
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 1: shadow and pilings under the planks
+    const id = DECK[ty * MW + tx]; if (!id) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
+    c.g.fillStyle = 'rgba(14,34,60,0.28)'; c.g.fillRect(ox + 2, oy + 3, TS, TS);
+    if (wat(tx, ty + 1)) for (const px of [ox + 1, ox + TS - 5]) { RC(c, px, oy + TS - 2, 4, 8, st.post); RC(c, px, oy + TS - 2, 4, 1, st.beamHi); }
+  }
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 2: planks and edge beams
+    const id = DECK[ty * MW + tx]; if (!id) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
+    const L = deckAt(tx - 1, ty), R = deckAt(tx + 1, ty), U = deckAt(tx, ty - 1), D = deckAt(tx, ty + 1), horiz = (L || R) && !(U || D);
+    if (!horiz) for (let y = 0; y < TS; y += 4) {
+      const k = ty * 4 + (y >> 2); RC(c, ox, oy + y, TS, 4, k & 1 ? st.b : st.a); RC(c, ox, oy + y, TS, 1, st.hi); RC(c, ox, oy + y + 3, TS, 1, st.lo);
+      if (hash2(tx, k, 9 + id) < 0.35) RC(c, ox + 3 + Math.floor(hash2(tx, k, 5) * 8), oy + y + 1, 4, 1, st.a);
+    } else for (let x = 0; x < TS; x += 4) {
+      const k = tx * 4 + (x >> 2); RC(c, ox + x, oy, 4, TS, k & 1 ? st.b : st.a); RC(c, ox + x, oy, 1, TS, st.hi); RC(c, ox + x + 3, oy, 1, TS, st.lo);
+      if (hash2(k, ty, 9 + id) < 0.35) RC(c, ox + x + 1, oy + 3 + Math.floor(hash2(k, ty, 5) * 8), 1, 4, st.a);
+    }
+    if (!U) { RC(c, ox, oy, TS, 2, st.beam); RC(c, ox, oy, TS, 1, st.beamHi); }
+    if (!D) { RC(c, ox, oy + TS - 2, TS, 2, st.beam); RC(c, ox, oy + TS - 2, TS, 1, st.beamHi); }
+    if (!L) { RC(c, ox, oy, 2, TS, st.beam); RC(c, ox, oy, 1, TS, st.beamHi); }
+    if (!R) { RC(c, ox + TS - 2, oy, 2, TS, st.beam); RC(c, ox + TS - 2, oy, 1, TS, st.beamHi); }
+  }
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 3: rails along open edges that face water (so walkway ends stay open)
+    const id = DECK[ty * MW + tx]; if (id < 4) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
+    const post = (x, y) => { RC(c, x, y, 4, 4, st.post); RC(c, x, y, 4, 1, st.hi); RC(c, x + 1, y + 1, 2, 2, st.rail); };
+    if (wat(tx, ty - 1)) { RC(c, ox + 2, oy - 1, TS - 4, 2, st.rail); post(ox - 1, oy - 2); post(ox + TS - 3, oy - 2); }
+    if (wat(tx, ty + 1)) { RC(c, ox + 2, oy + TS - 1, TS - 4, 2, st.rail); post(ox - 1, oy + TS - 2); post(ox + TS - 3, oy + TS - 2); }
+    if (wat(tx - 1, ty)) { RC(c, ox - 1, oy + 2, 2, TS - 4, st.rail); post(ox - 2, oy - 1); post(ox - 2, oy + TS - 3); }
+    if (wat(tx + 1, ty)) { RC(c, ox + TS - 1, oy + 2, 2, TS - 4, st.rail); post(ox + TS - 2, oy - 1); post(ox + TS - 2, oy + TS - 3); }
+  }
+}
+function serializeDeck() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += DECK[ty * MW + tx]; rows.push(r); } return rows; }
 function paintFlowers(c) {
   for (const p of W.patches) {
     p.fl = []; const r = rng(((p.x * 73856093) ^ (p.y * 19349663)) >>> 0);
@@ -236,7 +272,7 @@ function generateDefaultCave() { // rock (0) with carved chambers (3), a stone p
   return { v: 1, w: MW, h: MH, theme: 'cave', tiles: serializeTiles(), pier: null, structs: [], spawn: { x: R(32), y: R(57) }, objects: OBJ };
 }
 function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
-function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), pier: null, theme: MAPDATA.theme || 'day', structs: MAPDATA.structs || [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
+function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
 function validMap(m) {
   if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
   const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
@@ -295,6 +331,10 @@ function computeShore() { // standing points along the coast for fishing NPCs
     if (GRID[ty * MW + tx] !== 2) continue;
     for (const d of D) { const n = tileAt(tx + d[0], ty + d[1]); if (n <= 1 || n === 6) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2] }); break; } }
   }
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // standing points along the edges of the decking
+    if (!DECK[ty * MW + tx]) continue;
+    for (const d of D) { const nx = tx + d[0], ny = ty + d[1], n = tileAt(nx, ny); if (!deckAt(nx, ny) && (n <= 1 || n === 6)) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2] }); break; } }
+  }
   for (const t of STRUCTS) {
     const cxm = (t.x0 + t.x1) / 2, cym = (t.y0 + t.y1) / 2;
     if ((t.y1 - t.y0) >= (t.x1 - t.x0)) W.shore.push({ x: cxm - 8, y: t.y1 - 10, dir: 'd' }, { x: cxm + 4, y: t.y1 - 26, dir: 'd' });
@@ -306,7 +346,10 @@ function loadMap(map) {
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) GRID[ty * MW + tx] = Math.min(6, Math.max(0, map.tiles[ty].charCodeAt(tx) - 48));
   MAPDATA = map; W.theme = map.theme || 'day'; buildDist();
   if (!map.structs) map.structs = map.pier ? [{ t: 'pier', x0: map.pier.x0, y0: map.pier.y0, x1: map.pier.x1, y1: map.pier.y1, style: 0, rails: false, posts: true }] : [];
-  map.pier = null; STRUCTS = map.structs.map(structPx);
+  map.pier = null;
+  if (Array.isArray(map.deck) && map.deck.length === MH && map.deck.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) DECK[y * MW + x] = Math.min(6, Math.max(0, map.deck[y].charCodeAt(x) - 48));
+  for (const q of map.structs) { const id = (q.style | 0) % 3 + 1 + (q.rails ? 3 : 0); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) DECK[y * MW + x] = id; } // old pier / bridge rectangles become deck tiles
+  map.structs = []; STRUCTS = [];
   W.spawn = { x: map.spawn.x, y: map.spawn.y };
   rebuildAll(); computeShore();
 }
@@ -321,7 +364,7 @@ function spawnClutter(initial) {
     const tx = Math.floor(rnd(1, MW - 1)), ty = Math.floor(rnd(1, MH - 1)), i = ty * MW + tx;
     if (GRID[i] !== 2 || DISTG[i] < 2 || DISTG[i] > 3) continue;
     const x = Math.round(tx * TS + rnd(3, 13)), y = Math.round(ty * TS + rnd(4, 14));
-    if (STRUCTS.some(t => x > t.x0 - 24 && x < t.x1 + 24 && y > t.y0 - 24 && y < t.y1 + 24)) continue;
+    if (nearDeck(x, y, 24) || STRUCTS.some(t => x > t.x0 - 24 && x < t.x1 + 24 && y > t.y0 - 24 && y < t.y1 + 24)) continue;
     if (nearAny(x, y, 26, W.clutter) || (!initial && typeof ME !== 'undefined' && ME && distSq(x, y, ME.x, ME.y) < 60 * 60)) continue;
     if (!okLand(x, y, 4)) continue;
     const type = pick(['seaweed', 'shell', 'wood', 'crab']);

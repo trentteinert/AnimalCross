@@ -65,6 +65,7 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   m.objects.forEach(o => { o.x += ox * TS; o.y += oy * TS; }); m.objects = m.objects.filter(inside);
   (m.structs || []).forEach(q => { q.x0 += ox; q.x1 += ox; q.y0 += oy; q.y1 += oy; }); m.structs = (m.structs || []).filter(q => q.x1 > 0 && q.y1 > 0 && q.x0 < nw && q.y0 < nh);
   m.spawn = { x: clamp(m.spawn.x + ox * TS, 8, nw * TS - 8), y: clamp(m.spawn.y + oy * TS, 8, nh * TS - 8) };
+  const od = m.deck || []; m.deck = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && od[sy] ? od[sy][sx] : '0'; } m.deck.push(r); }
   m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
 }
 function commit() {
@@ -85,6 +86,7 @@ function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
+    if (ED.tile >= 100) { const id = ED.tile - 100; if (DECK[y * MW + x] !== id) { DECK[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (GRID[y * MW + x] !== ED.tile) { GRID[y * MW + x] = ED.tile; ED.dirty = true; ED.strokeChanged = true; }
   }
 }
@@ -283,14 +285,16 @@ function edRender(now) {
       if (ED.place.k === 'patch') { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(px + Math.cos(a) * 24 - cx), Math.round(py + Math.sin(a) * 19 - cy), 1, 1); } }
       else { const s = entrySpr(ED.place), a = anc(s); g.globalAlpha = 0.6; g.drawImage(s, Math.round(px - a.ax - cx), Math.round(py - a.ay - cy)); g.globalAlpha = 1; }
     } else if (ED.tool === 'struct' || ED.tool === 'spawn') outline(tx * TS - cx, ty * TS - cy, TS, TS, '#f2b84b');
-    const st = $('#edStatus'); if (st) { const ty2 = typeAt(m.wx, m.wy), recent = performance.now() - ED.msgT < 6000; st.textContent = (recent && ED.msg ? ED.msg + '   |   ' : '') + 'tile ' + tx + ',' + ty + ' · ' + (ty2 === 7 ? 'Pier' : TILE_NAMES[ty2] || '') + ' · px ' + Math.round(m.wx) + ',' + Math.round(m.wy); }
+    const st = $('#edStatus'); if (st) { const ty2 = typeAt(m.wx, m.wy), recent = performance.now() - ED.msgT < 6000; st.textContent = (recent && ED.msg ? ED.msg + '   |   ' : '') + 'tile ' + tx + ',' + ty + ' · ' + (ty2 === 7 ? 'Decking' : TILE_NAMES[ty2] || '') + ' · px ' + Math.round(m.wx) + ',' + Math.round(m.wy); }
   }
 }
 
 // ---- UI ----------------------------------------------------------------------------------------------------
 function buildEditorUI() {
   const el = document.createElement('div'); el.id = 'ed';
-  const tiles = TILE_NAMES.map((n, i) => `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('');
+  const tiles = TILE_NAMES.map((n, i) => `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('')
+    + `<h4>Decking (piers, bridges, boardwalks)</h4>` + ['Driftwood', 'Dark oak', 'Pale stone', 'Driftwood + rails', 'Dark oak + rails', 'Pale stone + rails'].map((n, i) => `<button class="edt" data-ed="tile:${101 + i}" data-t="${101 + i}"><span style="background:${STRUCT_STYLES[i % 3].a}"></span>${n}</button>`).join('')
+    + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`;
   const pal = PAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
   el.innerHTML = `
   <div class="edbar">
@@ -304,15 +308,14 @@ function buildEditorUI() {
     <h4>Tool</h4>
     <div class="edtools">
       <button data-ed="tool:paint" data-tool="paint">Paint tiles</button><button data-ed="tool:place" data-tool="place">Place object</button>
-      <button data-ed="tool:select" data-tool="select">Select / move</button><button data-ed="tool:struct" data-tool="struct">Pier / bridge</button><button data-ed="tool:spawn" data-tool="spawn">Spawn point</button>
+      <button data-ed="tool:select" data-tool="select">Select / move</button><button data-ed="tool:spawn" data-tool="spawn">Spawn point</button>
     </div>
-    <h4>Pier / bridge options</h4><div class="edsopt">${structOptsHTML()}</div>
     <h4>Tiles</h4><div class="edtl">${tiles}</div>
     <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>
     <h4>Objects</h4><div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
     <h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
-    <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Grid: G.</p>
+    <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Piers and bridges are decking tiles: paint them like any tile. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
