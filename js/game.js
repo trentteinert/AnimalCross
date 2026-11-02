@@ -74,7 +74,6 @@ actEl.addEventListener('pointerdown', e => { e.preventDefault(); actDown(); });
 const miniBox = $('#mini');
 miniBox.addEventListener('pointerdown', e => { if (e.target.id === 'mx') return; if (MINI.mode === 'reel' || MINI.mode === 'tap') { e.preventDefault(); actDown(); } });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => miniBox.addEventListener(ev, actUp));
-$('#mx').addEventListener('click', () => { if (A) { if (A.ref && A.ref.hold) A.ref.hold = false; endAct(A.k === 'fish' ? 'It got away...' : 'You gave up.'); } actUp(); });
 addEventListener('keydown', e => {
   if (EDIT || (e.target && e.target.tagName === 'INPUT')) return; keys[e.code] = true;
   if (['Space', 'KeyE', 'Enter'].includes(e.code)) { e.preventDefault(); if (!e.repeat) actDown(); }

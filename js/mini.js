@@ -14,10 +14,10 @@ function miniMode(a) {
   return null;
 }
 const MINI_UI = {
-  reel: { title: 'Hooked!', hint: 'Hold to lift the green bar. Keep it on the fish!', body: '<div class="reelw"><div class="trk"><div id="mzone"></div><div id="mfish">🐟</div></div><div class="pg"><i id="mpg"></i></div></div>' },
-  tap: { title: 'Catch it!', hint: 'Tap fast before it flutters away!', body: '<div class="tapw"><div id="mbug">🦋</div><div class="hbar"><i id="mfill"></i></div><div class="tbar"><i id="mtime"></i></div><div class="taplab">TAP! TAP! TAP!</div></div>' },
-  catch: { title: 'Shake the tree!', hint: 'Drag (or use A / D) to move the basket under the fruit.', body: `<canvas id="mcv" width="${MNW}" height="${MNH}"></canvas>` },
-  berries: { title: 'Pick the berries!', hint: 'Tap each berry before it drops.', body: `<canvas id="mcv" width="${MNW}" height="${MNH}"></canvas>` },
+  reel: { title: 'Hooked!', hint: 'Hold to lift the bar', body: '<div class="reelw"><div class="trk"><div id="mzone"></div><div id="mfish">🐟</div></div><div class="pg"><i id="mpg"></i></div></div>' },
+  tap: { title: 'Catch it!', hint: 'Tap fast!', body: '<div class="tapw"><div id="mbug">🦋</div><div class="hbar"><i id="mfill"></i></div><div class="tbar"><i id="mtime"></i></div><div class="taplab">TAP! TAP! TAP!</div></div>' },
+  catch: { title: 'Shake the tree!', hint: 'Drag or A / D to move the basket', body: `<canvas id="mcv" width="${MNW}" height="${MNH}"></canvas>` },
+  berries: { title: 'Pick the berries!', hint: 'Tap the berries', body: `<canvas id="mcv" width="${MNW}" height="${MNH}"></canvas>` },
 };
 
 UI.setMini = function (a) {
