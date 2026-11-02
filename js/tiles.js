@@ -23,11 +23,11 @@ function tilePixel(L, x, y, gg, n, n2, full, s, dfdv) {
     case 2: // sand: clean edge with a single foam line on the water side
       if (!inside) return gg > -0.065 ? [240, 250, 250] : null;
       return n < 0.06 ? [220, 178, 114] : n > 0.95 ? [246, 214, 160] : [235, 196, 132];
-    case 3: { // grass with a dirt lip: thin on the sides, a thicker shaded face where the grass ends on its south edge (reads as raised ground)
+    case 3: { // grass with a thick shaded dirt lip on every edge except the north-facing ones (reads as raised ground)
       if (!inside) {
-        const south = dfdv < -0.3, north = dfdv > 0.3, ring = south ? 0.19 : north ? 0.075 : 0.14; // sides (vertical edges) get a two-tone lip too
-        if (gg > -ring) { const t = -gg / ring; return south ? (t < 0.45 ? [170, 114, 64] : t < 0.8 ? [136, 90, 50] : [102, 68, 40]) : north ? [152, 102, 58] : (t < 0.5 ? [160, 108, 62] : [122, 84, 48]); }
-        if (!north && gg > -ring - 0.06) return [86, 66, 40, south ? 70 : 45];
+        const north = dfdv > 0.3, ring = north ? 0.075 : 0.19; // every edge except the north-facing ones gets the same thick, three-tone shaded lip (reads as raised ground)
+        if (gg > -ring) { const t = -gg / ring; return north ? [152, 102, 58] : (t < 0.45 ? [170, 114, 64] : t < 0.8 ? [136, 90, 50] : [102, 68, 40]); }
+        if (!north && gg > -ring - 0.06) return [86, 66, 40, 70];
         return null;
       }
       if (edge) return [112, 108, 34]; if (n2 < 0.012) return [100, 96, 30]; if (n2 > 0.996) return [226, 150, 50];
