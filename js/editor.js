@@ -57,6 +57,16 @@ function startEditor(src) {
 
 // ---- history ----------------------------------------------------------------------------
 const snapshot = () => JSON.stringify(serializeMap());
+function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is water, and everything placed moves with the land
+  nw = clamp(Math.round(nw) || MW, MAP_MIN, MAP_MAX); nh = clamp(Math.round(nh) || MH, MAP_MIN, MAP_MAX); if (nw === MW && nh === MH) { msg('The map is already ' + MW + ' x ' + MH + '.'); return; }
+  const m = JSON.parse(snapshot()), ox = centred ? Math.floor((nw - MW) / 2) : 0, oy = centred ? Math.floor((nh - MH) / 2) : 0, rows = [];
+  for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH ? m.tiles[sy][sx] : '0'; } rows.push(r); }
+  const inside = o => o.x >= 0 && o.y >= 0 && o.x < nw * TS && o.y < nh * TS;
+  m.objects.forEach(o => { o.x += ox * TS; o.y += oy * TS; }); m.objects = m.objects.filter(inside);
+  (m.structs || []).forEach(q => { q.x0 += ox; q.x1 += ox; q.y0 += oy; q.y1 += oy; }); m.structs = (m.structs || []).filter(q => q.x1 > 0 && q.y1 > 0 && q.x0 < nw && q.y0 < nh);
+  m.spawn = { x: clamp(m.spawn.x + ox * TS, 8, nw * TS - 8), y: clamp(m.spawn.y + oy * TS, 8, nh * TS - 8) };
+  m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
+}
 function commit() {
   const s = snapshot(); if (s === ED.cur) return;
   ED.undo.push(ED.cur); if (ED.undo.length > 80) ED.undo.shift(); ED.cur = s; ED.redo = []; ED.unsaved = true;
@@ -179,6 +189,7 @@ function edClick(e) {
     case 'undo': undo(); break; case 'redo': redo(); break;
     case 'grid': ED.grid = !ED.grid; break;
     case 'zoomin': ED.zoom = clamp(ED.zoom + 1, 1, 6); break; case 'zoomout': ED.zoom = clamp(ED.zoom - 1, 1, 6); break;
+    case 'resize': resizeMap(+$('#edMW').value, +$('#edMH').value, $('#edGrow').value === 'c'); break;
     case 'save': saveProject(); break; case 'export': download('island.json', JSON.stringify(serializeMap())); msg('Exported island.json. Put it in the maps folder to use it.'); break;
     case 'import': $('#edFile').click(); break;
     case 'play': try { localStorage.setItem(areaDraftKey(AREA), snapshot()); } catch (_) { } location.href = location.pathname + '?map=draft&area=' + AREA; break;
@@ -203,7 +214,7 @@ function edChange(e) {
   else if (ED.sel && ED.sel.isStruct && /^edSt[TSRP]$|^edSx[01]$|^edSy[01]$/.test(t.id)) {
     const q = ED.sel.src;
     if (t.id === 'edStT') q.t = t.value; else if (t.id === 'edStS') q.style = +t.value; else if (t.id === 'edStR') q.rails = t.checked; else if (t.id === 'edStP') q.posts = t.checked;
-    else { const v = clamp(Math.round(+t.value) || 0, 0, 64); q[t.id.slice(4)] = v; if (q.x1 <= q.x0) q.x1 = q.x0 + 1; if (q.y1 <= q.y0) q.y1 = q.y0 + 1; }
+    else { const v = clamp(Math.round(+t.value) || 0, 0, Math.max(MW, MH)); q[t.id.slice(4)] = v; if (q.x1 <= q.x0) q.x1 = q.x0 + 1; if (q.y1 <= q.y0) q.y1 = q.y0 + 1; }
     rebuildAndSelect(q); commit();
   }
   else if (t.id === 'edKind' && ED.sel) { const s = ED.sel.src; s.kind = t.value; rebuildAndSelect(s); commit(); }
@@ -300,7 +311,7 @@ function buildEditorUI() {
     <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>
     <h4>Objects</h4><div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
-    <h4>Map</h4><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
+    <h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
     <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
@@ -324,7 +335,7 @@ function refreshInspector(quick) {
   const el = $('#edInsp'); if (!el) return; const s = ED.sel;
   if (!s) { el.innerHTML = '<p class="mut">Nothing selected. Use Select / move and click an object.</p>'; return; }
   if (quick) { const c = $('#edCoords'); if (c) c.textContent = 'x ' + s.x + '  y ' + s.y; return; }
-  if (s.isStruct) { const q = s.src, num = (id, v) => `<input id="${id}" type="number" value="${v}" min="0" max="64">`;
+  if (s.isStruct) { const q = s.src, num = (id, v) => `<input id="${id}" type="number" value="${v}" min="0" max="${Math.max(MW, MH)}">`;
     el.innerHTML = `<b>${q.t === 'bridge' ? 'Bridge' : 'Pier'}</b>${structOptsHTML(q, 'edSt')}<div class="ednums"><label>x0${num('edSx0', q.x0)}</label><label>y0${num('edSy0', q.y0)}</label><label>x1${num('edSx1', q.x1)}</label><label>y1${num('edSy1', q.y1)}</label></div><p class="mut">Sizes are in tiles. The planks run across the long side.</p><button data-ed="del" class="danger">Delete</button>`; return; }
   const src = s.src, k = src.k; let extra = '';
   if (k === 'crystal') extra = `<label>Colour<select id="edKind">${['blue', 'purple'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;

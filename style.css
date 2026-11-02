@@ -155,3 +155,4 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .taplab{font-size:15px;color:var(--cream);animation:pulse .5s infinite alternate}@keyframes pulse{to{transform:scale(1.12)}}
 #mcv{width:240px;height:288px;image-rendering:pixelated;background:#000;touch-action:none;cursor:pointer}
 body.lefty #mini{}
+.edsz input{width:56px}

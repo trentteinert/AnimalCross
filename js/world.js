@@ -1,5 +1,7 @@
 'use strict';
-const TS = 16, MW = 64, MH = 64, PW = MW * TS, PH = MH * TS, CX = 32 * TS, CY = 32 * TS;
+const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 32, MAP_MAX = 200;
+let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels; maps can be any size from MAP_MIN to MAP_MAX
+function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
 const POND = { x: 43 * TS, y: 25 * TS, r: 4 * TS };
 const PLAZA = { x: 32 * TS, y: 30 * TS, r: 5.2 * TS };
@@ -38,7 +40,7 @@ function genType(px, py) { // only used to author the default island
   return d <= 3.5 ? 2 : 3;
 }
 function genGrid() {
-  GRID = new Uint8Array(MW * MH);
+  setMapSize(64, 64); GRID = new Uint8Array(MW * MH);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) GRID[ty * MW + tx] = genType(tx * TS + TS / 2, ty * TS + TS / 2);
   for (let pass = 0; pass < 2; pass++) { // remove single-tile specks so edges stay clean
     const cp = GRID.slice();
@@ -212,7 +214,7 @@ function smoothGrid() {
   }
 }
 function generateDefaultCave() { // rock (0) with carved chambers (3), a stone path (4), gravel ledges (2) and glowing pools (6)
-  GRID = new Uint8Array(MW * MH); STRUCTS = [];
+  setMapSize(64, 64); GRID = new Uint8Array(MW * MH); STRUCTS = [];
   const set = (x, y, t) => { if (x > 1 && y > 1 && x < MW - 2 && y < MH - 1) GRID[y * MW + x] = t; };
   const blob = (cx, cy, rx, ry, t, seed) => { for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const dx = (x - cx) / rx, dy = (y - cy) / ry, n = (vn(x / 4.5, y / 4.5, seed) - 0.5) * 0.55; if (dx * dx + dy * dy + n < 1) set(x, y, t); } };
   blob(32, 30, 17, 12, 3, 11); blob(14, 16, 6.5, 5.5, 3, 12); blob(50, 15, 5.5, 5.5, 3, 13); blob(47, 45, 6.5, 5, 3, 14);
@@ -235,7 +237,11 @@ function generateDefaultCave() { // rock (0) with carved chambers (3), a stone p
 }
 function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
 function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), pier: null, theme: MAPDATA.theme || 'day', structs: MAPDATA.structs || [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
-function validMap(m) { return !!(m && m.v === 1 && Array.isArray(m.tiles) && m.tiles.length === MH && m.tiles.every(r => typeof r === 'string' && r.length === MW) && m.spawn && Array.isArray(m.objects)); }
+function validMap(m) {
+  if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
+  const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
+  return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
+}
 
 const SOLIDS = { tree: [[-4, -4, 8, 5], 22], bush: [[-6, -4, 12, 4], 16], rock: [[-7, -4, 14, 4]], lamp: [[-2, -3, 4, 3]], bench: [[-12, -6, 24, 6]], stall: [[-22, -9, 44, 9], 18], board: [[-9, -5, 18, 5], 14], fountain: [[-23, -14, 46, 14]], tackle: [[-22, -9, 44, 9], 18], gemshop: [[-22, -9, 44, 9], 18], outfitshop: [[-22, -9, 44, 9], 18], tank: [[-20, -5, 40, 5], 18], leaders: [[-12, -4, 24, 4], 16], portal: [[-20, -6, 40, 6], 22], stalagmite: [[-5, -4, 10, 4]], campfire: [[-6, -4, 12, 4]], tent: [[-16, -5, 32, 5]], logseat: [[-12, -4, 24, 4]], crate: [[-6, -5, 12, 5]], barrel: [[-5, -4, 10, 4]], signpost: [[-3, -3, 6, 3]], fence: [[-25, -3, 50, 3]] };
 function instantiate(s) {
@@ -296,7 +302,7 @@ function computeShore() { // standing points along the coast for fishing NPCs
   }
 }
 function loadMap(map) {
-  GRID = new Uint8Array(MW * MH);
+  setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) GRID[ty * MW + tx] = Math.min(6, Math.max(0, map.tiles[ty].charCodeAt(tx) - 48));
   MAPDATA = map; W.theme = map.theme || 'day'; buildDist();
   if (!map.structs) map.structs = map.pier ? [{ t: 'pier', x0: map.pier.x0, y0: map.pier.y0, x1: map.pier.x1, y1: map.pier.y1, style: 0, rails: false, posts: true }] : [];
