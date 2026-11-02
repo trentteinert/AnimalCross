@@ -162,11 +162,15 @@ function drawDeck(c) { // tile-based decking: planks run along the walkway, open
   }
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // pass 3: rails along open edges that face water (so walkway ends stay open)
     const id = DECK[ty * MW + tx]; if (id < 4) continue; const ox = tx * TS, oy = ty * TS, st = STRUCT_STYLES[(id - 1) % 3];
-    const post = (x, y) => { RC(c, x, y, 4, 4, st.post); RC(c, x, y, 4, 1, st.hi); RC(c, x + 1, y + 1, 2, 2, st.rail); };
-    if (wat(tx, ty - 1)) { RC(c, ox + 2, oy - 1, TS - 4, 2, st.rail); post(ox - 1, oy - 2); post(ox + TS - 3, oy - 2); }
-    if (wat(tx, ty + 1)) { RC(c, ox + 2, oy + TS - 1, TS - 4, 2, st.rail); post(ox - 1, oy + TS - 2); post(ox + TS - 3, oy + TS - 2); }
-    if (wat(tx - 1, ty)) { RC(c, ox - 1, oy + 2, 2, TS - 4, st.rail); post(ox - 2, oy - 1); post(ox - 2, oy + TS - 3); }
-    if (wat(tx + 1, ty)) { RC(c, ox + TS - 1, oy + 2, 2, TS - 4, st.rail); post(ox + TS - 2, oy - 1); post(ox + TS - 2, oy + TS - 3); }
+    const H = 9; // railings stand up off the deck: tall capped posts with a top rail and a lower rail between them
+    const post = (x, yb) => { RC(c, x, yb - H, 2, H + 1, st.post); RC(c, x - 1, yb - H - 1, 4, 2, st.beamHi); RC(c, x - 1, yb - H + 1, 4, 1, st.beam); };
+    const hrail = (x0, x1, yb) => { RC(c, x0, yb - H + 2, x1 - x0, 2, st.hi); RC(c, x0, yb - H + 4, x1 - x0, 1, st.post); RC(c, x0, yb - 4, x1 - x0, 1, st.hi); RC(c, x0, yb - 3, x1 - x0, 1, st.post); };
+    const vrail = (x, y0, y1) => { RC(c, x, y0 - H + 2, 2, y1 - y0, st.hi); RC(c, x + 1, y0 - H + 2, 1, y1 - y0, st.post); RC(c, x, y0 - 4, 1, y1 - y0, st.hi); };
+    const has = (x, y, dx, dy) => deckAt(x, y) >= 4 && wat(x + dx, y + dy); // does that tile carry a rail on the same side? (so a run of rails shares its posts)
+    if (wat(tx, ty - 1)) { hrail(ox + 1, ox + TS + 1, oy + 3); post(ox + 1, oy + 3); if (!has(tx + 1, ty, 0, -1)) post(ox + TS + 1, oy + 3); }
+    if (wat(tx, ty + 1)) { hrail(ox + 1, ox + TS + 1, oy + TS); post(ox + 1, oy + TS); if (!has(tx + 1, ty, 0, 1)) post(ox + TS + 1, oy + TS); }
+    if (wat(tx - 1, ty)) { vrail(ox - 1, oy + 4, oy + TS + 4); post(ox, oy + TS + 4); if (!has(tx, ty - 1, -1, 0)) post(ox, oy + 4); }
+    if (wat(tx + 1, ty)) { vrail(ox + TS - 1, oy + 4, oy + TS + 4); post(ox + TS - 1, oy + TS + 4); if (!has(tx, ty - 1, 1, 0)) post(ox + TS - 1, oy + 4); }
   }
 }
 function serializeDeck() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += DECK[ty * MW + tx]; rows.push(r); } return rows; }
