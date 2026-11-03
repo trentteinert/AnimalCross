@@ -1,12 +1,12 @@
 'use strict';
 const UI = { isOpen: false, cur: null, cr: null, crTimer: 0, hintTxt: '', actIcon: null, revealT: 0, toastQ: [] };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const EMOTES = ['👋', '❤️', '😄', '❓', '🎣', '✨'];
+const EMOTES = ['👋', '❤️', '😄', '❓', '⛏️', '✨'];
 
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
-  $('#menu').innerHTML = [['book', 'Book'], ['bag', 'Bag'], ['shop', 'Market'], ['chat', 'Emote']].map(m =>
-    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[0] === 'shop' ? 'stall' : m[0])}" alt=""><i id="badge-${m[0]}"></i></button>`).join('');
+  $('#menu').innerHTML = [['book', 'Book'], ['bag', 'Bag'], ['chat', 'Emote']].map(m =>
+    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[0])}" alt=""><i id="badge-${m[0]}"></i></button>`).join('');
   $('#emotes').innerHTML = EMOTES.map(e => `<button data-act="emote:${e}">${e}</button>`).join('');
   $('#coinimg').src = actURL('coin');
   document.addEventListener('click', UI.onClick);
@@ -18,9 +18,8 @@ UI.init = function () {
 UI.refresh = function () {
   $('#gold').textContent = S.gold; $('#lv').textContent = S.lv;
   $('#xpfill').style.width = clamp(S.xp / needXP(S.lv), 0, 1) * 100 + '%';
-  const q = curQuest(); $('#qtxt').textContent = q.txt; $('#qprog').textContent = q.need > 1 ? S.qprog + '/' + q.need : '';
   const b = $('#badge-bag'); b.textContent = bagCount() >= bagCap() ? 'FULL' : bagCount() + '/' + bagCap(); b.className = bagCount() >= bagCap() ? 'full' : '';
-  const R = { market: () => UI.renderMarket(UI.tab), tackle: () => UI.renderTackle(), tank: () => UI.renderTank(), leaders: () => UI.renderLeaders(), gems: () => UI.renderGems(), outfits: () => UI.renderOutfits() }; if (R[UI.cur]) R[UI.cur]();
+  const R = { dealer: () => UI.renderDealer() }; if (R[UI.cur]) R[UI.cur]();
   saveState();
 };
 
@@ -52,11 +51,6 @@ UI.reveal = function (list, meta) {
   el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); el.style.pointerEvents = 'auto';
   clearTimeout(UI.revealT); UI.revealT = setTimeout(UI.hideReveal, it.r >= 2 ? 3200 : 2400);
 };
-UI.note = function (txt, i, n, first) {
-  const el = $('#note'); el.innerHTML = `<small>Note ${i + 1} of ${n}${first ? ' · new' : ''}</small><p>${esc(txt)}</p><em>tap to close</em>`;
-  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(UI.noteT); UI.noteT = setTimeout(UI.hideNote, 14000);
-};
-UI.hideNote = function () { const el = $('#note'); if (el) el.classList.remove('show'); };
 UI.hideReveal = function () { const el = $('#reveal'); el.classList.remove('go'); el.style.pointerEvents = 'none'; };
 
 // ---- modal plumbing -------------------------------------------------------
@@ -75,26 +69,19 @@ UI.onClick = function (e) {
   const [a, p1, p2, p3] = b.dataset.act.split(':'); sfx('ui');
   switch (a) {
     case 'x': UI.hideReveal(); break;
-    case 'hidenote': UI.hideNote(); break;
     case 'close': UI.close(); break;
-    case 'open': if (p1 === 'chat') { $('#emotes').classList.toggle('hidden'); } else (UI['open' + p1[0].toUpperCase() + p1.slice(1)] || UI.openMarket)(); break;
+    case 'open': if (p1 === 'chat') { $('#emotes').classList.toggle('hidden'); } else UI['open' + p1[0].toUpperCase() + p1.slice(1)](); break;
     case 'emote': doEmote(p1); $('#emotes').classList.add('hidden'); break;
-    case 'tab': UI.renderMarket(p1); break;
-    case 'sell': sellAll(); break;
-    case 'buy': buyTool(p1); break;
-    case 'buyhat': buyCosm('hat', +p1); break;
-    case 'buystyle': buyCosm('style', +p1); break;
-    case 'prem': UI.toast('Premium shop opens soon', 'info'); break;
     case 'bookcat': UI.renderBook(p1); break;
     case 'bookitem': UI.bookDetail(p1); break;
     case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openBag(); break;
     case 'fx': S.fx = S.fx === false; UI.openBag(); break;
     case 'lefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); UI.openBag(); break;
+    case 'editlook': UI.openCreator(false); break;
     case 'cr': UI.crSet(p1, p2); break;
     case 'crrand': UI.cr.look = randLook(); UI.crDraw(); UI.crRefreshChips(); break;
     case 'crdone': UI.crDone(); break;
     case 'crturn': UI.crDir = (UI.crDir + 1) % 8; break;
-    case 'editlook': UI.openCreator(false); break;
     default: if (UI.onClick2) UI.onClick2(a, p1, p2, p3);
   }
 };
@@ -103,10 +90,10 @@ UI.onClick = function (e) {
 function grouped(f) { const g = {}; S.bag.filter(i => !f || f(i)).forEach(i => { (g[i.id] = g[i.id] || { id: i.id, n: 0, val: 0 }); g[i.id].n++; g[i.id].val += i.val; }); return Object.values(g).sort((a, b) => ITEM[b.id].r - ITEM[a.id].r || b.val - a.val); }
 UI.openBag = function () {
   const g = grouped(), tot = S.bag.reduce((s, i) => s + i.val, 0);
-  const cells = g.length ? g.map(x => `<button class="cell r${ITEM[x.id].r}" data-act="show:${x.id}"><img src="${itemURL(x.id)}" alt=""><b>${x.n > 1 ? '×' + x.n : ''}</b><span>${esc(ITEM[x.id].name)}</span></button>`).join('') : '<p class="empty">Nothing yet. Fish, shake a tree, net a butterfly or dig the beach!</p>';
+  const cells = g.length ? g.map(x => `<button class="cell r${ITEM[x.id].r}" data-act="show:${x.id}"><img src="${itemURL(x.id)}" alt=""><b>${x.n > 1 ? '×' + x.n : ''}</b><span>${esc(ITEM[x.id].name)}</span></button>`).join('') : '<p class="empty">Nothing yet. Find a dig site and start digging!</p>';
   UI.open('bag', `${head('Bag')}<div class="capbar"><i style="width:${bagCount() / bagCap() * 100}%"></i><span>${bagCount()} / ${bagCap()} · worth ${tot}g</span></div><div class="grid">${cells}</div>
-  <p class="note">Tap an item to show it off. Relics sell at the Antiquities Dealer, everything else at the General Market.</p>
-  <div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="lefty">Left-handed: ${S.lefty ? 'On' : 'Off'}</button><button class="btn small" data-act="fx">Effects: ${S.fx === false ? 'Off' : 'On'}</button></div>`);
+  <p class="note">Tap an item to show it off. Sell your finds at the Antiquities Dealer.</p>
+  <div class="foot"><button class="btn small" data-act="editlook">Edit look</button><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="lefty">Left-handed: ${S.lefty ? 'On' : 'Off'}</button><button class="btn small" data-act="fx">Effects: ${S.fx === false ? 'Off' : 'On'}</button></div>`);
 };
 
 // ---- book -----------------------------------------------------------------
@@ -120,57 +107,11 @@ UI.renderBook = function (cat) {
 };
 UI.bookDetail = function (id) {
   const it = ITEM[id], b = S.book[id], r = RAR[it.r];
-  $('#bookdetail').innerHTML = b ? `<img src="${itemURL(id)}" alt=""><div><h3 style="color:${r.c}">${esc(it.name)} <small>${r.n}</small></h3><p>${esc(it.desc)}</p><p class="mut">Caught ${b.n}× · ${it.sz ? 'best ' + (b.best >= 10 ? Math.round(b.best) : b.best) + ' cm · ' : ''}base ${it.v}g</p><p class="mut">${whereText(it)}</p></div>`
+  $('#bookdetail').innerHTML = b ? `<img src="${itemURL(id)}" alt=""><div><h3 style="color:${r.c}">${esc(it.name)} <small>${r.n}</small></h3><p>${esc(it.desc)}</p><p class="mut">Found ${b.n}× · ${it.sz ? 'best ' + (b.best >= 10 ? Math.round(b.best) : b.best) + ' cm · ' : ''}base ${it.v}g</p><p class="mut">${whereText(it)}</p></div>`
     : `<img class="sil" src="${itemURL(id)}" alt=""><div><h3>???</h3><p class="mut">Hint: ${whereText(it)}</p></div>`;
 };
 
-// ---- market ---------------------------------------------------------------
-UI.openMarket = function () { UI.tab = 'sell'; UI.open('market', '<div id="mk"></div>'); UI.cur = 'market'; UI.renderMarket('sell'); sfx('coin'); };
-UI.renderMarket = function (tab) {
-  UI.tab = tab; const host = $('#mk'); if (!host) return;
-  const tabs = ['sell', 'upgrades', 'outfits'].map(t => `<button class="tab ${t === tab ? 'on' : ''}" data-act="tab:${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('');
-  let body = '';
-  if (tab === 'sell') {
-    const g = grouped(i => !isFish(i)), tot = S.bag.filter(i => !isFish(i)).reduce((s, i) => s + i.val, 0);
-    body = g.length ? `<div class="list">${g.map(x => `<div class="row"><img src="${itemURL(x.id)}" alt=""><div><b>${esc(ITEM[x.id].name)}</b><small>×${x.n}</small></div><span class="gold">${x.val}g</span></div>`).join('')}</div><button class="btn big" data-act="sell">Sell everything · +${tot}g</button>`
-      : '<p class="empty">Nothing to sell here. Relics sell at the Antiquities Dealer.</p>';
-  } else if (tab === 'upgrades') {
-    body = '<div class="list">' + ['net', 'shovel'].map(k => {
-      const lv = S.tools[k], cur = TOOLS[k][lv], nx = TOOLS[k][lv + 1];
-      return `<div class="row"><div class="grow"><b>${TOOL_LABEL[k]}</b><small>${cur.n}: ${cur.d}</small>${nx ? `<small class="nx">Next: ${nx.n}: ${nx.d}</small>` : '<small class="nx">Maxed out</small>'}</div>${nx ? `<button class="btn small ${S.lv < nx.lv ? 'lock' : S.gold >= nx.cost ? '' : 'dis'}" data-act="buy:${k}">${S.lv < nx.lv ? 'Lv ' + nx.lv : nx.cost + 'g'}</button>` : '<span class="max">MAX</span>'}</div>`;
-    }).join('') + '</div>';
-  } else {
-    const prev = l => `<img class="pv" src="${charURL(l)}" alt="">`;
-    const hats = HATS.map(h => { const own = S.owned.hat.includes(h.id), on = S.look.hat === h.id; return `<div class="row">${prev(Object.assign({}, S.look, { hat: h.id }))}<div class="grow"><b>${h.n}</b></div>${own ? `<button class="btn small ${on ? 'on' : ''}" data-act="buyhat:${h.id}">${on ? 'Worn' : 'Wear'}</button>` : `<button class="btn small ${S.gold >= h.cost ? '' : 'dis'}" data-act="buyhat:${h.id}">${h.cost}g</button>`}</div>`; }).join('');
-    const sts = STYLES.map(h => { const own = S.owned.style.includes(h.id), on = S.look.style === h.id; return `<div class="row">${prev(Object.assign({}, S.look, { style: h.id }))}<div class="grow"><b>${h.n}</b></div>${own ? `<button class="btn small ${on ? 'on' : ''}" data-act="buystyle:${h.id}">${on ? 'Worn' : 'Wear'}</button>` : `<button class="btn small ${S.gold >= h.cost ? '' : 'dis'}" data-act="buystyle:${h.id}">${h.cost}g</button>`}</div>`; }).join('');
-    const prem = PREMIUM.map(p => `<div class="row prem"><span class="sw" style="background:${p.col}"></span><div class="grow"><b>${p.n}</b><small>Premium · coming soon</small></div><button class="btn small gemb" data-act="prem">${gemImg}${p.gem}</button></div>`).join('');
-    body = `<h4>Hats</h4><div class="list">${hats}</div><h4>Tops</h4><div class="list">${sts}</div><button class="btn small" data-act="editlook">Edit name and look</button><h4>Premium (preview)</h4><div class="list">${prem}</div>`;
-  }
-  host.innerHTML = `${head('General Market')}<div class="wallet"><img src="${actURL('coin')}" alt=""><b>${S.gold}g</b></div><div class="tabs">${tabs}</div><div class="mbody">${body}</div>`;
-};
 function charURL(look) { return dataURL(charSprite(look, 0, 1), 'c' + JSON.stringify(look)); }
-function sellAll() {
-  const sell = S.bag.filter(i => !isFish(i)); if (!sell.length) return; const tot = sell.reduce((s, i) => s + i.val, 0), n = sell.length;
-  S.gold += tot; S.stats.earned += tot; S.bag = S.bag.filter(isFish); sfx('coin'); UI.toast(`Sold ${n} item${n > 1 ? 's' : ''} for ${tot}g`, 'gold'); questEvent('sell', 1); UI.refresh();
-}
-function buyTool(k) {
-  const lv = S.tools[k], nx = TOOLS[k][lv + 1]; if (!nx) return;
-  if (S.lv < nx.lv) { UI.toast('Reach level ' + nx.lv + ' first', 'info'); sfx('no'); return; }
-  if (S.gold < nx.cost) { UI.toast('Not enough gold yet', 'info'); sfx('no'); return; }
-  S.gold -= nx.cost; S.tools[k]++; sfx('level'); UI.toast(nx.n + ' unlocked!', 'gold'); UI.refresh();
-}
-function buyCosm(kind, id) {
-  const list = kind === 'hat' ? HATS : STYLES, own = S.owned[kind], it = list.find(x => x.id === id);
-  if (!own.includes(id)) { if (S.gold < it.cost) { UI.toast('Not enough gold yet', 'info'); sfx('no'); return; } S.gold -= it.cost; own.push(id); sfx('coin'); }
-  S.look[kind] = id; if (kind === 'hat') S.look.hatc = null; else S.look.topc = null; UI.refresh();
-}
-
-// ---- notice board ---------------------------------------------------------
-UI.openBoard = function () {
-  const q = curQuest();
-  const rows = ONB.map((o, i) => `<div class="row"><span class="chk ${i < S.quest ? 'done' : ''}">${i < S.quest ? '✓' : ''}</span><div class="grow"><b>${o.txt}</b></div></div>`).join('');
-  UI.open('board', `${head('Notice Board')}<p class="note">Camp goals. Finish them for gold and xp.</p><div class="list">${rows}</div><p class="note">Now: <b>${esc(q.txt)}</b>${q.need > 1 ? ' (' + S.qprog + '/' + q.need + ')' : ''}</p><p class="note">Tip notes found: <b>${S.notes.length}/${W.notes.length}</b>. Look for little signs along the paths.</p><p class="note mut">Coming soon: crew catches, weekly events and the island museum.</p>`);
-};
 
 // ---- character creator ----------------------------------------------------
 UI.openCreator = function (first) {

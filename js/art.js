@@ -86,22 +86,6 @@ function makeBench() {
   RC(c, 1, 1, 24, 3, '#8a5a30'); RC(c, 1, 1, 24, 1, '#a8733f'); RC(c, 1, 5, 24, 4, '#a0693a'); RC(c, 1, 5, 24, 1, '#c28a52'); RC(c, 3, 9, 2, 4, '#5a3a1f'); RC(c, 21, 9, 2, 4, '#5a3a1f');
   return anchor(OL(c), 13, 13);
 }
-function makeStall() {
-  const c = mk(52, 46);
-  RC(c, 5, 10, 2, 28, '#6b4423'); RC(c, 45, 10, 2, 28, '#6b4423');
-  RC(c, 4, 26, 44, 14, '#9a6a3a'); for (let x = 4; x < 48; x += 6) RC(c, x, 26, 1, 14, '#7a5028'); RC(c, 4, 26, 44, 2, '#c28a52');
-  RC(c, 8, 22, 6, 4, '#c85a4a'); RC(c, 16, 22, 5, 4, '#e8c24a'); DC(c, 36, 24, 2, '#8fbf4a'); DC(c, 41, 24, 2, '#e8a23a');
-  for (let x = 2; x < 50; x += 6) { const col = (x / 6) % 2 === 0 ? '#4aa8a0' : '#f5e9cf'; RC(c, x, 9, 6, 11, col); RC(c, x + 1, 20, 4, 2, col); }
-  RC(c, 2, 9, 48, 1, '#2f7f78');
-  RC(c, 17, 0, 18, 8, '#f5e9cf'); RC(c, 17, 0, 18, 1, '#d8c9a4'); DC(c, 26, 4, 2, '#f2b84b'); PX(c, 25, 3, '#fff0b0');
-  return anchor(OL(c), 26, 41);
-}
-function makeBoard() {
-  const c = mk(24, 28);
-  RC(c, 3, 10, 3, 16, '#6b4423'); RC(c, 18, 10, 3, 16, '#6b4423'); RC(c, 1, 2, 22, 15, '#8a5a30'); RC(c, 3, 4, 18, 11, '#c9a36a');
-  RC(c, 5, 5, 6, 5, '#f5e9cf'); RC(c, 13, 6, 6, 6, '#e8d8a0'); RC(c, 6, 11, 5, 3, '#cfe6e0'); PX(c, 7, 5, '#c85a4a'); PX(c, 15, 6, '#c85a4a');
-  return anchor(OL(c), 12, 26);
-}
 function makeFountain() {
   const c = mk(64, 54);
   EL(c, 32, 42, 28, 10, '#b8a678'); EL(c, 32, 40, 28, 10, '#e0d3a8'); EL(c, 32, 40, 23, 7, '#c9b88a'); EL(c, 32, 39, 21, 6, '#5aa8c8'); EL(c, 28, 38, 9, 2, '#86c8e0');
@@ -113,21 +97,7 @@ function makeFountain() {
 function makeRock() {
   const c = mk(18, 12); EL(c, 9, 7, 8, 5, '#6c7380'); EL(c, 8, 5, 6, 3, '#8a919c'); EL(c, 6, 4, 2, 1, '#a8aeb8'); return anchor(OL(c), 9, 11);
 }
-function makeSeaweed() { const c = mk(20, 12); [[5, 8, 4], [11, 7, 4], [15, 9, 3]].forEach(b => DC(c, b[0], b[1], b[2], '#3a5a3a')); [[5, 7, 3], [11, 6, 3], [14, 8, 2]].forEach(b => DC(c, b[0], b[1], b[2], '#5a8a4a')); for (let i = 0; i < 6; i++) PX(c, 3 + i * 2, 4 + (i % 2), '#7aaa5a'); return anchor(OL(c), 10, 11); }
-function makeShellMound() { const c = mk(18, 12); EL(c, 9, 8, 8, 3, '#c9b078'); EL(c, 9, 7, 6, 2, '#e6d49a'); RC(c, 6, 3, 6, 4, '#f0b8a0'); RC(c, 7, 3, 4, 1, '#f8d0c0'); PX(c, 8, 5, '#d88a70'); PX(c, 10, 5, '#d88a70'); return anchor(OL(c), 9, 11); }
-function makeDriftwood() { const c = mk(26, 10); RC(c, 2, 4, 22, 4, '#8a6a4a'); RC(c, 2, 4, 22, 1, '#b8946a'); RC(c, 5, 2, 3, 3, '#8a6a4a'); RC(c, 16, 1, 3, 4, '#8a6a4a'); PX(c, 12, 6, '#5a4028'); PX(c, 7, 5, '#5a4028'); return anchor(OL(c), 13, 9); }
-function makeCrabHole() { const c = mk(18, 12); EL(c, 9, 8, 7, 3, '#b49c64'); EL(c, 9, 8, 5, 2, '#5a4a30'); EL(c, 9, 8, 3, 1, '#2a2218'); PX(c, 5, 5, '#d8784a'); PX(c, 13, 5, '#d8784a'); PX(c, 4, 4, '#d8784a'); PX(c, 14, 4, '#d8784a'); return anchor(OL(c), 9, 11); }
 function makeFlower(col) { const c = mk(7, 8); PX(c, 3, 5, '#5f9a3a'); RC(c, 3, 5, 1, 3, '#4f8a38'); PX(c, 2, 4, '#5f9a3a'); RC(c, 2, 2, 3, 3, col); PX(c, 3, 3, '#fff2a8'); PX(c, 3, 1, col); PX(c, 1, 3, col); PX(c, 5, 3, col); return c; }
-function makeNote(read) {
-  const c = mk(12, 17), p = read ? '#cdbf9c' : '#f5e9cf', ink = read ? '#a89a78' : '#8a7a5a';
-  RC(c, 5, 9, 2, 8, '#6b4423'); RC(c, 1, 0, 10, 10, p); RC(c, 1, 0, 10, 1, read ? '#e0d4b4' : '#fffaf0'); RC(c, 3, 2, 6, 1, ink); RC(c, 3, 4, 6, 1, ink); RC(c, 3, 6, 4, 1, ink);
-  if (!read) { PX(c, 9, 8, '#c85a4a'); PX(c, 10, 8, '#c85a4a'); } else { PX(c, 8, 7, '#6a9a5a'); PX(c, 9, 8, '#6a9a5a'); PX(c, 10, 6, '#6a9a5a'); }
-  return anchor(OL(c), 7, 17);
-}
-function makeShovel() { const c = mk(5, 14); RC(c, 2, 0, 1, 8, '#8a5a30'); RC(c, 1, 0, 3, 1, '#6b4423'); RC(c, 1, 8, 3, 5, '#aab2bf'); PX(c, 2, 13, '#aab2bf'); RC(c, 1, 8, 1, 4, '#d4dae3'); return OL(c); }
-function makeHoop() { const c = mk(11, 11); c.g.fillStyle = '#e8e0d0'; for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) { const d = Math.hypot(x - 5, y - 5); if (d <= 5 && d >= 3.6) c.g.fillRect(x, y, 1, 1); else if (d < 3.6) { c.g.fillStyle = 'rgba(210,235,240,0.35)'; c.g.fillRect(x, y, 1, 1); c.g.fillStyle = '#e8e0d0'; } } return c; }
-
-
 // ---- atmosphere props ------------------------------------------------------
 function makeCampfire() {
   const c = mk(22, 14);
@@ -163,70 +133,6 @@ function makeLily(k) {
 }
 
 // ---- characters -----------------------------------------------------------
-const CFX = 11, CFY = 28;
-function paintChar(c, look, dir, fr, raised) {
-  const skin = SKIN[look.skin], hair = HAIRC[look.hc], shirt = look.topc || SHIRTC[look.shirt];
-  const cx = CFX, fy = CFY, bw = [6, 8, 7][look.b], tx = cx - (bw >> 1), st = look.style;
-  const pants = st === 2 ? '#3f5f94' : '#4b4b66', shoe = '#4a3326', side = dir === 'r';
-  if (side) {
-    const o = fr === 1 ? -2 : fr === 3 ? 2 : 0;
-    RC(c, cx - 3 + o, fy - 5, 3, 5, shade(pants, -15)); RC(c, cx - 3 + o, fy - 1, 3, 1, shoe);
-    RC(c, cx - 1 - o, fy - 5, 3, 5, pants); RC(c, cx - 1 - o, fy - 1, 3, 1, shoe);
-  } else {
-    const la = fr === 1 ? 1 : 0, lb = fr === 3 ? 1 : 0;
-    RC(c, cx - 3, fy - 5, 3, 5 - la, pants); RC(c, cx - 3, fy - 1 - la, 3, 1, shoe);
-    RC(c, cx, fy - 5, 3, 5 - lb, pants); RC(c, cx, fy - 1 - lb, 3, 1, shoe);
-  }
-  const tw = side ? bw - 1 : bw, ttx = side ? cx - (tw >> 1) : tx;
-  RC(c, ttx, fy - 12, tw, 7, shirt); RC(c, ttx, fy - 6, tw, 1, shade(shirt, -35)); RC(c, ttx, fy - 12, tw, 1, shade(shirt, 25));
-  if (look.b === 0) { RC(c, ttx - 1, fy - 7, tw + 2, 2, shade(shirt, -20)); }
-  if (st === 2 && dir === 'd') { RC(c, cx - 2, fy - 10, 4, 5, '#3f5f94'); RC(c, cx - 2, fy - 12, 1, 2, '#3f5f94'); RC(c, cx + 1, fy - 12, 1, 2, '#3f5f94'); PX(c, cx - 1, fy - 9, '#e8c24a'); PX(c, cx, fy - 9, '#e8c24a'); }
-  if (st === 2 && dir === 'u') { RC(c, cx - 2, fy - 12, 1, 4, '#3f5f94'); RC(c, cx + 1, fy - 12, 1, 4, '#3f5f94'); }
-  if (st === 1 && dir === 'd') { RC(c, ttx + 1, fy - 8, tw - 2, 1, shade(shirt, -30)); RC(c, cx - 2, fy - 12, 4, 1, shade(shirt, -25)); }
-  if (st === 1 && dir === 'u') { RC(c, cx - 4, fy - 14, 8, 3, shade(shirt, -15)); }
-  const sleeve = st === 1 ? shirt : null;
-  const arm = (x, sw) => { RC(c, x, fy - 12, 2, 6, skin); RC(c, x, fy - 12, 2, st === 1 ? 5 : 2, st === 1 ? shirt : shirt); if (st === 1) RC(c, x, fy - 7, 2, 1, shade(shirt, -25)); };
-  if (side) { const sw = fr === 1 ? 1 : fr === 3 ? -1 : 0; RC(c, cx - 1 + sw, fy - 12, 2, 6, skin); RC(c, cx - 1 + sw, fy - 12, 2, st === 1 ? 5 : 2, shirt); }
-  else if (raised) {
-    [tx - 3, tx + bw + 1].forEach(x => { RC(c, x, fy - 23, 2, 11, skin); RC(c, x, fy - 14, 2, st === 1 ? 4 : 2, shirt); });
-    RC(c, tx - 2, fy - 13, 2, 2, shirt); RC(c, tx + bw, fy - 13, 2, 2, shirt);
-  } else {
-    const al = fr === 1 ? 1 : fr === 3 ? -1 : 0;
-    RC(c, tx - 2, fy - 12 + (al > 0 ? 1 : 0), 2, 6, skin); RC(c, tx - 2, fy - 12 + (al > 0 ? 1 : 0), 2, st === 1 ? 5 : 2, shirt);
-    RC(c, tx + bw, fy - 12 + (al < 0 ? 1 : 0), 2, 6, skin); RC(c, tx + bw, fy - 12 + (al < 0 ? 1 : 0), 2, st === 1 ? 5 : 2, shirt);
-  }
-  const y0 = fy - 20;
-  RC(c, cx - 4, y0, 8, 8, skin); RC(c, cx - 4, y0 + 7, 8, 1, shade(skin, -18));
-  if (dir === 'd') {
-    RC(c, cx - 3, y0 + 4, 1, 2, INK); RC(c, cx + 2, y0 + 4, 1, 2, INK); PX(c, cx, y0 + 6, shade(skin, -45));
-    if (look.b === 0) { PX(c, cx - 4, y0 + 5, '#f0a0a0'); PX(c, cx + 3, y0 + 5, '#f0a0a0'); }
-  } else if (side) { RC(c, cx + 2, y0 + 4, 1, 2, INK); PX(c, cx + 4, y0 + 5, shade(skin, -22)); }
-  const h = look.hair, hl = shade(hair, 28);
-  if (h !== 5) {
-    RC(c, cx - 4, y0 - 1, 8, 3, hair); RC(c, cx - 3, y0 - 1, 3, 1, hl);
-    if (dir === 'd') { RC(c, cx - 4, y0 + 2, 2, 1, hair); RC(c, cx + 2, y0 + 2, 2, 1, hair); RC(c, cx - 4, y0 + 3, 1, 2, hair); RC(c, cx + 3, y0 + 3, 1, 2, hair); }
-    else if (dir === 'u') RC(c, cx - 4, y0 - 1, 8, 7, hair);
-    else RC(c, cx - 4, y0 + 2, 4, 4, hair);
-  } else { RC(c, cx - 4, y0, 8, dir === 'u' ? 3 : 1, hair); }
-  if (h === 1) { if (dir === 'd') { RC(c, cx - 5, y0 + 2, 1, 9, hair); RC(c, cx + 4, y0 + 2, 1, 9, hair); } else if (dir === 'u') RC(c, cx - 4, y0 - 1, 8, 12, hair); else RC(c, cx - 5, y0 + 2, 3, 9, hair); }
-  if (h === 2) { if (dir === 'd') { RC(c, cx + 4, y0 + 2, 2, 6, hair); } else if (dir === 'u') { RC(c, cx - 1, y0 + 5, 3, 7, hair); PX(c, cx, y0 + 5, '#e8a23a'); } else RC(c, cx - 6, y0 + 2, 2, 7, hair); }
-  if (h === 3) { RC(c, cx - 2, y0 - 4, 4, 3, hair); RC(c, cx - 1, y0 - 5, 2, 1, hair); PX(c, cx - 1, y0 - 4, hl); }
-  if (h === 4) { PX(c, cx - 3, y0 - 2, hair); RC(c, cx - 1, y0 - 3, 2, 2, hair); PX(c, cx + 2, y0 - 2, hair); }
-  const hm = look.hatc;
-  if (look.hat === 1) { const m = hm || '#e8d8a0'; RC(c, cx - 4, y0 - 3, 8, 4, m); RC(c, cx - 4, y0 - 3, 8, 1, shade(m, 22)); RC(c, cx - 6, y0 + 1, 12, 1, shade(m, -34)); }
-  if (look.hat === 2) { const m = hm || '#c2442f'; RC(c, cx - 4, y0 - 3, 8, 5, m); RC(c, cx - 4, y0 + 1, 8, 1, shade(m, -50)); PX(c, cx - 1, y0 - 4, '#f5e9cf'); PX(c, cx, y0 - 4, '#f5e9cf'); }
-  if (look.hat === 3) { const m = hm || '#e8c46a'; RC(c, cx - 3, y0 - 4, 6, 4, m); RC(c, cx - 3, y0 - 1, 6, 1, shade(m, -60)); RC(c, cx - 7, y0, 14, 2, shade(m, -20)); RC(c, cx - 7, y0, 14, 1, shade(m, 24)); }
-}
-const charCache = new Map();
-function charSprite(look, dir, fr) {
-  const key = [look.b, look.hair, look.hc, look.skin, look.shirt, look.style, look.hat, look.hatc || '', look.topc || '', dir, fr].join();
-  let s = charCache.get(key); if (s) return s;
-  let c = mk(24, 32); if (dir === 'h') paintChar(c, look, 'd', fr, true); else paintChar(c, look, dir === 'l' ? 'r' : dir, fr);
-  if (dir === 'l') { const f = mk(24, 32); f.g.translate(24, 0); f.g.scale(-1, 1); f.g.drawImage(c, 0, 0); c = f; }
-  s = anchor(OL(c), CFX + 1, CFY + 1); charCache.set(key, s); return s;
-}
-function randLook() { return { b: Math.floor(rnd(0, 3)), hair: Math.floor(rnd(0, 6)), hc: Math.floor(rnd(0, 8)), skin: Math.floor(rnd(0, 6)), shirt: Math.floor(rnd(0, 8)), style: Math.floor(rnd(0, 3)), hat: Math.random() < 0.35 ? Math.floor(rnd(1, 4)) : 0 }; }
-
 // ---- icons ----------------------------------------------------------------
 const iconCache = {};
 function itemIcon(id) {
@@ -314,23 +220,6 @@ function makeShop(c1, c2, sign, wares) {
   return anchor(OL(c), 26, 41);
 }
 function makeTackleShop() { return makeShop('#3f7fb8', '#f5e9cf', c => { LN(c, 24, 6, 28, 2, '#a8743a'); EL(c, 26, 4, 3, 2, '#78bfff'); PX(c, 30, 3, '#2a1c1c'); }, c => { LN(c, 9, 25, 13, 12, '#a8743a'); LN(c, 12, 25, 16, 12, '#8a5a30'); LN(c, 40, 25, 36, 13, '#a8743a'); RC(c, 20, 22, 8, 4, '#c85a4a'); RC(c, 30, 23, 6, 3, '#e8c24a'); }); }
-function makeGemShop() { return makeShop('#8a5ad8', '#f5e9cf', c => { RC(c, 24, 1, 4, 2, '#8ff0e0'); RC(c, 22, 3, 8, 2, '#5fd0c0'); RC(c, 24, 5, 4, 2, '#3aa89c'); PX(c, 25, 2, '#fff'); }, c => { DC(c, 14, 23, 2, '#5fd0c0'); DC(c, 22, 23, 2, '#e86fa8'); DC(c, 30, 23, 2, '#f2b84b'); DC(c, 38, 23, 2, '#78bfff'); }); }
-function makeOutfitShop() { return makeShop('#e86fa8', '#f5e9cf', c => { RC(c, 22, 2, 8, 4, '#4a7ad8'); RC(c, 20, 3, 2, 3, '#4a7ad8'); RC(c, 30, 3, 2, 3, '#4a7ad8'); RC(c, 24, 1, 4, 1, '#2a1c1c'); }, c => { RC(c, 10, 17, 10, 9, '#e8a23a'); RC(c, 24, 18, 8, 8, '#8fbf4a'); RC(c, 36, 16, 8, 10, '#4a7ad8'); }); }
-function makeTank() {
-  const c = mk(44, 36);
-  RC(c, 3, 24, 38, 10, '#8a5a30'); RC(c, 3, 24, 38, 2, '#a8743a'); RC(c, 5, 30, 34, 1, '#6b4423'); RC(c, 6, 33, 4, 2, '#5a3a1f'); RC(c, 34, 33, 4, 2, '#5a3a1f');
-  RC(c, 2, 2, 40, 23, '#6b4423'); RC(c, 4, 4, 36, 19, '#cfeaf4'); RC(c, 5, 6, 34, 16, '#5fb0d0'); RC(c, 5, 6, 34, 2, '#8cd0e8'); RC(c, 5, 19, 34, 3, '#e0cd96');
-  for (const x of [9, 14, 31, 35]) { RC(c, x, 13, 1, 7, '#4e9a52'); PX(c, x + 1, 14, '#4e9a52'); }
-  RC(c, 6, 4, 1, 17, 'rgba(255,255,255,0.35)'); RC(c, 8, 3, 8, 1, '#fff');
-  return anchor(OL(c), 22, 33);
-}
-function makeLeaderboard() {
-  const c = mk(32, 38);
-  RC(c, 5, 16, 3, 20, '#6b4423'); RC(c, 24, 16, 3, 20, '#6b4423'); RC(c, 2, 12, 28, 20, '#8a5a30'); RC(c, 4, 14, 24, 16, '#d6b680');
-  [[16, '#f2b84b'], [21, '#c0c8d0'], [26, '#c8803c']].forEach(r => { RC(c, 6, r[0], 4, 3, r[1]); RC(c, 12, r[0] + 1, 12, 1, '#6b4423'); });
-  RC(c, 12, 8, 8, 2, '#c8902a'); RC(c, 14, 4, 4, 5, '#f2b84b'); RC(c, 10, 1, 12, 4, '#ffd23f'); RC(c, 8, 2, 2, 2, '#f2b84b'); RC(c, 22, 2, 2, 2, '#f2b84b'); PX(c, 12, 2, '#fff3c4');
-  return anchor(OL(c), 16, 36);
-}
 function makePortal(kind) {
   if (kind === 'exit') {
     const c = mk(40, 34); EL(c, 20, 22, 19, 12, '#6c7380'); EL(c, 20, 18, 17, 11, '#8a919c'); RC(c, 10, 14, 20, 17, '#d8ecff'); EL(c, 20, 14, 10, 6, '#d8ecff'); RC(c, 14, 14, 12, 17, '#f4fbff'); EL(c, 20, 13, 6, 4, '#f4fbff');
@@ -386,12 +275,11 @@ function buildSprites() {
   SPR.deco = [makeTree(CANOPY.orange, null, 5, false), makeTree(CANOPY.red, null, 6, false), makeTree(CANOPY.yellow, null, 7, false), makeTree(CANOPY.green, null, 8, false), makePine(), makePine()];
   const bc = { blueberry: '#4a5fc0', raspberry: '#d8305f', blackberry: '#3a2a4a', elderberry: '#5a3a7a' };
   SPR.bush = {}; for (const k in bc) SPR.bush[k] = [makeBush(bc[k], true), makeBush(bc[k], false)];
-  SPR.lamp = makeLamp(); SPR.bench = makeBench(); SPR.stall = makeStall(); SPR.board = makeBoard(); SPR.fountain = makeFountain(); SPR.rock = makeRock();
-  SPR.clutter = { seaweed: makeSeaweed(), shell: makeShellMound(), wood: makeDriftwood(), crab: makeCrabHole() };
+  SPR.lamp = makeLamp(); SPR.bench = makeBench(); SPR.fountain = makeFountain(); SPR.rock = makeRock();
   SPR.flower = ['#f06a8a', '#f5e9cf', '#f2b84b', '#a98af0', '#ff9a5a'].map(makeFlower);
-  SPR.shovel = makeShovel(); SPR.hoop = makeHoop(); SPR.note = [makeNote(false), makeNote(true)];
+ 
   SPR.portalCave = makePortal('cave'); SPR.portalExit = makePortal('exit'); SPR.crystalB = makeCrystal('#5fa8ff', '#a8d4ff'); SPR.crystalP = makeCrystal('#b070f0', '#d8b0ff'); SPR.mushroom = makeMushroom('#5fd8d0'); SPR.mushroomP = makeMushroom('#e86fa8'); SPR.stalagmite = makeStalagmite();
-  SPR.tackle = makeTackleShop(); SPR.gemshop = makeGemShop(); SPR.outfitshop = makeOutfitShop(); SPR.tank = makeTank(); SPR.leaders = makeLeaderboard();
+  SPR.tackle = makeTackleShop();
   SPR.campfire = makeCampfire(); SPR.tentRed = makeTent('#d8604a', '#f5e9cf'); SPR.tentGreen = makeTent('#5f9a5a', '#e8d8a0'); SPR.logseat = makeLogSeat(); SPR.crate = makeCrate();
   SPR.barrel = makeBarrel(); SPR.signpost = makeSignpost(); SPR.fence = makeFence(); SPR.lily = [makeLily(0), makeLily(1), makeLily(2)];
 }

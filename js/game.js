@@ -103,9 +103,9 @@ function doEmote(e) {
 }
 
 // ---- targets --------------------------------------------------------------
-const SHOPK = ['portal', 'stall', 'board', 'tackle', 'gemshop', 'outfitshop', 'tank', 'leaders'];
-const ICON = { portal: 'portal', tackle: 'tackle', gemshop: 'gem', outfitshop: 'shirt', tank: 'tank', leaders: 'trophy', dig: 'beach', clutter: 'beach', stall: 'stall', board: 'board', note: 'board', npc: 'wave' };
-const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', gemshop: 'Press to open the gem shop', outfitshop: 'Press to see today\'s outfits', tank: 'Press to open the museum cases', leaders: 'Press to see the leaderboard', dig: 'Hold to charge your swing, release to strike', clutter: 'Press to dig here', stall: 'Press to open the market', board: 'Press to read the board', note: 'Press to read the note', npc: 'Press to wave hello' };
+const SHOPK = ['portal', 'tackle'];
+const ICON = { portal: 'portal', tackle: 'tackle', dig: 'beach', npc: 'wave' };
+const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', dig: 'Hold to charge your swing, release to strike', npc: 'Press to wave hello' };
 function findTarget() {
   if (A || UI.isOpen) return null;
   const px = ME.x, py = ME.y, fv = DV[ME.dir]; let best = null;
@@ -117,8 +117,6 @@ function findTarget() {
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
     if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
-    else if (o.k === 'note') consider('note', o, o.x, o.y, Math.hypot(o.x - px, o.y - py), o.ia);
-    else if (o.k === 'clutter') consider('clutter', o, o.x, o.y, Math.hypot(o.x - px, o.y - py), o.ia);
   }
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
   let sb = null; // a dig site tile just in front of the player
@@ -131,25 +129,17 @@ function findTarget() {
 }
 function tapWorld(sx, sy) {
   if (UI.isOpen || A) return; const wx = sx / Z + cam.x, wy = sy / Z + cam.y; let best = null, bd = 1e9;
-  const cand = W.objs.filter(o => o.k === 'clutter' || SHOPK.includes(o.k) || o.k === 'note').concat(NPCS);
+  const cand = W.objs.filter(o => SHOPK.includes(o.k)).concat(NPCS);
   for (const o of cand) {
-    const cy = o.k === 'bug' ? o.y - o.z : o.k === 'tree' ? o.y - 24 : SHOPK.includes(o.k) ? o.y - 16 : o.y - 8, d = Math.hypot(wx - o.x, wy - cy), rad = o.k === 'tree' ? 24 : SHOPK.includes(o.k) ? 26 : 13;
+    const cy = SHOPK.includes(o.k) ? o.y - 16 : o.y - 8, d = Math.hypot(wx - o.x, wy - cy), rad = SHOPK.includes(o.k) ? 26 : 13;
     if (d < rad && d < bd) { best = o; bd = d; }
   }
-  if (best) autoWalk = { ref: best, x: best.x, y: best.y + (best.k === 'tree' || best.k === 'bush' ? 4 : 0), stuck: 0 };
+  if (best) autoWalk = { ref: best, x: best.x, y: best.y, stuck: 0 };
   else if (siteAt(wx, wy)) autoWalk = { dig: true, x: wx, y: wy, stuck: 0 };
   else autoWalk = { x: wx, y: wy, stuck: 0 };
 }
 
-// ---- gains, xp, quests ----------------------------------------------------
-function questEvent(ev, n) {
-  const q = curQuest(); if (q.ev !== ev) return; S.qprog += n || 1;
-  if (S.qprog >= q.need) {
-    S.qprog = 0; S.quest++; const gold = q.loop ? 25 : 10, xp = q.loop ? 25 : 15;
-    S.gold += gold; UI.toast('Goal complete! +' + gold + 'g', 'gold'); setTimeout(() => addXP(xp), 400); sfx('level');
-  }
-  UI.refresh();
-}
+// ---- gains and xp ----------------------------------------------------
 function addXP(n) {
   S.xp += n; floater(ME.x, ME.y - 40, '+' + n + ' xp', '#8fe0ff'); let up = false;
   while (S.xp >= needXP(S.lv)) { S.xp -= needXP(S.lv); S.lv++; up = true; }
@@ -174,8 +164,8 @@ function gain(list, src) {
   sfx(rr >= 2 ? 'rare' : 'catch'); vib(rr >= 2 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 26, RAR[rr].c, 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 2 ? 2 : 1);
   if (src === 'fish') S.stats.fish++;
-  questEvent(src, 1); questEvent('any', kept.length); addXP(xp); UI.refresh();
-  if (src === 'fish' && S.stats.fish === 1) setTimeout(() => UI.toast('Drag anywhere to walk around the island', 'info'), 2600);
+  addXP(xp); UI.refresh();
+  if (src === 'fish' && S.stats.fish === 1) setTimeout(() => UI.toast('Find a roped-off dig site to dig again. Higher levels open new sites!', 'info'), 2600);
 }
 const bagFull = () => bagCount() >= bagCap();
 // the catch is held up over the player's head for a few seconds
@@ -184,42 +174,27 @@ function setHold(kept) {
   groups.sort((a, b) => ITEM[b.id].r - ITEM[a.id].r);
   ME.hold = { groups, t: 0, dur: ITEM[groups[0].id].r >= 2 ? 4 : 2.8 };
 }
-function readNote(o) {
-  const first = !S.notes.includes(o.idx); if (first) { S.notes.push(o.idx); addXP(3); }
-  UI.note(o.text, o.idx, W.notes.length, first); sfx('ui'); UI.refresh();
-}
-
 // ---- activities -----------------------------------------------------------
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.hold = null;
-  if (t.kind === 'note') { readNote(t.ref); return; }
-  if (t.kind === 'stall') { held = false; UI.openMarket(); return; }
   if (t.kind === 'portal') { held = false; goArea(t.ref.to, t.ref.sx, t.ref.sy); return; }
-  if (t.kind === 'tackle') { held = false; UI.openTackle('sell'); return; }
-  if (t.kind === 'tank') { held = false; UI.openTank(); return; }
-  if (t.kind === 'gemshop') { held = false; UI.openGems(); return; }
-  if (t.kind === 'outfitshop') { held = false; UI.openOutfits(); return; }
-  if (t.kind === 'leaders') { held = false; UI.openLeaders('me'); return; }
-  if (t.kind === 'board') { held = false; UI.openBoard(); return; }
-  if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); questEvent('wave', 1); return; }
+  if (t.kind === 'tackle') { held = false; UI.openDealer('sell'); return; }
+  if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
-  const rod = TOOLS.rod[S.tools.rod], net = TOOLS.net[S.tools.net], sh = TOOLS.shovel[S.tools.shovel];
   if (t.kind === 'dig') {
     const zn = SITES[t.zone]; if (S.lv < zn.lv) { UI.toast(zn.n + ' opens at level ' + zn.lv, 'info'); sfx('no'); return; }
     A = { k: 'fish', ph: 'charge', t: 0, pw: 0, pd: 1, on: held, dir: t.dir, d0: t.dist, zone: t.zone, p: 0, idle: 0, rt: 0 }; return;
   }
-  if (t.kind === 'clutter') { A = { k: 'dig', ref: t.ref, t: 0, dur: 1.2 / sh.spd, stroke: 0 }; return; }
 }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
-const walkSp = () => 58 * (S.gearOwned.includes('sandals') ? 1.08 : 1);
-const boostOn = id => !!(S.boosts[id] && S.boosts[id] > Date.now());
+const walkSp = () => 58;
 function castFish() { // release: the charge bar sets how hard you strike, which decides how deep you dig (deeper = rarer finds)
   const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir], reach = A.d0 + 4;
   const bx = ME.x + v[0] * reach, by = ME.y - 2 + v[1] * reach;
   Object.assign(A, { ph: 'cast', t: 0, bx, by, where: SITES[A.zone].id,
-    wait: (S.stats.fish === 0 ? 1.4 : rnd(1.8, 4.2)) * (boostOn('quick') ? 0.7 : 1) / rod.spd,
-    win: 1.2 + S.tools.rod * 0.12 + (S.gearOwned.includes('wrist') ? 0.3 : 0), luck: rod.luck + A.pw * (rod.rng / 30) + (boostOn('lucky') ? 1.5 : 0), decay: 1 });
+    wait: (S.stats.fish === 0 ? 1.4 : rnd(1.8, 4.2)) * 1 / rod.spd,
+    win: 1.2 + S.tools.rod * 0.12 , luck: rod.luck + A.pw * (rod.rng / 30), decay: 1 });
   sfx('cast'); burst(bx, by, '#c8a070', 8, 36, 0.6, 120, 1);
 }
 // Stardew-style reel: keep the green bar on the fish until the meter fills. Rarer / bigger fish = smaller bar, jumpier fish.
@@ -267,24 +242,12 @@ function updateAct(dt) {
       } else if (A.ph === 'pull') { if (A.t >= 0.5) { const it = A.item; endAct(); gain([it], 'fish'); } }
       break;
     }
-    case 'dig': {
-      const sh = TOOLS.shovel[S.tools.shovel], s = Math.floor(A.t / (A.dur / 3));
-      if (s > A.stroke && s <= 3) { A.stroke = s; sfx('dig'); burst(A.ref.x, A.ref.y - 4, '#d8c08a', 8, 36, 0.6, 120, 1); vib(10); }
-      if (A.t >= A.dur) {
-        const type = A.ref.type, map = { seaweed: ['glass', 'blueglass', 'redglass', 'hermit', 'bottle', 'pearl', 'starfish'], shell: ['cockle', 'scallop', 'starfish', 'sanddollar', 'conch', 'pearl'], wood: ['driftwood', 'oldcoin', 'relic', 'bottle', 'hermit'], crab: ['hermit', 'pearl', 'oldcoin', 'starfish', 'conch'] };
-        const ctx = { luck: sh.luck, rain: isRain(), night: isNight() };
-        const inst = Math.random() < 0.2 ? rollItem('beach', ctx) : rollItem('beach', ctx, i => map[type].includes(i.id));
-        removeClutter(A.ref); endAct(); gain([inst], 'beach');
-      }
-      break;
-    }
   }
 }
 function actState() {
   if (!A) return null;
   switch (A.k) {
     case 'fish': return { icon: 'beach', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to strike!' : 'Press and hold to charge your swing', cast: 'Digging...', wait: 'Digging... (wait for a clink)', bite: 'Clink! Press to uncover it!', reel: 'Hold to brush. Keep the green bar on the relic!', pull: 'Got it!' }[A.ph] };
-    case 'dig': return { icon: 'beach', prog: A.t / A.dur, hint: 'Digging...' };
   }
 }
 
@@ -355,8 +318,8 @@ function tick(dt) {
   const st = actState();
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
-  else { UI.setAct(null, 0, false); UI.setHint(UI.isOpen ? '' : curQuest().hint); }
-  updateWorld(dt, timeNow, night); NPCS.forEach(n => updateNPC(n, dt));
+  else { UI.setAct(null, 0, false); UI.setHint(''); }
+  NPCS.forEach(n => updateNPC(n, dt));
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
@@ -383,7 +346,7 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   g.fillStyle = '#d8b078'; g.fillRect(hx - 7, hy + 1, 3, 1); g.fillRect(hx + 4, hy + 1, 4, 1);
   if (f.ph === 'bite') { // glint on the find + a "!" over the digger
     const k = Math.floor(now * 10) % 2; g.fillStyle = '#fff6c8'; g.fillRect(hx - 1, hy - 1, 2, 2); g.fillRect(hx - 3 + k, hy, 1, 1); g.fillRect(hx + 2 - k, hy - 2, 1, 1);
-    g.font = 'bold 9px "Pixelify Sans", monospace'; g.textAlign = 'center'; g.fillStyle = (f.item && S.gearOwned.includes('finder')) ? RAR[ITEM[f.item.id].r].c : '#e8483a'; g.fillText('!', Math.round(e.x - cx), Math.round(e.y - 42 - cy + Math.sin(now * 20))); g.textAlign = 'left';
+    g.font = 'bold 9px "Pixelify Sans", monospace'; g.textAlign = 'center'; g.fillStyle = '#e8483a'; g.fillText('!', Math.round(e.x - cx), Math.round(e.y - 42 - cy + Math.sin(now * 20))); g.textAlign = 'left';
   }
   if (f.ph === 'reel' && f.item) { // the relic rises out of the hole as the meter fills (clipped to the hole's top)
     const ic = itemIcon(f.item.id), rise = Math.round(clamp(f.p, 0, 1) * 16);
@@ -396,7 +359,6 @@ function mePose(now) { // which painted action frame the player is in right now 
   if (ME.hold) return ['gather', 4 + D, 7, true];
   if (A) switch (A.k) {
     case 'fish': return digPose(ME.dir, A, now, A.hit);
-    case 'dig': { const u = A.t / A.dur; return ['gather', D, u < 0.85 ? Math.min(3, Math.floor(u * 6)) : 4]; }
   }
   if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
   return null;
@@ -418,18 +380,10 @@ function drawChar(e, cx, cy, now) {
   }
   const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawDig(e, f, cx, cy, now);
 }
-function drawBug(b, cx, cy) {
-  const z = b.z, open = Math.sin(b.ph * (b.st === 'rest' ? 1 : 1)) > 0 || b.st === 'rest' && Math.sin(b.ph) > 0.3, [a, c2] = b.it.cols, x = Math.round(b.x - cx), y = Math.round(b.y - z - cy);
-  if (z > 2.5) { g.fillStyle = 'rgba(20,24,34,0.22)'; g.fillRect(x - 2, Math.round(b.y - cy), 4, 1); }
-  if (b.night) { g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(x - 4, y - 3, 9, 7); }
-  g.fillStyle = a; if (open) { g.fillRect(x - 4, y - 3, 3, 4); g.fillRect(x + 2, y - 3, 3, 4); g.fillStyle = c2; g.fillRect(x - 3, y, 2, 2); g.fillRect(x + 2, y, 2, 2); } else { g.fillRect(x - 2, y - 3, 2, 4); g.fillRect(x + 1, y - 3, 2, 4); g.fillStyle = c2; g.fillRect(x - 2, y + 1, 1, 1); g.fillRect(x + 2, y + 1, 1, 1); }
-  g.fillStyle = '#2a2020'; g.fillRect(x, y - 3, 1, 5);
-}
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'me': case 'npc': if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); drawChar(o, cx, cy, now); g.restore(); } else drawChar(o, cx, cy, now); break;
-    case 'bug': drawBug(o, cx, cy); break;
     case 'tree': case 'bush': {
       const spr = o.k === 'tree' ? SPR.tree[o.kind][o.fruit ? 0 : 1] : SPR.bush[o.kind][o.berry ? 0 : 1];
       g.drawImage(shadowSpr(o.k === 'tree' ? 28 : 18, o.k === 'tree' ? 9 : 5), Math.round(o.x - (o.k === 'tree' ? 14 : 9) - cx), Math.round(o.y - 5 - cy));
@@ -441,32 +395,19 @@ function drawEnt(o, cx, cy, now) {
       g.fillStyle = 'rgba(190,235,250,0.9)'; for (let i = 0; i < 10; i++) { const ph = (now * 1.1 + i / 10) % 1, a = i * 0.628; g.fillRect(Math.round(o.x + Math.cos(a) * ph * 9 - cx), Math.round(o.y - 38 - Math.sin(ph * Math.PI) * 7 + ph * ph * 10 - cy), 1, 1); }
       break;
     }
-    case 'tank': {
-      g.drawImage(shadowSpr(46, 8), Math.round(o.x - 23 - cx), Math.round(o.y - 4 - cy)); const sp = o.spr, X = Math.round(o.x - sp.ax - cx), Y = Math.round(o.y - sp.ay - cy);
-      g.drawImage(sp, X, Y); S.tank.slice(0, 8).forEach((f, i) => { const ic = itemIcon(f.id), d = Math.cos(now * 0.5 + i * 1.7) > 0 ? 1 : -1, fx = X + 22 + Math.sin(now * 0.5 + i * 1.7) * 11 - 5, fy = Y + 10 + (i % 3) * 4 + Math.sin(now * 1.3 + i) * 0.8; g.save(); if (d < 0) { g.translate(Math.round(fx) + 10, 0); g.scale(-1, 1); g.drawImage(ic, 0, Math.round(fy), 10, 10); } else g.drawImage(ic, Math.round(fx), Math.round(fy), 10, 10); g.restore(); });
-      g.fillStyle = 'rgba(255,255,255,0.7)'; for (let i = 0; i < 3; i++) { const ph = (now * 0.4 + i / 3) % 1; g.fillRect(X + 9 + i * 12, Math.round(Y + 19 - ph * 12), 1, 1); }
-      break;
-    }
     case 'campfire': g.drawImage(shadowSpr(26, 8), Math.round(o.x - 13 - cx), Math.round(o.y - 5 - cy)); drawCampfire(o, cx, cy, now); break;
-    case 'note': {
-      const read = S.notes.includes(o.idx), spr = SPR.note[read ? 1 : 0]; g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
-      if (!read) { const b = Math.round(Math.sin(now * 5) * 1.5), px = Math.round(o.x - cx), py = Math.round(o.y - 27 - cy + b); g.fillStyle = '#2a1c1c'; g.fillRect(px - 2, py - 1, 4, 7); g.fillRect(px - 2, py + 7, 4, 4); g.fillStyle = '#f2b84b'; g.fillRect(px - 1, py, 2, 5); g.fillRect(px - 1, py + 8, 2, 2); }
-      break;
-    }
     default: {
       const spr = o.spr; if (!spr) return;
       if (o.k === 'deco' || o.k === 'rock') g.drawImage(shadowSpr(o.k === 'rock' ? 16 : 26, o.k === 'rock' ? 5 : 8), Math.round(o.x - (o.k === 'rock' ? 8 : 13) - cx), Math.round(o.y - 4 - cy));
-      if (o.k === 'stall') g.drawImage(shadowSpr(48, 8), Math.round(o.x - 24 - cx), Math.round(o.y - 4 - cy));
       if (o.k === 'deco') drawSway(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), now, 1, Math.round(spr.height * (SPR.deco.indexOf(spr) >= 4 ? 0.7 : 0.58)));
       else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
-      if (o === (target && target.ref) && (o.k === 'clutter' || o.k === 'tree' || o.k === 'bush' || o.k === 'stall' || o.k === 'board')) { }
     }
   }
 }
 function drawMarker(cx, cy, now) {
   if (!target) return; let x, y;
   if (target.kind === 'dig') { const v = DV[target.dir]; x = ME.x + v[0] * (target.dist + 6); y = ME.y - 2 + v[1] * (target.dist + 6); g.fillStyle = 'rgba(255,255,255,0.8)'; const t = (now * 1.6) % 1; for (let i = 0; i < 8; i++) { const a = i * 0.785; g.fillRect(Math.round(x + Math.cos(a) * (3 + t * 5) - cx), Math.round(y + Math.sin(a) * (1.5 + t * 2.5) - cy), 1, 1); } return; }
-  const o = target.ref; x = o.x; y = o.y - (o.k === 'tree' ? 50 : o.k === 'bug' ? 14 + o.z : o.k === 'stall' ? 38 : o.k === 'board' ? 30 : o.k === 'npc' ? 34 : o.k === 'bush' ? 22 : 14);
+  const o = target.ref; x = o.x; y = o.y - (o.k === 'npc' ? 34 : 24);
   const bob = Math.round(Math.sin(now * 6) * 1.5), px = Math.round(x - cx), py = Math.round(y - cy + bob); g.fillStyle = '#2a1c1c'; g.fillRect(px - 3, py - 1, 7, 2); g.fillRect(px - 2, py + 1, 5, 2); g.fillRect(px - 1, py + 3, 3, 1);
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
 }
@@ -489,7 +430,6 @@ function render(now) {
   }
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
-  for (const b of W.bugs) if (b.x > cx - 10 && b.x < cx + VW + 10 && b.y > cy - 10 && b.y < cy + VH + 40) L.push(b);
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
   L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
   drawMarker(cx, cy, now);
@@ -567,7 +507,7 @@ function goArea(to, sx, sy) { // fade out, load the other map, drop the player a
   if (fading) return; fading = true; const f = $('#fade'); f.classList.add('on'); sfx('pop');
   setTimeout(() => {
     const done = map => {
-      AREA = to; W.bugs = []; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
+      AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
       NPCS = []; for (let i = 0; i < (to === 'cave' ? 3 : 10); i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink); FX.leaves = [];
       setTimeout(() => { f.classList.remove('on'); fading = false; if (to === 'cave') UI.toast('A quiet cave. The pools here hold their own fish.', 'info'); }, 140);
     };
@@ -582,7 +522,7 @@ function loadMapData(cb) {
   fetch('maps/' + AREA + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => ok(m) ? cb(m, 'file') : cb(defaultFor(AREA), 'default')).catch(() => cb(defaultFor(AREA), 'default'));
 }
 function boot() {
-  loadState(); if (qs.has('gems')) S.gems += Math.max(0, +qs.get('gems') || 0); resize(); addEventListener('resize', resize);
+  loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
   buildSprites(); if (ASSET.ok) buildPropSprites(); buildClouds(); if (!EDIT) UI.init();

@@ -22,7 +22,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wallet{min-width:112px}.wallet .row1{display:flex;align-items:center;gap:6px}.wallet img{width:18px;height:18px}
 .wallet b#gold{color:var(--amber);font-size:15px}.wallet .lvl{margin-left:auto;color:var(--muted);font-size:12px}
 .xpbar{height:5px;background:#101826;margin-top:5px;overflow:hidden}.xpbar i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s}
-.quest{max-width:min(250px,56vw);white-space:normal;color:#d6e8ff;font-size:12px}.quest::before{content:"★ ";color:var(--amber)}.quest b{color:var(--amber)}
 #clock{cursor:pointer}
 #menu{display:flex;flex-direction:column;gap:20px;margin-top:6px}
 .mbtn{width:44px;height:44px;padding:0;position:relative;display:grid;place-items:center}
@@ -69,10 +68,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .rv .exs{display:flex;gap:8px;justify-content:center;margin-top:6px}.rv .ex{display:flex;align-items:center;gap:2px;font-size:12px}.rv .ex img{width:26px;height:26px}
 .rv .full{font-size:11px;color:#ff8a7a;margin-top:4px}
 /* tutorial notes: a small paper card, not a full-screen sheet */
-#note{position:absolute;left:50%;top:24%;width:min(290px,80vw);transform:translateX(-50%) rotate(-1deg);display:none;background:#f5e9cf;color:#3a2a1c;padding:12px 15px 10px;
   box-shadow:0 -3px 0 #5a3a1f,0 3px 0 #5a3a1f,-3px 0 0 #5a3a1f,3px 0 0 #5a3a1f,inset 0 -3px 0 rgba(90,58,31,.18);pointer-events:auto;cursor:pointer}
-#note.show{display:block;animation:noteIn .25s cubic-bezier(.3,1.5,.5,1) both}
-#note small{display:block;color:#8a6a3a;font-size:11px;letter-spacing:.04em;text-transform:uppercase}#note p{margin:6px 0 8px;font-size:16px;line-height:1.3}#note em{font-style:normal;font-size:11px;color:#a08a64}
 @keyframes noteIn{from{transform:translateX(-50%) rotate(-4deg) translateY(10px) scale(.8);opacity:0}}
 #banner{position:absolute;left:50%;top:34%;transform:translateX(-50%);text-align:center;opacity:0;pointer-events:none;white-space:nowrap}
 #banner b{display:block;font-size:30px;color:var(--amber);text-shadow:0 3px 0 var(--ink),3px 0 0 var(--ink),-3px 0 0 var(--ink),0 -3px 0 var(--ink)}
@@ -128,8 +124,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #loading{position:fixed;inset:0;z-index:50;background:#1b2433;display:grid;place-items:center;transition:opacity .4s}
 #loading.hidden{display:grid!important;opacity:0;pointer-events:none}
 .ld{padding:14px 20px;font-size:16px}
-@media(max-height:560px){#reveal{top:12%}.tl .quest{display:none}}
-
+@media(max-height:560px){#reveal{top:12%}.tl 
 .btn.lock{background:#5a2a2a;color:#ff9a8a}.col2{display:flex;flex-direction:column;gap:5px;align-items:stretch}.grid.g3{grid-template-columns:repeat(3,1fr)}
 .cell.empty-slot{border:2px dashed #3b4a68;background:transparent;min-height:78px;justify-content:center}.cell small{font-size:10px;color:#9db0cf}
 .row.me{background:#2c4a46}.rk{width:22px;text-align:center;color:#f2b84b}.dots{text-align:center;color:#9db0cf}

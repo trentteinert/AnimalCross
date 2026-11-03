@@ -4,7 +4,7 @@
 const ED = {
   on: false, zoom: 3, cam: { x: 0, y: 0 }, tool: 'paint', tile: 3, brush: 1, place: null, sel: null, snap: 8, grid: true,
   undo: [], redo: [], cur: '', keys: {}, mouse: { sx: 0, sy: 0, wx: 0, wy: 0, in: false }, dirty: false, stroke: null, strokeChanged: false,
-  pan: null, mv: null, pierDrag: null, sOpt: { t: 'pier', style: 0, rails: false, posts: true }, msg: '', msgT: 0, last: 0, lastWheel: 0, unsaved: false
+  pan: null, mv: null, msg: '', msgT: 0, last: 0, lastWheel: 0, unsaved: false
 };
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#7b9b45', '#b88652', '#c9b790', '#54a0b8'];
@@ -13,27 +13,27 @@ const PAL = [
   { k: 'tree', kind: 'apple', n: 'Apple tree (fruit)' }, { k: 'tree', kind: 'orange', n: 'Orange tree (fruit)' }, { k: 'tree', kind: 'pear', n: 'Pear tree (fruit)' }, { k: 'tree', kind: 'plum', n: 'Plum tree (fruit)' },
   { k: 'bush', kind: 'blueberry', n: 'Blueberry bush' }, { k: 'bush', kind: 'raspberry', n: 'Raspberry bush' }, { k: 'bush', kind: 'blackberry', n: 'Blackberry bush' }, { k: 'bush', kind: 'elderberry', n: 'Elderberry bush' },
   { k: 'deco', v: 0, n: 'Orange tree' }, { k: 'deco', v: 1, n: 'Red tree' }, { k: 'deco', v: 2, n: 'Yellow tree' }, { k: 'deco', v: 3, n: 'Green tree' }, { k: 'deco', v: 4, n: 'Pine' },
-  { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'stall', n: 'Market stall' }, { k: 'board', n: 'Notice board' }, { k: 'fountain', n: 'Fountain' },
-  { k: 'note', n: 'Tutorial note' }, { k: 'patch', n: 'Flower patch (butterflies)' },
-  { k: 'tackle', n: 'Fishing shop' }, { k: 'tank', n: 'Fish tank' }, { k: 'gemshop', n: 'Gem shop' }, { k: 'outfitshop', n: 'Daily outfit shop' }, { k: 'leaders', n: 'Leaderboard' },
+  { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'fountain', n: 'Fountain' },
+  { k: 'patch', n: 'Flower patch' },
+  { k: 'tackle', n: 'Antiquities dealer' },
   { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }, { k: 'crystal', kind: 'blue', n: 'Crystal (blue)' }, { k: 'crystal', kind: 'purple', n: 'Crystal (purple)' },
   { k: 'mushroom', kind: 'cyan', n: 'Glow mushrooms' }, { k: 'mushroom', kind: 'pink', n: 'Glow mushrooms (pink)' }, { k: 'stalagmite', n: 'Stalagmite' },
   { k: 'campfire', n: 'Campfire (lights up at night)' }, { k: 'tent', kind: 'red', n: 'Tent (red)' }, { k: 'tent', kind: 'green', n: 'Tent (green)' }, { k: 'logseat', n: 'Log seat' },
   { k: 'crate', n: 'Crate' }, { k: 'barrel', n: 'Barrel' }, { k: 'signpost', n: 'Signpost' }, { k: 'fence', n: 'Fence' }
 ];
-const LABELS = { tree: 'Fruit tree', bush: 'Berry bush', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', stall: 'Market stall', board: 'Notice board', fountain: 'Fountain', note: 'Tutorial note', patch: 'Flower patch', tackle: 'Fishing shop', tank: 'Fish tank', gemshop: 'Gem shop', outfitshop: 'Daily outfit shop', leaders: 'Leaderboard', stall: 'General market', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
+const LABELS = { tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'tree': return SPR.tree[e.kind][0]; case 'bush': return SPR.bush[e.kind][0]; case 'deco': return SPR.deco[e.v]; case 'rock': return SPR.rock; case 'lamp': return SPR.lamp;
-    case 'bench': return SPR.bench; case 'stall': return SPR.stall; case 'board': return SPR.board; case 'fountain': return SPR.fountain; case 'note': return SPR.note[0]; case 'patch': return SPR.flower[0];
-    case 'tackle': return SPR.tackle; case 'gemshop': return SPR.gemshop; case 'outfitshop': return SPR.outfitshop; case 'tank': return SPR.tank; case 'leaders': return SPR.leaders;
+    case 'bench': return SPR.bench; case 'fountain': return SPR.fountain; case 'patch': return SPR.flower[0];
+    case 'tackle': return SPR.tackle;
     case 'portal': return e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
     case 'campfire': return SPR.campfire; case 'tent': return e.kind === 'green' ? SPR.tentGreen : SPR.tentRed; case 'logseat': return SPR.logseat; case 'crate': return SPR.crate; case 'barrel': return SPR.barrel; case 'signpost': return SPR.signpost; case 'fence': return SPR.fence;
   }
 }
 function runtimeSpr(o) {
-  if (o.k === 'tree') return SPR.tree[o.kind][0]; if (o.k === 'bush') return SPR.bush[o.kind][0]; if (o.k === 'note') return SPR.note[0]; return o.spr;
+  if (o.k === 'tree') return SPR.tree[o.kind][0]; if (o.k === 'bush') return SPR.bush[o.kind][0]; return o.spr;
 }
 const anc = s => ({ ax: s.ax != null ? s.ax : s.width / 2, ay: s.ay != null ? s.ay : s.height });
 const iconCache2 = {};
@@ -81,7 +81,7 @@ function undo() { if (!ED.undo.length) return; ED.redo.push(ED.cur); applySnap(E
 function redo() { if (!ED.redo.length) return; ED.undo.push(ED.cur); applySnap(ED.redo.pop()); }
 
 // ---- editing actions ----------------------------------------------------------------------
-const findRuntime = src => W.objs.find(o => o.src === src) || W.patches.find(p => p.src === src) || STRUCTS.find(t => t.src === src) || null;
+const findRuntime = src => W.objs.find(o => o.src === src) || W.patches.find(p => p.src === src) || null;
 function rebuildAndSelect(src) { rebuildAll(); computeShore(); ED.sel = src ? findRuntime(src) : null; refreshInspector(); }
 function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
@@ -106,17 +106,11 @@ function hitTest(wx, wy) {
   const objs = W.objs.slice().sort((a, b) => b.y - a.y);
   for (const o of objs) { const s = runtimeSpr(o); if (!s) continue; const x0 = o.x - s.ax, y0 = o.y - s.ay; if (wx >= x0 && wx < x0 + s.width && wy >= y0 && wy < y0 + s.height) return o; }
   for (const p of W.patches) if (Math.hypot(p.x - wx, p.y - wy) < 22) return p;
-  for (const t of STRUCTS) if (wx >= t.x0 && wx < t.x1 && wy >= t.y0 && wy < t.y1) return t;
   return null;
 }
 function deleteSel() {
-  if (!ED.sel) return; const list = ED.sel.isStruct ? MAPDATA.structs : MAPDATA.objects, i = list.indexOf(ED.sel.src); if (i >= 0) list.splice(i, 1);
+  if (!ED.sel) return; const list = MAPDATA.objects, i = list.indexOf(ED.sel.src); if (i >= 0) list.splice(i, 1);
   ED.sel = null; rebuildAll(); computeShore(); refreshInspector(); commit();
-}
-function addStruct(p) {
-  if (p.x1 - p.x0 < 1 || p.y1 - p.y0 < 1) return; const o = ED.sOpt;
-  const src = { t: o.t, x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y1, style: o.style, rails: o.rails, posts: o.posts };
-  MAPDATA.structs.push(src); rebuildAndSelect(src); commit(); msg((o.t === 'bridge' ? 'Bridge' : 'Pier') + ' added. Select it to tweak style, rails and size.');
 }
 function setSpawn(wx, wy) {
   const x = Math.round(wx), y = Math.round(wy);
@@ -141,8 +135,7 @@ function edDown(e) {
   switch (ED.tool) {
     case 'paint': ED.stroke = { tx, ty }; ED.strokeChanged = false; paintAt(tx, ty); break;
     case 'place': placeAt(wx, wy); break;
-    case 'select': { const h = hitTest(wx, wy); ED.sel = h; ED.mv = h && !h.isStruct ? { dx: h.x - wx, dy: h.y - wy, moved: false } : null; refreshInspector(); break; }
-    case 'struct': ED.pierDrag = { x0: tx, y0: ty, x1: tx + 1, y1: ty + 1, sx: tx, sy: ty }; break;
+    case 'select': { const h = hitTest(wx, wy); ED.sel = h; ED.mv = h ? { dx: h.x - wx, dy: h.y - wy, moved: false } : null; refreshInspector(); break; }
     case 'spawn': setSpawn(wx, wy); break;
   }
 }
@@ -154,7 +147,7 @@ function edMove(e) {
   else if (ED.mv && ED.sel) {
     const nx = snapv(wx + ED.mv.dx), ny = snapv(wy + ED.mv.dy);
     if (nx !== ED.sel.x || ny !== ED.sel.y) { ED.sel.x = ED.sel.src.x = nx; ED.sel.y = ED.sel.src.y = ny; ED.mv.moved = true; refreshInspector(true); }
-  } else if (ED.pierDrag) { const p = ED.pierDrag; p.x0 = Math.min(p.sx, tx); p.x1 = Math.max(p.sx, tx) + 1; p.y0 = Math.min(p.sy, ty); p.y1 = Math.max(p.sy, ty) + 1; }
+  }
 }
 function edUp() {
   if (ED.pan) { ED.pan = null; return; }
@@ -164,7 +157,7 @@ function edUp() {
   } else if (ED.mv) {
     const m = ED.mv; ED.mv = null;
     if (m.moved) { if (ED.sel && ED.sel.fl) { const k = ED.sel.src; rebuildAll(); ED.sel = findRuntime(k); } commit(); }
-  } else if (ED.pierDrag) { const p = ED.pierDrag; ED.pierDrag = null; addStruct(p); }
+  }
 }
 function edWheel(e) {
   e.preventDefault(); const now = performance.now(); if (now - ED.lastWheel < 130) return; ED.lastWheel = now;
@@ -208,19 +201,11 @@ function edInput(e) {
 }
 function edChange(e) {
   const t = e.target;
-  if (t.id === 'edNoteText') commit();
-  else if (t.id === 'edSnap') ED.snap = +t.value;
+  if (t.id === 'edSnap') ED.snap = +t.value;
   else if (t.id === 'edArea') { let a = t.value; if (a === '__new') a = (prompt('Name for the new area (letters, numbers, - or _)') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24); if (a) location.href = location.pathname + '?edit&area=' + a; else t.value = AREA; }
   else if (t.id === 'edTheme') { MAPDATA.theme = t.value; W.theme = t.value; rebuildAll(); commit(); }
   else if (ED.sel && t.id === 'edPTo') { ED.sel.src.to = t.value.trim().toLowerCase(); ED.sel.to = ED.sel.src.to; commit(); }
   else if (ED.sel && (t.id === 'edPSx' || t.id === 'edPSy')) { const k = t.id === 'edPSx' ? 'sx' : 'sy'; ED.sel.src[k] = Math.round(+t.value) || 0; ED.sel[k] = ED.sel.src[k]; commit(); }
-  else if (/^edN[TSRP]$/.test(t.id)) { const o = ED.sOpt; if (t.id === 'edNT') o.t = t.value; else if (t.id === 'edNS') o.style = +t.value; else if (t.id === 'edNR') o.rails = t.checked; else o.posts = t.checked; }
-  else if (ED.sel && ED.sel.isStruct && /^edSt[TSRP]$|^edSx[01]$|^edSy[01]$/.test(t.id)) {
-    const q = ED.sel.src;
-    if (t.id === 'edStT') q.t = t.value; else if (t.id === 'edStS') q.style = +t.value; else if (t.id === 'edStR') q.rails = t.checked; else if (t.id === 'edStP') q.posts = t.checked;
-    else { const v = clamp(Math.round(+t.value) || 0, 0, Math.max(MW, MH)); q[t.id.slice(4)] = v; if (q.x1 <= q.x0) q.x1 = q.x0 + 1; if (q.y1 <= q.y0) q.y1 = q.y0 + 1; }
-    rebuildAndSelect(q); commit();
-  }
   else if (t.id === 'edKind' && ED.sel) { const s = ED.sel.src; s.kind = t.value; rebuildAndSelect(s); commit(); }
   else if (t.id === 'edVar' && ED.sel) { const s = ED.sel.src; s.v = +t.value; rebuildAndSelect(s); commit(); }
   else if (t.id === 'edFile' && t.files[0]) {
@@ -271,11 +256,9 @@ function edRender(now) {
   }
   outline(-cx, -cy, PW, PH, 'rgba(242,184,75,0.6)');
   for (const p of W.patches) { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(p.x + Math.cos(a) * 24 - cx), Math.round(p.y + Math.sin(a) * 19 - cy), 1, 1); } g.fillRect(Math.round(p.x - cx) - 1, Math.round(p.y - cy) - 1, 3, 3); }
-  for (const t of STRUCTS) outline(t.x0 - cx, t.y0 - cy, t.x1 - t.x0, t.y1 - t.y0, 'rgba(242,184,75,0.55)');
-  if (ED.pierDrag) { const p = ED.pierDrag; outline(p.x0 * TS - cx, p.y0 * TS - cy, (p.x1 - p.x0) * TS, (p.y1 - p.y0) * TS, '#8fe09a'); }
   { const sx = Math.round(W.spawn.x - cx), sy = Math.round(W.spawn.y - cy); g.fillStyle = 'rgba(20,24,34,0.4)'; g.fillRect(sx - 5, sy - 1, 10, 2); g.fillStyle = '#f5e9cf'; g.fillRect(sx, sy - 16, 1, 16); g.fillStyle = '#e8483a'; g.fillRect(sx + 1, sy - 16, 8, 5); g.fillStyle = '#fff'; g.fillRect(sx + 1, sy - 16, 8, 1); }
   if (ED.sel) {
-    const s = ED.sel; if (s.isStruct) outline(s.x0 - cx - 1, s.y0 - cy - 1, s.x1 - s.x0 + 2, s.y1 - s.y0 + 2, '#f2b84b'); else if (s.fl) { g.fillStyle = '#f2b84b'; for (let i = 0; i < 32; i++) { const a = i * 0.196; g.fillRect(Math.round(s.x + Math.cos(a) * 26 - cx), Math.round(s.y + Math.sin(a) * 21 - cy), 2, 2); } }
+    const s = ED.sel; if (s.fl) { g.fillStyle = '#f2b84b'; for (let i = 0; i < 32; i++) { const a = i * 0.196; g.fillRect(Math.round(s.x + Math.cos(a) * 26 - cx), Math.round(s.y + Math.sin(a) * 21 - cy), 2, 2); } }
     else { const sp = runtimeSpr(s); if (sp) outline(Math.round(s.x - sp.ax - cx) - 1, Math.round(s.y - sp.ay - cy) - 1, sp.width + 2, sp.height + 2, '#f2b84b'); }
   }
   const m = ED.mouse;
@@ -286,7 +269,7 @@ function edRender(now) {
       const px = snapv(m.wx), py = snapv(m.wy);
       if (ED.place.k === 'patch') { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(px + Math.cos(a) * 24 - cx), Math.round(py + Math.sin(a) * 19 - cy), 1, 1); } }
       else { const s = entrySpr(ED.place), a = anc(s); g.globalAlpha = 0.6; g.drawImage(s, Math.round(px - a.ax - cx), Math.round(py - a.ay - cy)); g.globalAlpha = 1; }
-    } else if (ED.tool === 'struct' || ED.tool === 'spawn') outline(tx * TS - cx, ty * TS - cy, TS, TS, '#f2b84b');
+    } else if (ED.tool === 'spawn') outline(tx * TS - cx, ty * TS - cy, TS, TS, '#f2b84b');
     const st = $('#edStatus'); if (st) { const ty2 = typeAt(m.wx, m.wy), recent = performance.now() - ED.msgT < 6000; st.textContent = (recent && ED.msg ? ED.msg + '   |   ' : '') + 'tile ' + tx + ',' + ty + ' · ' + (ty2 === 7 ? 'Decking' : TILE_NAMES[ty2] || '') + (siteAt(m.wx, m.wy) ? ' · ' + SITES[siteAt(m.wx, m.wy)].n + ' dig site' : '') + ' · px ' + Math.round(m.wx) + ',' + Math.round(m.wy); }
   }
 }
@@ -325,12 +308,6 @@ function buildEditorUI() {
   document.body.appendChild(el);
 }
 function areaOptions() { const list = ['island', 'cave']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
-function structOptsHTML(q, pre) {
-  q = q || ED.sOpt; pre = pre || 'edN';
-  return `<label>Type<select id="${pre}T"><option value="pier" ${q.t === 'pier' ? 'selected' : ''}>Pier (cap at the water end)</option><option value="bridge" ${q.t === 'bridge' ? 'selected' : ''}>Bridge</option></select></label>
-  <label>Style<select id="${pre}S">${STRUCT_STYLE_NAMES.map((n, i) => `<option value="${i}" ${(q.style | 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-  <label class="chk"><input type="checkbox" id="${pre}R" ${q.rails ? 'checked' : ''}> Railings</label><label class="chk"><input type="checkbox" id="${pre}P" ${q.posts !== false ? 'checked' : ''}> Support posts</label>`;
-}
 function updateBar() {
   const $$ = s => document.querySelectorAll(s); if (!$('#ed')) return;
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';
@@ -342,8 +319,6 @@ function refreshInspector(quick) {
   const el = $('#edInsp'); if (!el) return; const s = ED.sel;
   if (!s) { el.innerHTML = '<p class="mut">Nothing selected. Use Select / move and click an object.</p>'; return; }
   if (quick) { const c = $('#edCoords'); if (c) c.textContent = 'x ' + s.x + '  y ' + s.y; return; }
-  if (s.isStruct) { const q = s.src, num = (id, v) => `<input id="${id}" type="number" value="${v}" min="0" max="${Math.max(MW, MH)}">`;
-    el.innerHTML = `<b>${q.t === 'bridge' ? 'Bridge' : 'Pier'}</b>${structOptsHTML(q, 'edSt')}<div class="ednums"><label>x0${num('edSx0', q.x0)}</label><label>y0${num('edSy0', q.y0)}</label><label>x1${num('edSx1', q.x1)}</label><label>y1${num('edSy1', q.y1)}</label></div><p class="mut">Sizes are in tiles. The planks run across the long side.</p><button data-ed="del" class="danger">Delete</button>`; return; }
   const src = s.src, k = src.k; let extra = '';
   if (k === 'crystal') extra = `<label>Colour<select id="edKind">${['blue', 'purple'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'mushroom') extra = `<label>Colour<select id="edKind">${['cyan', 'pink'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
@@ -352,8 +327,7 @@ function refreshInspector(quick) {
   if (k === 'tree') extra = `<label>Fruit<select id="edKind">${['apple', 'orange', 'pear', 'plum'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'bush') extra = `<label>Berries<select id="edKind">${['blueberry', 'raspberry', 'blackberry', 'elderberry'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'deco') extra = `<label>Style<select id="edVar">${DECO_NAMES.map((n, i) => `<option value="${i}" ${(src.v | 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label>`;
-  if (k === 'note') extra = `<label>Note text<textarea id="edNoteText" rows="5">${esc2(src.text || '')}</textarea></label>`;
-  if (k === 'patch') extra = '<p class="mut">Butterflies and moths spawn around this circle. Flowers are scattered on grass inside it.</p>';
+  if (k === 'patch') extra = '<p class="mut">Flowers are scattered on grass inside this circle.</p>';
   el.innerHTML = `<b>${LABELS[k] || k}</b><div id="edCoords" class="mut">x ${s.x}  y ${s.y}</div>${extra}<button data-ed="del" class="danger">Delete</button>`;
 }
 function injectEditorCSS() {
