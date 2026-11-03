@@ -283,7 +283,7 @@ function updateAct(dt) {
 function actState() {
   if (!A) return null;
   switch (A.k) {
-    case 'fish': return { icon: 'rod', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to strike!' : 'Press and hold to charge your swing', cast: 'Digging...', wait: 'Digging... (wait for a clink)', bite: 'Clink! Press to uncover it!', reel: 'Hold to brush. Keep the green bar on the relic!', pull: 'Got it!' }[A.ph] };
+    case 'fish': return { icon: 'beach', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to strike!' : 'Press and hold to charge your swing', cast: 'Digging...', wait: 'Digging... (wait for a clink)', bite: 'Clink! Press to uncover it!', reel: 'Hold to brush. Keep the green bar on the relic!', pull: 'Got it!' }[A.ph] };
     case 'dig': return { icon: 'beach', prog: A.t / A.dur, hint: 'Digging...' };
   }
 }
