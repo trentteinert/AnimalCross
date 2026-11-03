@@ -66,6 +66,7 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   (m.structs || []).forEach(q => { q.x0 += ox; q.x1 += ox; q.y0 += oy; q.y1 += oy; }); m.structs = (m.structs || []).filter(q => q.x1 > 0 && q.y1 > 0 && q.x0 < nw && q.y0 < nh);
   m.spawn = { x: clamp(m.spawn.x + ox * TS, 8, nw * TS - 8), y: clamp(m.spawn.y + oy * TS, 8, nh * TS - 8) };
   const od = m.deck || []; m.deck = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && od[sy] ? od[sy][sx] : '0'; } m.deck.push(r); }
+  const os = m.site || []; m.site = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && os[sy] ? os[sy][sx] : '0'; } m.site.push(r); }
   m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
 }
 function commit() {
@@ -86,6 +87,7 @@ function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
+    if (ED.tile >= 200) { const id = ED.tile - 200; if (SITE[y * MW + x] !== id) { SITE[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 100) { const id = ED.tile - 100; if (DECK[y * MW + x] !== id) { DECK[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (GRID[y * MW + x] !== ED.tile) { GRID[y * MW + x] = ED.tile; ED.dirty = true; ED.strokeChanged = true; }
   }
@@ -285,7 +287,7 @@ function edRender(now) {
       if (ED.place.k === 'patch') { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(px + Math.cos(a) * 24 - cx), Math.round(py + Math.sin(a) * 19 - cy), 1, 1); } }
       else { const s = entrySpr(ED.place), a = anc(s); g.globalAlpha = 0.6; g.drawImage(s, Math.round(px - a.ax - cx), Math.round(py - a.ay - cy)); g.globalAlpha = 1; }
     } else if (ED.tool === 'struct' || ED.tool === 'spawn') outline(tx * TS - cx, ty * TS - cy, TS, TS, '#f2b84b');
-    const st = $('#edStatus'); if (st) { const ty2 = typeAt(m.wx, m.wy), recent = performance.now() - ED.msgT < 6000; st.textContent = (recent && ED.msg ? ED.msg + '   |   ' : '') + 'tile ' + tx + ',' + ty + ' · ' + (ty2 === 7 ? 'Decking' : TILE_NAMES[ty2] || '') + ' · px ' + Math.round(m.wx) + ',' + Math.round(m.wy); }
+    const st = $('#edStatus'); if (st) { const ty2 = typeAt(m.wx, m.wy), recent = performance.now() - ED.msgT < 6000; st.textContent = (recent && ED.msg ? ED.msg + '   |   ' : '') + 'tile ' + tx + ',' + ty + ' · ' + (ty2 === 7 ? 'Decking' : TILE_NAMES[ty2] || '') + (siteAt(m.wx, m.wy) ? ' · ' + SITES[siteAt(m.wx, m.wy)].n + ' dig site' : '') + ' · px ' + Math.round(m.wx) + ',' + Math.round(m.wy); }
   }
 }
 
@@ -294,7 +296,9 @@ function buildEditorUI() {
   const el = document.createElement('div'); el.id = 'ed';
   const tiles = TILE_NAMES.map((n, i) => `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('')
     + `<h4>Decking (piers, bridges, boardwalks)</h4>` + ['Driftwood', 'Dark oak', 'Pale stone', 'Driftwood + rails', 'Dark oak + rails', 'Pale stone + rails'].map((n, i) => `<button class="edt" data-ed="tile:${101 + i}" data-t="${101 + i}"><span style="background:${STRUCT_STYLES[i % 3].a}"></span>${n}</button>`).join('')
-    + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`;
+    + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`
+    + `<h4>Dig sites (fixed spots, unlock by level)</h4>` + [1, 2, 3, 4].map(z => `<button class="edt" data-ed="tile:${200 + z}" data-t="${200 + z}"><span style="background:${SITES[z].col}"></span>${SITES[z].n} (Lv ${SITES[z].lv})</button>`).join('')
+    + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`;
   const pal = PAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
   el.innerHTML = `
   <div class="edbar">

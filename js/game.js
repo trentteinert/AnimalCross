@@ -72,7 +72,7 @@ actEl.addEventListener('pointerdown', e => { e.preventDefault(); actDown(); });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => actEl.addEventListener(ev, actUp));
 // the pop-up mini games take the same press / hold as the action button
 const miniBox = $('#mini');
-miniBox.addEventListener('pointerdown', e => { if (e.target.id === 'mx') return; if (MINI.mode === 'reel' || MINI.mode === 'tap') { e.preventDefault(); actDown(); } });
+miniBox.addEventListener('pointerdown', e => { if (e.target.id === 'mx') return; if (MINI.mode === 'reel') { e.preventDefault(); actDown(); } });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => miniBox.addEventListener(ev, actUp));
 addEventListener('keydown', e => {
   if (EDIT || (e.target && e.target.tagName === 'INPUT')) return; keys[e.code] = true;
@@ -104,8 +104,8 @@ function doEmote(e) {
 
 // ---- targets --------------------------------------------------------------
 const SHOPK = ['portal', 'stall', 'board', 'tackle', 'gemshop', 'outfitshop', 'tank', 'leaders'];
-const ICON = { portal: 'portal', tackle: 'tackle', gemshop: 'gem', outfitshop: 'shirt', tank: 'tank', leaders: 'trophy', water: 'rod', tree: 'tree', bush: 'bush', bug: 'bug', clutter: 'beach', stall: 'stall', board: 'board', note: 'board', npc: 'wave' };
-const HINT = { portal: 'Press to go through', tackle: 'Press to enter the fishing shop', gemshop: 'Press to open the gem shop', outfitshop: 'Press to see today\'s outfits', tank: 'Press to open the fish tank', leaders: 'Press to see the leaderboard', water: 'Press to cast your line', tree: 'Press to shake the tree and catch the fruit', bush: 'Press to pick berries', bug: 'Press to catch it, then tap fast', clutter: 'Press to dig here', stall: 'Press to open the market', board: 'Press to read the board', note: 'Press to read the note', npc: 'Press to wave hello' };
+const ICON = { portal: 'portal', tackle: 'tackle', gemshop: 'gem', outfitshop: 'shirt', tank: 'tank', leaders: 'trophy', dig: 'beach', clutter: 'beach', stall: 'stall', board: 'board', note: 'board', npc: 'wave' };
+const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', gemshop: 'Press to open the gem shop', outfitshop: 'Press to see today\'s outfits', tank: 'Press to open the museum cases', leaders: 'Press to see the leaderboard', dig: 'Hold to charge your swing, release to strike', clutter: 'Press to dig here', stall: 'Press to open the market', board: 'Press to read the board', note: 'Press to read the note', npc: 'Press to wave hello' };
 function findTarget() {
   if (A || UI.isOpen) return null;
   const px = ME.x, py = ME.y, fv = DV[ME.dir]; let best = null;
@@ -116,31 +116,28 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
-    if (o.k === 'tree' && o.fruit) consider('tree', o, o.x, o.y, distToBox(px, py, o), o.ia);
-    else if (o.k === 'bush' && o.berry) consider('bush', o, o.x, o.y, distToBox(px, py, o), o.ia);
-    else if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
+    if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
     else if (o.k === 'note') consider('note', o, o.x, o.y, Math.hypot(o.x - px, o.y - py), o.ia);
     else if (o.k === 'clutter') consider('clutter', o, o.x, o.y, Math.hypot(o.x - px, o.y - py), o.ia);
   }
-  for (const b of W.bugs) if (!b.leave) consider('bug', b, b.x, b.y, Math.hypot(b.x - px, b.y - py), 34);
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
-  let wb = null;
+  let sb = null; // a dig site tile just in front of the player
   for (const dn of ['u', 'd', 'l', 'r']) {
     const v = DV[dn];
-    for (let dd = 6; dd <= 24; dd += 2) if (isWater(px + v[0] * dd, py - 2 + v[1] * dd)) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!wb || sc < wb.sc) wb = { dn, dd, sc }; break; }
+    for (let dd = 4; dd <= 22; dd += 2) { const z = siteAt(px + v[0] * dd, py - 2 + v[1] * dd); if (z) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z }; break; } }
   }
-  if (wb && (!best || wb.sc < best.sc + 2)) best = { kind: 'water', ref: null, sc: wb.sc, dist: wb.dd, dir: wb.dn };
+  if (sb && (!best || sb.sc < best.sc + 2)) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z };
   return best;
 }
 function tapWorld(sx, sy) {
   if (UI.isOpen || A) return; const wx = sx / Z + cam.x, wy = sy / Z + cam.y; let best = null, bd = 1e9;
-  const cand = W.objs.filter(o => (o.k === 'tree' && o.fruit) || (o.k === 'bush' && o.berry) || o.k === 'clutter' || SHOPK.includes(o.k) || o.k === 'note').concat(W.bugs, NPCS);
+  const cand = W.objs.filter(o => o.k === 'clutter' || SHOPK.includes(o.k) || o.k === 'note').concat(NPCS);
   for (const o of cand) {
     const cy = o.k === 'bug' ? o.y - o.z : o.k === 'tree' ? o.y - 24 : SHOPK.includes(o.k) ? o.y - 16 : o.y - 8, d = Math.hypot(wx - o.x, wy - cy), rad = o.k === 'tree' ? 24 : SHOPK.includes(o.k) ? 26 : 13;
     if (d < rad && d < bd) { best = o; bd = d; }
   }
   if (best) autoWalk = { ref: best, x: best.x, y: best.y + (best.k === 'tree' || best.k === 'bush' ? 4 : 0), stuck: 0 };
-  else if (isWater(wx, wy)) autoWalk = { water: true, x: wx, y: wy, stuck: 0 };
+  else if (siteAt(wx, wy)) autoWalk = { dig: true, x: wx, y: wy, stuck: 0 };
   else autoWalk = { x: wx, y: wy, stuck: 0 };
 }
 
@@ -208,34 +205,22 @@ function startAction() {
   if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); questEvent('wave', 1); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   const rod = TOOLS.rod[S.tools.rod], net = TOOLS.net[S.tools.net], sh = TOOLS.shovel[S.tools.shovel];
-  if (t.kind === 'water') { A = { k: 'fish', ph: 'charge', t: 0, pw: 0, pd: 1, on: held, dir: t.dir, d0: t.dist, p: 0, idle: 0, rt: 0 }; return; }
-  if (t.kind === 'tree') { A = { k: 'catch', ref: t.ref, kind: t.ref.kind, t: 0, total: 6, spawned: 0, next: 0.5, fr: [], caught: 0, bonusCaught: 0, bx: 0.5, tx: 0.5, bonusAt: Math.random() < 0.16 + S.tools.net * 0.02 ? Math.floor(rnd(1, 6)) : -1 }; return; }
-  if (t.kind === 'bush') { A = { k: 'berries', ref: t.ref, kind: t.ref.kind, t: 0, berries: genBerries(Math.random() < 0.12 + S.tools.net * 0.02), got: 0, bonusGot: 0 }; return; }
-  if (t.kind === 'bug') {
-    const bug = t.ref, r = bug.it.r || 0, net = TOOLS.net[S.tools.net], need = Math.max(5, Math.round((7 + r * 3 + (bug.st === 'rest' ? 0 : 3)) * (1.3 - net.fly * 0.5)));
-    bug.hold = true; A = { k: 'net', ph: 'tap', t: 0, dir: ME.dir, ref: bug, fill: 0.15, per: 0.9 / need, drain: 0.16 + r * 0.06, tl: 5.5, flash: 0, done: false, ok: false }; sfx('cast'); return;
+  if (t.kind === 'dig') {
+    const zn = SITES[t.zone]; if (S.lv < zn.lv) { UI.toast(zn.n + ' opens at level ' + zn.lv, 'info'); sfx('no'); return; }
+    A = { k: 'fish', ph: 'charge', t: 0, pw: 0, pd: 1, on: held, dir: t.dir, d0: t.dist, zone: t.zone, p: 0, idle: 0, rt: 0 }; return;
   }
   if (t.kind === 'clutter') { A = { k: 'dig', ref: t.ref, t: 0, dur: 1.2 / sh.spd, stroke: 0 }; return; }
-}
-function genBerries(bonus) { // 7 berries pop up one after another at spread-out spots on the bush
-  const out = []; let tries = 0;
-  while (out.length < 7 && tries++ < 200) { const x = rnd(30, 170), y = rnd(36, 190); if (out.every(b => Math.hypot(b.x - x, b.y - y) > 36)) out.push({ x, y, t0: 0, life: 1.7, shown: false, done: false }); }
-  out.forEach((b, i) => { b.t0 = 0.3 + i * 0.55 + rnd(0, 0.25); }); if (bonus) out[Math.floor(rnd(2, out.length))].inst = rollItem('forage', { where: 'bush', night: isNight(), rain: isRain(), luck: 1 }, i => ['elderberry', 'glowberry'].includes(i.id));
-  return out;
 }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const walkSp = () => 58 * (S.gearOwned.includes('sandals') ? 1.08 : 1);
 const boostOn = id => !!(S.boosts[id] && S.boosts[id] > Date.now());
-function castFish() { // release: the charge bar decides how far the bobber lands
-  const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir]; let bd = A.d0 + 4 + A.pw * rod.rng + (S.gearOwned.includes('glove') ? 8 : 0);
-  while (bd > A.d0 && !isWater(ME.x + v[0] * bd, ME.y - 2 + v[1] * bd)) bd -= 2;
-  const bx = ME.x + v[0] * bd, by = ME.y - 2 + v[1] * bd, ty = typeAt(bx, by);
-  const bait = S.baitSel && S.bait[S.baitSel] > 0 ? BAITS.find(b => b.id === S.baitSel) : null, bob = BOBBERS.find(b => b.id === S.bobberSel);
-  if (bait) { S.bait[bait.id]--; if (S.bait[bait.id] <= 0) { delete S.bait[bait.id]; S.baitSel = null; UI.toast(bait.n + ' ran out', 'info'); } UI.refresh(); }
-  Object.assign(A, { ph: 'cast', t: 0, bx, by, where: ty === 6 ? (typeof AREA !== 'undefined' && AREA === 'cave' ? 'cave' : 'pond') : ty === 0 ? 'deep' : 'sea',
-    wait: (S.stats.fish === 0 ? 1.4 : rnd(2.2, 5.2)) * (bait ? bait.wait : 1) * (bob && bob.wait ? bob.wait : 1) * (boostOn('quick') ? 0.7 : 1) / rod.spd,
-    win: 1.2 + S.tools.rod * 0.12 + (bob && bob.win || 0) + (S.gearOwned.includes('wrist') ? 0.3 : 0), luck: rod.luck + (bait ? bait.luck : 0) + (boostOn('lucky') ? 1.5 : 0), decay: bob && bob.decay || 1 });
-  sfx('cast');
+function castFish() { // release: the charge bar sets how hard you strike, which decides how deep you dig (deeper = rarer finds)
+  const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir], reach = A.d0 + 4;
+  const bx = ME.x + v[0] * reach, by = ME.y - 2 + v[1] * reach;
+  Object.assign(A, { ph: 'cast', t: 0, bx, by, where: SITES[A.zone].id,
+    wait: (S.stats.fish === 0 ? 1.4 : rnd(1.8, 4.2)) * (boostOn('quick') ? 0.7 : 1) / rod.spd,
+    win: 1.2 + S.tools.rod * 0.12 + (S.gearOwned.includes('wrist') ? 0.3 : 0), luck: rod.luck + A.pw * (rod.rng / 30) + (boostOn('lucky') ? 1.5 : 0), decay: 1 });
+  sfx('cast'); burst(bx, by, '#c8a070', 8, 36, 0.6, 120, 1);
 }
 // Stardew-style reel: keep the green bar on the fish until the meter fills. Rarer / bigger fish = smaller bar, jumpier fish.
 function startReel() {
@@ -247,8 +232,8 @@ function startReel() {
   A.bp = 0.25; A.bv = 0; A.fp = 0.6; A.ft = 0.6; A.fr = 0; A.p = 0.3; A.hit = false;
 }
 function rollFish(where, luck) {
-  if (S.stats.fish === 0) { const inst = makeInst(ITEM.carp); inst.sz = 52; inst.val = 22; return inst; }
-  if (Math.random() < 0.05 && where !== 'deep') return makeInst(ITEM.boot);
+  if (S.stats.fish === 0) { const inst = makeInst(ITEM.arrowhead); inst.sz = 5; inst.val = 10; return inst; }
+  if (Math.random() < 0.05) return makeInst(ITEM.nail);
   return rollItem('fish', { where, night: isNight(), rain: isRain(), luck }, i => !i.junk);
 }
 function updateAct(dt) {
@@ -260,15 +245,14 @@ function updateAct(dt) {
         if (!A.on) { if (pressed) A.on = true; if (moving) { endAct(); return; } break; }
         A.pw += A.pd * dt * 1.1; if (A.pw >= 1) { A.pw = 1; A.pd = -1; } else if (A.pw <= 0) { A.pw = 0; A.pd = 1; }
         if (!held) castFish();
-      } else if (A.ph === 'cast') { if (A.t >= 0.4) { A.ph = 'wait'; A.t = 0; ripple(A.bx, A.by, true); burst(A.bx, A.by, '#dff4f8', 6, 30, 0.5, 80); sfx('splash'); } }
+      } else if (A.ph === 'cast') { if (A.t >= 0.4) { A.ph = 'wait'; A.t = 0; burst(A.bx, A.by, '#b88a58', 6, 30, 0.5, 80, 1); sfx('dig'); } }
       else if (A.ph === 'wait') {
-        if (pressed) { endAct('Too soon! Reeled it back in'); return; } if (moving) { endAct(); return; }
-        A.rt -= dt; if (A.rt <= 0) { ripple(A.bx, A.by); A.rt = rnd(0.9, 1.6); }
-        if (A.t >= A.wait) { A.ph = 'bite'; A.t = 0; A.item = rollFish(A.where, A.luck); sfx('bite'); vib(40); ripple(A.bx, A.by, true); }
+        if (pressed) { endAct('Too soon! You scuffed the spot.'); return; } if (moving) { endAct(); return; }
+        A.rt -= dt; if (A.rt <= 0) { burst(A.bx, A.by, '#c8a070', 3, 20, 0.5, 60, 1); sfx('dig'); A.rt = rnd(0.5, 1.0); }
+        if (A.t >= A.wait) { A.ph = 'bite'; A.t = 0; A.item = rollFish(A.where, A.luck); sfx('bite'); vib(40); burst(A.bx, A.by, '#f5e9cf', 6, 26, 0.5, 40, 1); }
       } else if (A.ph === 'bite') {
         if (pressed) { startReel(); sfx('hook'); vib(25); }
-        else if (A.t > A.win) { endAct('It got away...'); }
-        else if (Math.random() < dt * 8) ripple(A.bx, A.by);
+        else if (A.t > A.win) { endAct('Too slow. The find is buried again...'); }
       } else if (A.ph === 'reel') {
         const lineV = S.gear.line ? GEAR.line[S.gear.line - 1].v : 0, d = A.d, h = A.bsz / 2;
         A.fr -= dt; if (A.fr <= 0) { A.fr = rnd(0.6, 1.5) / (1 + d * 0.8); A.ft = rnd(0.05, 0.95); }
@@ -277,63 +261,10 @@ function updateAct(dt) {
         if (A.bp < h) { A.bp = h; A.bv = Math.max(0, -A.bv * 0.3); } if (A.bp > 1 - h) { A.bp = 1 - h; A.bv = 0; }
         A.hit = Math.abs(A.fp - A.bp) <= h;
         A.p += A.hit ? dt * 0.3 / (1 + d * 0.5) : -dt * 0.14 * (1 - lineV) * A.decay;
-        A.p = clamp(A.p, 0, 1.01); if (A.p <= 0) { endAct('It got away...'); return; }
-        if (Math.random() < dt * 6) ripple(A.bx + rnd(-3, 3), A.by + rnd(-2, 2));
+        A.p = clamp(A.p, 0, 1.01); if (A.p <= 0) { endAct('It cracked and crumbled away...'); return; }
+        if (Math.random() < dt * 8) burst(A.bx + rnd(-4, 4), A.by + rnd(-2, 1), '#d8c8a0', 1, 14, 0.5, 30, 1);
         if (A.p >= 1) { A.ph = 'pull'; A.t = 0; sfx('pop'); }
       } else if (A.ph === 'pull') { if (A.t >= 0.5) { const it = A.item; endAct(); gain([it], 'fish'); } }
-      break;
-    }
-    case 'catch': { // fruit tree: shake it, then catch the falling fruit in a basket
-      const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-      if (kx) { A.tx = clamp(A.tx + kx * dt * 0.9, 0.08, 0.92); MINI.ptr = A.tx; } else A.tx = clamp(MINI.ptr, 0.08, 0.92);
-      A.bx += (A.tx - A.bx) * Math.min(1, dt * 14); A.ref.shake = 0.5;
-      while (A.spawned < A.total && A.t >= A.next) {
-        const f = { x: rnd(18, MNW - 18), y: -10, vy: rnd(40, 70) };
-        if (A.spawned === A.bonusAt) f.inst = rollItem('forage', { where: 'tree', night: isNight(), luck: 0.8 }, i => !['apple', 'orange', 'pear', 'plum'].includes(i.id) && i.where.includes('tree'));
-        A.fr.push(f); A.spawned++; A.next += rnd(0.35, 0.8); sfx('shake');
-      }
-      for (let i = A.fr.length - 1; i >= 0; i--) {
-        const f = A.fr[i]; f.vy += 160 * dt; f.y += f.vy * dt;
-        if (f.y >= MNH - 36 && f.y <= MNH - 16 && Math.abs(f.x - A.bx * MNW) < 26) { if (f.inst) { A.bonusCaught++; A.bonus = f.inst; } else A.caught++; A.fr.splice(i, 1); sfx('pop'); vib(10); }
-        else if (f.y > MNH + 12) A.fr.splice(i, 1);
-      }
-      if (A.spawned >= A.total && !A.fr.length) {
-        const t = A.ref, list = []; for (let i = 0; i < A.caught; i++) list.push(makeInst(ITEM[A.kind])); if (A.bonus && A.bonusCaught) list.push(A.bonus);
-        t.fruit = false; t.regrow = timeNow + 70; t.shake = 0.8;
-        for (let i = 0; i < 5; i++) burst(t.x + rnd(-12, 12), t.y - rnd(20, 34), ITEM[A.kind].cols[0], 1, 20, 0.9, 140, 2);
-        endAct(list.length ? null : 'Missed them all! The tree needs time to grow more.'); if (list.length) gain(list, 'tree');
-      }
-      break;
-    }
-    case 'berries': { // bush: berries pop up one by one, tap them before they drop
-      A.ref.shake = 0.3;
-      for (const b of A.berries) { if (!b.shown && A.t >= b.t0) b.shown = true; if (b.shown && !b.done && A.t >= b.t0 + b.life) b.done = true; }
-      for (const tp of MINI.taps) {
-        let best = null, bd = 24; for (const b of A.berries) if (b.shown && !b.done) { const d = Math.hypot(b.x - tp.x, b.y - tp.y); if (d < bd) { bd = d; best = b; } }
-        if (best) { best.done = true; if (best.inst) { A.bonusGot++; A.bonus = best.inst; } else A.got++; sfx('pop'); vib(10); burst(A.ref.x + rnd(-6, 6), A.ref.y - 8, '#8fc25a', 3, 16, 0.6, 40, 1); }
-      }
-      MINI.taps.length = 0;
-      if (A.berries.every(b => b.done)) {
-        const b = A.ref, list = []; for (let i = 0; i < A.got; i++) list.push(makeInst(ITEM[A.kind])); if (A.bonus && A.bonusGot) list.push(A.bonus);
-        b.berry = false; b.regrow = timeNow + 50; endAct(list.length ? null : 'They all dropped! Try again later.'); if (list.length) gain(list, 'bush');
-      }
-      break;
-    }
-    case 'net': {
-      if (A.ph === 'tap') { // butterfly: tap to fill the bar before the time runs out or the bar drains empty
-        const bb = A.ref; if (!bb || bb.leave || !W.bugs.includes(bb)) { if (bb) bb.hold = false; endAct('It flew off.'); return; }
-        A.flash = Math.max(0, A.flash - dt);
-        if (pressed) { A.fill += A.per; A.flash = 0.12; sfx('ui'); vib(6); }
-        else if (A.t > 0.6) A.fill -= A.drain * dt;
-        if (A.fill >= 1) { A.ph = 'swing'; A.t = 0; sfx('cast'); }
-        else if (A.fill <= 0 || A.t >= A.tl) { bb.hold = false; bb.flee = 1.4; bb.st = 'fly'; bb.t = 1.4; bb.tx = bb.x + rnd(-40, 40); bb.ty = bb.y + rnd(-30, 10); sfx('no'); endAct('It fluttered away!'); }
-        break;
-      }
-      if (A.t >= 0.2 && !A.done) {
-        A.done = true; const bb = A.ref; bb.hold = false;
-        if (W.bugs.includes(bb)) { A.ok = true; W.bugs.splice(W.bugs.indexOf(bb), 1); A.res = bb.inst; burst(bb.x, bb.y - bb.z, bb.it.cols[0], 8, 40, 0.7, 20, 1); }
-      }
-      if (A.t >= 0.45) { const r = A.res, ok = A.ok; endAct(ok ? null : 'It fluttered away!'); if (r) gain([r], 'bug'); }
       break;
     }
     case 'dig': {
@@ -352,10 +283,7 @@ function updateAct(dt) {
 function actState() {
   if (!A) return null;
   switch (A.k) {
-    case 'fish': return { icon: 'rod', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to cast!' : 'Press and hold to charge your cast', cast: 'Casting...', wait: 'Waiting for a bite... (press to reel in)', bite: 'Bite! Press now!', reel: 'Hold to lift the bar. Keep it on the fish!', pull: 'Got it!' }[A.ph] };
-    case 'catch': return { icon: 'tree', prog: 0, hint: 'Catch the falling fruit!' };
-    case 'berries': return { icon: 'bush', prog: 0, hint: 'Tap the berries!' };
-    case 'net': return { icon: 'bug', prog: A.ph === 'tap' ? A.fill : 0, hint: A.ph === 'tap' ? 'Tap fast!' : 'Swish!' };
+    case 'fish': return { icon: 'rod', prog: A.ph === 'charge' && A.on ? A.pw : 0, alert: A.ph === 'bite', hint: { charge: A.on ? 'Release to strike!' : 'Press and hold to charge your swing', cast: 'Digging...', wait: 'Digging... (wait for a clink)', bite: 'Clink! Press to uncover it!', reel: 'Hold to brush. Keep the green bar on the relic!', pull: 'Got it!' }[A.ph] };
     case 'dig': return { icon: 'beach', prog: A.t / A.dur, hint: 'Digging...' };
   }
 }
@@ -377,7 +305,7 @@ function updateMe(dt) {
   } else if (autoWalk && !A) {
     const a = autoWalk, tg = target;
     if (a.ref && tg && tg.ref === a.ref) { autoWalk = null; startAction(); return; }
-    if (a.water && tg && tg.kind === 'water') { autoWalk = null; startAction(); return; }
+    if (a.dig && tg && tg.kind === 'dig') { autoWalk = null; startAction(); return; }
     const d = Math.hypot(a.x - ME.x, a.y - ME.y); if (d < 3) { autoWalk = null; return; }
     const m = stepToward(ME, a.x, a.y, walkSp(), dt); ME.moving = m; ME.t += dt; a.stuck = m ? 0 : a.stuck + 1; if (a.stuck > 14) autoWalk = null;
   }
@@ -392,9 +320,9 @@ function makeNPC(i) {
 }
 function npcThink(n) {
   const r = Math.random(); n.fs = null; n.rod = null;
-  if (r < 0.42 && W.shore.length) { const s = pick(W.shore); n.mode = 'go'; n.tx = s.x; n.ty = s.y; n.after = { m: 'fish', dir: s.dir, casts: Math.floor(rnd(1, 4)) }; }
-  else if (r < 0.7) { for (let i = 0; i < 12; i++) { const a = Math.random() * 6.28, rr = rnd(20, 160); n.tx = W.hub.x + Math.cos(a) * rr; n.ty = W.hub.y + Math.sin(a) * rr * 0.8; if (!blockedAt(n.tx, n.ty)) break; } n.mode = 'go'; n.after = { m: 'idle' }; }
-  else if (r < 0.85) { const ts = W.trees.filter(t => t.fruit); if (ts.length) { const t = pick(ts); n.mode = 'go'; n.tx = t.x; n.ty = t.y + 9; n.after = { m: 'shake', ref: t }; } else { n.mode = 'idle'; n.mt = rnd(3, 7); } }
+  const spots = W.shore.filter(p => SITES[p.zone].lv <= n.lv); // wandering diggers only use sites they have the level for
+  if (r < 0.55 && spots.length) { const s = pick(spots); n.mode = 'go'; n.tx = s.x; n.ty = s.y; n.after = { m: 'fish', dir: s.dir, casts: Math.floor(rnd(1, 4)) }; }
+  else if (r < 0.85) { for (let i = 0; i < 12; i++) { const a = Math.random() * 6.28, rr = rnd(20, 160); n.tx = W.hub.x + Math.cos(a) * rr; n.ty = W.hub.y + Math.sin(a) * rr * 0.8; if (!blockedAt(n.tx, n.ty)) break; } n.mode = 'go'; n.after = { m: 'idle' }; }
   else { n.mode = 'idle'; n.mt = rnd(3, 8); if (Math.random() < 0.6) { n.bubble = pick(PHRASES); n.bt = 2.8; } }
 }
 function updateNPC(n, dt) {
@@ -404,20 +332,16 @@ function updateNPC(n, dt) {
     const m = stepToward(n, n.tx, n.ty, 40, dt); n.moving = m; n.t += dt; n.stuck = m ? 0 : n.stuck + dt;
     if (Math.hypot(n.tx - n.x, n.ty - n.y) < 4 || n.stuck > 1.2) {
       const a = n.after || { m: 'idle' };
-      if (a.m === 'fish') { n.dir = a.dir; n.mode = 'fish'; const v = DV[a.dir]; let d = rnd(16, 30); while (d > 8 && !isWater(n.x + v[0] * d, n.y - 2 + v[1] * d)) d -= 2; n.fs = { ph: 'cast', t: 0, bx: n.x + v[0] * d, by: n.y - 2 + v[1] * d, p: 0, casts: a.casts, wait: rnd(3, 9) }; n.rod = n.fs; }
-      else if (a.m === 'shake') { n.mode = 'shake'; n.mt = 1.2; n.dir = 'u'; n.sref = a.ref; }
+      if (a.m === 'fish') { n.dir = a.dir; n.mode = 'fish'; const v = DV[a.dir]; n.fs = { ph: 'cast', t: 0, bx: n.x + v[0] * 12, by: n.y - 2 + v[1] * 12, p: 0, casts: a.casts, wait: rnd(2, 6) }; n.rod = n.fs; }
       else { n.mode = 'idle'; n.mt = rnd(2, 7); }
     }
   } else if (n.mode === 'fish') {
     const f = n.fs; f.t += dt;
-    if (f.ph === 'cast' && f.t > 0.4) { f.ph = 'wait'; f.t = 0; ripple(f.bx, f.by, true); }
-    else if (f.ph === 'wait' && f.t > f.wait) { f.ph = 'bite'; f.t = 0; ripple(f.bx, f.by, true); }
+    if (f.ph === 'cast' && f.t > 0.4) { f.ph = 'wait'; f.t = 0; burst(f.bx, f.by, '#b88a58', 5, 28, 0.5, 80, 1); }
+    else if (f.ph === 'wait' && f.t > f.wait) { f.ph = 'bite'; f.t = 0; burst(f.bx, f.by, '#f5e9cf', 4, 22, 0.5, 40, 1); }
     else if (f.ph === 'bite' && f.t > 0.7) { f.ph = 'reel'; f.t = 0; }
     else if (f.ph === 'reel') { f.p = Math.min(1, f.t / 1.2); if (f.t > 1.2) { f.ph = 'pull'; f.t = 0; } }
-    else if (f.ph === 'pull' && f.t > 0.4) { if (Math.random() < 0.5) { n.bubble = pick(['🐟', 'got one!', '🎣']); n.bt = 2; } f.casts--; if (f.casts <= 0) npcThink(n); else { f.ph = 'cast'; f.t = 0; f.p = 0; f.wait = rnd(3, 9); } }
-  } else if (n.mode === 'shake') {
-    n.mt -= dt; if (n.sref && n.mt < 0.7 && n.mt + dt >= 0.7) { n.sref.shake = 0.8; burst(n.sref.x, n.sref.y - 30, '#e6b830', 5, 20, 1, 30, 2); }
-    if (n.mt <= 0) npcThink(n);
+    else if (f.ph === 'pull' && f.t > 0.4) { if (Math.random() < 0.5) { n.bubble = pick(['🏺', 'found something!', '⛏️']); n.bt = 2; } f.casts--; if (f.casts <= 0) npcThink(n); else { f.ph = 'cast'; f.t = 0; f.p = 0; f.wait = rnd(2, 6); } }
   }
 }
 
@@ -448,41 +372,40 @@ function lineG(x0, y0, x1, y1, col) {
   const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy, n = 0;
   for (; n++ < 200;) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
 }
-function drawFishing(e, f, cx, cy, now, tip) {
-  const s = e.dir === 'l' ? -1 : 1; const hx = e.x + 6 * s, hy = e.y - 14; let tx = e.x + 14 * s, ty = e.y - 27; if (e.dir === 'u') { tx = e.x + 10 * s; ty = e.y - 32; } if (e.dir === 'd') { tx = e.x + 11 * s; ty = e.y - 26; }
+function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole in the ground, a glint on a clink, the relic coming up as you brush
   if (f.ph === 'charge') {
-    if (f.on) { const bx0 = Math.round(e.x - 13 - cx), by0 = Math.round(e.y - 48 - cy); g.fillStyle = '#101826'; g.fillRect(bx0 - 1, by0 - 1, 28, 6); g.fillStyle = f.pw > 0.85 ? '#e8483a' : '#f2b632'; g.fillRect(bx0, by0, Math.round(26 * f.pw), 4); } return; }
-  if (tip) { tx = e.x + tip[0] - 24; ty = e.y + tip[1] - 48; } // the rod is part of the painted frame: the line starts at its tip
-  else { if (f.ph === 'cast') ty += Math.sin(Math.min(1, f.t / 0.4) * Math.PI) * 7; lineG(hx - cx, hy - cy, tx - cx, ty - cy, '#7a5028'); lineG(hx - cx, hy - cy - 1, tx - cx, ty - cy - 1, '#a8743a'); }
-  let bx = f.bx, by = f.by, arc = 0;
-  if (f.ph === 'cast') { const u = Math.min(1, f.t / 0.4); bx = tx + (f.bx - tx) * u; by = ty + (f.by - ty) * u; arc = Math.sin(u * Math.PI) * 14; }
-  else if (f.ph === 'reel' || f.ph === 'pull') { const u = f.ph === 'reel' ? f.p * 0.7 : 0.7 + 0.3 * Math.min(1, f.t / 0.5); bx = f.bx + (e.x - f.bx) * u; by = f.by + (e.y - 6 - f.by) * u; arc = f.ph === 'pull' ? Math.sin(Math.min(1, f.t / 0.5) * Math.PI) * 14 : 0; }
-  let bob = f.ph === 'bite' ? 2 + Math.sin(now * 40) : f.ph === 'wait' ? Math.sin(now * 3) * 0.6 : 0;
-  const by2 = by - arc, sag = f.ph === 'cast' ? 2 : 5; g.fillStyle = 'rgba(245,245,235,0.85)';
-  for (let i = 0; i <= 12; i++) { const u = i / 12; g.fillRect(Math.round(tx + (bx - tx) * u - cx), Math.round(ty + (by2 - ty) * u + Math.sin(u * Math.PI) * sag - cy), 1, 1); }
-  if (f.ph === 'pull' && f.item) { const ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(bx - 9 - cx), Math.round(by2 - 12 - cy)); return; }
-  g.fillStyle = '#f5f5f0'; g.fillRect(Math.round(bx - 1 - cx), Math.round(by2 - 1 + bob - cy), 3, 2); g.fillStyle = '#e8483a'; g.fillRect(Math.round(bx - 1 - cx), Math.round(by2 - 3 + bob - cy), 3, 2);
-  if (f.ph === 'reel') { g.fillStyle = 'rgba(20,40,70,0.45)'; const r = 3 + Math.sin(now * 12) * 1.5; g.fillRect(Math.round(bx - r - cx), Math.round(by + 2 - cy), Math.round(r * 2), 2); }
-  if (f.ph === 'bite') { g.fillStyle = '#fff'; g.font = 'bold 9px "Pixelify Sans", monospace'; g.textAlign = 'center'; g.fillStyle = (f.item && S.gearOwned.includes('finder')) ? RAR[ITEM[f.item.id].r].c : '#e8483a'; g.fillText('!', Math.round(e.x - cx), Math.round(e.y - 42 - cy + Math.sin(now * 20))); g.textAlign = 'left'; }
+    if (f.on) { const bx0 = Math.round(e.x - 13 - cx), by0 = Math.round(e.y - 48 - cy); g.fillStyle = '#101826'; g.fillRect(bx0 - 1, by0 - 1, 28, 6); g.fillStyle = f.pw > 0.85 ? '#e8483a' : '#f2b632'; g.fillRect(bx0, by0, Math.round(26 * f.pw), 4); }
+    return;
+  }
+  const hx = Math.round(f.bx - cx), hy = Math.round(f.by - cy), deep = f.ph !== 'cast';
+  g.fillStyle = 'rgba(46,28,16,0.85)'; g.fillRect(hx - 5, hy - 2, 10, 4); g.fillRect(hx - 4, hy - 3, 8, 1); g.fillRect(hx - 4, hy + 2, 8, 1);
+  g.fillStyle = '#b88a58'; g.fillRect(hx - 7, hy + 1, 3, 2); g.fillRect(hx + 4, hy + 1, 4, 2); g.fillRect(hx - 6, hy, 2, 1); g.fillRect(hx + 5, hy, 2, 1);
+  g.fillStyle = '#d8b078'; g.fillRect(hx - 7, hy + 1, 3, 1); g.fillRect(hx + 4, hy + 1, 4, 1);
+  if (f.ph === 'bite') { // glint on the find + a "!" over the digger
+    const k = Math.floor(now * 10) % 2; g.fillStyle = '#fff6c8'; g.fillRect(hx - 1, hy - 1, 2, 2); g.fillRect(hx - 3 + k, hy, 1, 1); g.fillRect(hx + 2 - k, hy - 2, 1, 1);
+    g.font = 'bold 9px "Pixelify Sans", monospace'; g.textAlign = 'center'; g.fillStyle = (f.item && S.gearOwned.includes('finder')) ? RAR[ITEM[f.item.id].r].c : '#e8483a'; g.fillText('!', Math.round(e.x - cx), Math.round(e.y - 42 - cy + Math.sin(now * 20))); g.textAlign = 'left';
+  }
+  if (f.ph === 'reel' && f.item) { // the relic rises out of the hole as the meter fills (clipped to the hole's top)
+    const ic = itemIcon(f.item.id), rise = Math.round(clamp(f.p, 0, 1) * 16);
+    g.save(); g.beginPath(); g.rect(hx - 10, hy - 24, 20, 26); g.clip(); g.drawImage(ic, hx - 8, hy + 2 - rise, 16, 16); g.restore();
+  }
+  if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
 function mePose(now) { // which painted action frame the player is in right now (null = normal walking sprite)
   const D = AROW[ME.dir] || 0;
   if (ME.hold) return ['gather', 4 + D, 7, true];
   if (A) switch (A.k) {
-    case 'fish': return fishPose(ME.dir, A, now, A.hit);
-    case 'net': return A.ph === 'tap' ? ['net', D, A.flash > 0 ? 1 : 0] : ['net', 8 + D, 1 + Math.min(2, Math.floor(A.t / 0.15))];
+    case 'fish': return digPose(ME.dir, A, now, A.hit);
     case 'dig': { const u = A.t / A.dur; return ['gather', D, u < 0.85 ? Math.min(3, Math.floor(u * 6)) : 4]; }
-    case 'catch': return ['emote', 4 + D, 1];
-    case 'berries': return ['gather', 8 + D, 1 + (Math.floor(A.t * 6) % 3)];
   }
   if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
   return null;
 }
 function drawChar(e, cx, cy, now) {
-  const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? fishPose(e.dir, e.rod, now, false) : null),
+  const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? digPose(e.dir, e.rod, now, false) : null),
     spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : charSprite(look, faceIdx(e), fr);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
-  let off = 0; if (A && e === ME && A.k === 'catch') off = Math.sin(now * 40) * 0.5;
+  let off = 0; if (A && e === ME && false) off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
   if (holding) {
     const h = ME.hold, m = h.groups[0], ic = itemIcon(m.id), u = Math.min(1, h.t / 0.24), k = 1.70158 + 1, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
@@ -493,7 +416,7 @@ function drawChar(e, cx, cy, now) {
     h.groups.slice(1, 3).forEach((gr, i) => { const ic2 = itemIcon(gr.id), sd = i === 0 ? -1 : 1; g.drawImage(ic2, Math.round(e.x + sd * (sz / 2 + 14) - ic2.width / 2 - cx), Math.round(e.y - 50 - cy + bob)); });
     g.globalAlpha = 1;
   }
-  const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawFishing(e, f, cx, cy, now, spr.tip);
+  const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawDig(e, f, cx, cy, now);
 }
 function drawBug(b, cx, cy) {
   const z = b.z, open = Math.sin(b.ph * (b.st === 'rest' ? 1 : 1)) > 0 || b.st === 'rest' && Math.sin(b.ph) > 0.3, [a, c2] = b.it.cols, x = Math.round(b.x - cx), y = Math.round(b.y - z - cy);
@@ -542,7 +465,7 @@ function drawEnt(o, cx, cy, now) {
 }
 function drawMarker(cx, cy, now) {
   if (!target) return; let x, y;
-  if (target.kind === 'water') { const v = DV[target.dir]; x = ME.x + v[0] * (target.dist + 6); y = ME.y - 2 + v[1] * (target.dist + 6); g.fillStyle = 'rgba(255,255,255,0.8)'; const t = (now * 1.6) % 1; for (let i = 0; i < 8; i++) { const a = i * 0.785; g.fillRect(Math.round(x + Math.cos(a) * (3 + t * 5) - cx), Math.round(y + Math.sin(a) * (1.5 + t * 2.5) - cy), 1, 1); } return; }
+  if (target.kind === 'dig') { const v = DV[target.dir]; x = ME.x + v[0] * (target.dist + 6); y = ME.y - 2 + v[1] * (target.dist + 6); g.fillStyle = 'rgba(255,255,255,0.8)'; const t = (now * 1.6) % 1; for (let i = 0; i < 8; i++) { const a = i * 0.785; g.fillRect(Math.round(x + Math.cos(a) * (3 + t * 5) - cx), Math.round(y + Math.sin(a) * (1.5 + t * 2.5) - cy), 1, 1); } return; }
   const o = target.ref; x = o.x; y = o.y - (o.k === 'tree' ? 50 : o.k === 'bug' ? 14 + o.z : o.k === 'stall' ? 38 : o.k === 'board' ? 30 : o.k === 'npc' ? 34 : o.k === 'bush' ? 22 : 14);
   const bob = Math.round(Math.sin(now * 6) * 1.5), px = Math.round(x - cx), py = Math.round(y - cy + bob); g.fillStyle = '#2a1c1c'; g.fillRect(px - 3, py - 1, 7, 2); g.fillRect(px - 2, py + 1, 5, 2); g.fillRect(px - 1, py + 3, 3, 1);
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
@@ -553,6 +476,10 @@ function render(now) {
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
   g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
+  for (const r of W.sites) { // dig sites above your level are dimmed
+    if (S.lv >= SITES[r.zone].lv || r.x1 < cx || r.x0 > cx + VW || r.y1 < cy || r.y0 > cy + VH) continue;
+    g.fillStyle = 'rgba(30,14,14,0.42)'; for (const j of r.tiles) { const tx = j % MW, ty = (j / MW) | 0; g.fillRect(tx * TS - cx, ty * TS - cy, TS, TS); }
+  }
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
   for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
@@ -606,6 +533,13 @@ function render(now) {
     g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
     if (o === ME) g.restore();
+  }
+  for (const r of W.sites) { // name boards over every dig site: everyone sees the same sites and the level they open at
+    if (r.x1 < cx - 40 || r.x0 > cx + VW + 40 || r.y1 < cy - 20 || r.y0 > cy + VH + 40) continue;
+    const zn = SITES[r.zone], locked = S.lv < zn.lv, sx = Math.round((r.x0 + r.x1) / 2 - cx), sy = Math.round(r.y0 - cy - 9), txt = zn.n, sub = locked ? 'Opens at Lv ' + zn.lv : 'Lv ' + zn.lv + '+ dig site';
+    g.font = 'bold 7px "Pixelify Sans", monospace'; const w = Math.max(g.measureText(txt).width, 40) + 8;
+    g.fillStyle = locked ? '#4a2f2f' : '#6b4423'; g.fillRect(sx - w / 2, sy - 12, w, 17); g.fillStyle = locked ? '#8a5a5a' : '#a8743a'; g.fillRect(sx - w / 2, sy - 12, w, 1); g.fillStyle = '#2a1c14'; g.fillRect(sx - 1, sy + 5, 2, 4);
+    g.fillStyle = '#f5e9cf'; g.textAlign = 'center'; g.fillText(txt, sx, sy - 5); g.font = '6px "Pixelify Sans", monospace'; g.fillStyle = locked ? '#ff9a8a' : '#a8e8a0'; g.fillText(sub, sx, sy + 2);
   }
   g.font = 'bold 7px "Pixelify Sans", monospace';
   for (const f of FL) { const u = f.t / 1.3; g.globalAlpha = 1 - u * u; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); g.fillStyle = f.col; g.fillText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); } g.globalAlpha = 1;

@@ -68,15 +68,15 @@ function actSprite(look, sheet, row, col, noItem) {
   c.tip = sheet === 'fish' && typeof ACT_TIPS !== 'undefined' ? ACT_TIPS.fish[row * 8 + col] : null;
   actCache.set(key, c); return c;
 }
-function fishPose(dir, f, now, hit) { // [sheet, row, col] for each fishing phase (player and NPCs)
+function digPose(dir, f, now, hit) { // [sheet, row, col] for each dig phase (player and wandering diggers): crouch frames from the gather sheet
   const D = AROW[dir] || 0;
   switch (f.ph) {
-    case 'charge': return ['fish', D, 1];
-    case 'cast': return ['fish', D, 1 + Math.min(2, Math.floor(f.t / 0.14))];
-    case 'wait': return ['fish', D, 4];
-    case 'bite': return ['fish', 4 + D, 4 + (Math.floor(now * 14) % 2)];
-    case 'reel': return ['fish', 4 + D, hit ? 7 : 5 + (Math.floor(now * 8) % 2)];
-    case 'pull': return ['fish', D, 2];
+    case 'charge': return ['gather', D, 0];
+    case 'cast': return ['gather', D, 1 + Math.min(2, Math.floor(f.t / 0.14))];
+    case 'wait': return ['gather', D, 3];
+    case 'bite': return ['gather', D, 2 + (Math.floor(now * 14) % 2)];
+    case 'reel': return ['gather', D, 2 + (Math.floor(now * (hit ? 10 : 5)) % 2)];
+    case 'pull': return ['gather', D, 4];
   }
   return null;
 }

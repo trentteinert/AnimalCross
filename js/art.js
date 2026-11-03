@@ -251,6 +251,25 @@ function itemIcon(id) {
     case 'coin': DC(c, 8, 8, 5, a); DC(c, 8, 8, 3, b); PX(c, 6, 5, '#ffffff'); RC(c, 7, 6, 2, 5, shade(a, -25)); break;
     case 'bottle': RC(c, 5, 6, 6, 8, a); RC(c, 7, 3, 2, 4, a); RC(c, 7, 1, 2, 2, '#a8743a'); RC(c, 6, 8, 4, 4, b); PX(c, 6, 7, '#ffffff'); break;
     case 'pearl': DC(c, 8, 8, 4, a); DC(c, 9, 9, 2, b); PX(c, 6, 6, '#ffffff'); PX(c, 7, 6, '#ffffff'); break;
+    case 'shard': RC(c, 3, 7, 9, 5, a); RC(c, 5, 5, 6, 3, a); RC(c, 10, 9, 4, 4, a); RC(c, 3, 11, 5, 2, shade(a, -25)); LN(c, 4, 8, 11, 8, b); LN(c, 5, 10, 10, 10, b); PX(c, 12, 10, shade(a, -30)); break;
+    case 'arrow': LN(c, 8, 2, 4, 11, a); LN(c, 8, 2, 12, 11, a); RC(c, 5, 10, 7, 2, a); RC(c, 7, 11, 3, 3, shade(a, -40)); LN(c, 8, 4, 8, 10, b); PX(c, 8, 3, b); break;
+    case 'bead': DC(c, 8, 8, 4, a); DC(c, 8, 8, 1, '#2a1c14'); PX(c, 6, 6, b); PX(c, 7, 5, b); RC(c, 4, 8, 1, 1, shade(a, -30)); break;
+    case 'needle': LN(c, 3, 13, 13, 3, a); LN(c, 3, 12, 12, 3, b); RC(c, 11, 2, 3, 3, a); PX(c, 12, 3, '#2a1c14'); PX(c, 3, 13, shade(a, -40)); break;
+    case 'nail': RC(c, 7, 3, 2, 10, a); RC(c, 5, 2, 6, 2, b); PX(c, 7, 13, shade(a, -40)); PX(c, 8, 6, shade(a, 40)); PX(c, 7, 9, shade(a, -30)); break;
+    case 'pot': EL(c, 8, 9, 5.5, 4.5, a); RC(c, 5, 3, 6, 2, a); RC(c, 4, 4, 8, 1, shade(a, -30)); RC(c, 3, 8, 10, 1, b); RC(c, 3, 10, 10, 1, b); PX(c, 5, 7, shade(a, 50)); RC(c, 5, 13, 6, 1, shade(a, -40)); break;
+    case 'seal': RC(c, 4, 6, 8, 8, a); RC(c, 4, 6, 8, 1, b); RC(c, 6, 2, 4, 4, shade(a, -15)); RC(c, 7, 1, 2, 2, b); PX(c, 6, 9, shade(a, -50)); PX(c, 9, 9, shade(a, -50)); RC(c, 6, 11, 4, 1, shade(a, -50)); break;
+    case 'amulet': DC(c, 8, 9, 5, a); DC(c, 8, 9, 3, b); DC(c, 8, 9, 1, shade(a, -40)); RC(c, 7, 1, 2, 3, '#8a6a3a'); PX(c, 6, 7, '#ffffff'); break;
+    case 'dagger': LN(c, 3, 13, 12, 3, a); LN(c, 3, 12, 11, 3, b); LN(c, 4, 13, 12, 4, shade(a, -30)); RC(c, 3, 10, 5, 2, '#6b4423'); RC(c, 2, 12, 3, 3, '#4a2f1a'); PX(c, 11, 4, '#ffffff'); break;
+    case 'lamp': EL(c, 7, 10, 5, 3, a); RC(c, 11, 8, 4, 2, a); RC(c, 14, 7, 1, 2, b); RC(c, 3, 7, 4, 2, a); RC(c, 6, 6, 3, 2, b); PX(c, 5, 9, shade(a, 50)); RC(c, 5, 13, 5, 1, shade(a, -40)); break;
+    case 'mask': RC(c, 4, 2, 8, 11, a); RC(c, 5, 13, 6, 1, a); RC(c, 3, 4, 1, 6, a); RC(c, 12, 4, 1, 6, a); RC(c, 5, 6, 2, 2, '#1a1a1a'); RC(c, 9, 6, 2, 2, '#1a1a1a'); RC(c, 7, 8, 2, 3, shade(a, -35)); RC(c, 6, 11, 4, 1, shade(a, -45)); RC(c, 4, 2, 8, 1, b); PX(c, 5, 4, b); PX(c, 10, 4, b); break;
+    case 'urn': RC(c, 6, 1, 4, 2, a); RC(c, 5, 3, 6, 1, shade(a, -30)); EL(c, 8, 9, 5.5, 5, a); RC(c, 5, 13, 6, 2, shade(a, -35)); RC(c, 3, 8, 10, 1, b); RC(c, 3, 10, 10, 1, b); for (let i = 0; i < 5; i++) PX(c, 4 + i * 2, 9, shade(a, -45)); PX(c, 5, 6, shade(a, 55)); break;
+    case 'scroll': RC(c, 3, 4, 10, 8, a); RC(c, 2, 3, 2, 10, shade(a, -30)); RC(c, 12, 3, 2, 10, shade(a, -30)); RC(c, 5, 6, 6, 1, '#6b4423'); RC(c, 5, 8, 5, 1, '#6b4423'); RC(c, 5, 10, 6, 1, '#6b4423'); DC(c, 8, 8, 2, b); PX(c, 8, 8, shade(b, -50)); break;
+    case 'ring': DC(c, 8, 9, 5, a); DC(c, 8, 9, 3, '#00000000'); c.g.clearRect(6, 7, 5, 5); RC(c, 7, 3, 3, 3, b); PX(c, 8, 3, '#ffffff'); PX(c, 4, 8, b); break;
+    case 'fossil': EL(c, 8, 8, 6, 5, a); for (let i = 0; i < 5; i++) { RC(c, 3 + i * 2, 5, 1, 7, shade(a, -35)); } RC(c, 7, 4, 2, 9, b); PX(c, 4, 6, b); PX(c, 11, 10, b); break;
+    case 'tablet': RC(c, 3, 2, 10, 12, a); RC(c, 3, 2, 10, 1, b); RC(c, 3, 13, 10, 1, shade(a, -35)); for (let y = 4; y < 12; y += 2) for (let x = 5; x < 11; x += 2) PX(c, x + (y % 4 ? 0 : 1), y, shade(a, -45)); PX(c, 4, 3, shade(a, 40)); break;
+    case 'statue': RC(c, 5, 13, 6, 2, shade(a, -30)); RC(c, 6, 7, 4, 6, a); RC(c, 4, 7, 2, 4, a); RC(c, 10, 7, 2, 4, a); DC(c, 8, 4, 3, a); RC(c, 5, 1, 2, 2, a); RC(c, 9, 1, 2, 2, a); PX(c, 7, 4, b); PX(c, 9, 4, b); RC(c, 7, 9, 2, 1, b); break;
+    case 'crown': RC(c, 2, 8, 12, 5, a); RC(c, 2, 5, 2, 4, a); RC(c, 7, 3, 2, 6, a); RC(c, 12, 5, 2, 4, a); PX(c, 3, 4, b); PX(c, 8, 2, b); PX(c, 13, 4, b); RC(c, 2, 12, 12, 1, shade(a, -45)); DC(c, 5, 10, 1, b); DC(c, 8, 10, 1, '#4a9ae8'); DC(c, 11, 10, 1, b); PX(c, 4, 8, '#ffffff'); break;
+    case 'skull': DC(c, 8, 7, 5, a); RC(c, 5, 10, 6, 4, a); RC(c, 5, 6, 2, 2, b); RC(c, 9, 6, 2, 2, b); PX(c, 8, 9, shade(a, -50)); for (let x = 6; x < 11; x += 2) RC(c, x, 12, 1, 2, shade(a, -45)); PX(c, 5, 4, '#ffffff'); PX(c, 6, 3, '#ffffff'); break;
     case 'relic': RC(c, 5, 3, 6, 11, a); RC(c, 4, 12, 8, 2, shade(a, -30)); RC(c, 6, 1, 4, 2, a); DC(c, 8, 7, 2, b); PX(c, 7, 6, '#ffffff'); RC(c, 5, 3, 1, 9, shade(a, 40)); break;
     default: DC(c, 8, 8, 5, a);
   }

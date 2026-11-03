@@ -1,11 +1,12 @@
 'use strict';
 const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 32, MAP_MAX = 200;
 let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels; maps can be any size from MAP_MIN to MAP_MAX
-function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); }
+function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); SITE = new Uint8Array(w * h); }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
 const POND = { x: 43 * TS, y: 25 * TS, r: 4 * TS };
 const PLAZA = { x: 32 * TS, y: 30 * TS, r: 5.2 * TS };
 const PATHS = [[31, 35, 31, 52, 1.3], [36, 30, 39, 28.5, 1.2], [28, 30, 14, 31.5, 1.2], [32, 25, 32, 12, 1.2]];
+let SITE = new Uint8Array(MW * MH); // dig sites: 0 = none, 1-4 = zone (see SITES in data.js)
 let DECK = new Uint8Array(MW * MH); // wooden / stone decking laid over the tiles (piers, bridges, boardwalks): 0 = none, 1-3 = plank styles, 4-6 = the same with rails
 let STRUCTS = [], LASTD = 0, MAPDATA = null; // STRUCTS: piers and bridges (px rects laid over the tile grid)
 
@@ -67,9 +68,10 @@ function typeAt(px, py) {
   const i = ty * MW + tx; if (DECK[i]) { LASTD = -1; return 7; }
   LASTD = DISTG[i]; return GRID[i];
 }
+const siteAt = (x, y) => { const tx = Math.floor(x / TS), ty = Math.floor(y / TS); return tx < 0 || ty < 0 || tx >= MW || ty >= MH ? 0 : SITE[ty * MW + tx]; };
 const isWater = (x, y) => { const t = typeAt(x, y); return t === 0 || t === 1 || t === 6; };
 
-const W = { terrain: null, objs: [], solids: [], trees: [], bushes: [], clutter: [], patches: [], bugs: [], shore: [], lamps: [], notes: [], fires: [], glows: [], lilies: [], theme: 'day', spawn: { x: 0, y: 0 }, hub: { x: 0, y: 0 }, stall: null, board: null };
+const W = { terrain: null, sites: [], objs: [], solids: [], trees: [], bushes: [], clutter: [], patches: [], bugs: [], shore: [], lamps: [], notes: [], fires: [], glows: [], lilies: [], theme: 'day', spawn: { x: 0, y: 0 }, hub: { x: 0, y: 0 }, stall: null, board: null };
 
 // ---- terrain rendering (dual-grid autotiling, see tiles.js) -------------------
 const LVL = [0, 1, 2, 3, 4, 5, 2];
@@ -83,7 +85,7 @@ function renderTerrain() {
     if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3)) : m + 16 * (hv > 0.5 ? 1 : 0);
     c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  decorate(c); for (const s of STRUCTS) drawStruct(c, s); drawDeck(c); return c;
+  decorate(c); for (const s of STRUCTS) drawStruct(c, s); drawSites(c); drawDeck(c); return c;
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
   const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#5e8438'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#6a9040'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#5e8438'); PX(t, 3, k & 1, '#8fb853'); return t; });
@@ -173,6 +175,33 @@ function drawDeck(c) { // tile-based decking: planks run along the walkway, open
     if (wat(tx + 1, ty)) { vrail(ox + TS - 1, oy + 4, oy + TS + 4); post(ox + TS - 1, oy + TS + 4); if (!has(tx, ty - 1, 1, 0)) post(ox + TS - 1, oy + 4); }
   }
 }
+const siteAtT = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? 0 : SITE[y * MW + x];
+function drawSites(c) { // roped-off excavation squares: disturbed soil, a string border and a stake at each corner
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
+    const z = SITE[ty * MW + tx]; if (!z) continue; const ox = tx * TS, oy = ty * TS, col = SITES[z].col;
+    c.g.fillStyle = 'rgba(70,44,22,0.30)'; c.g.fillRect(ox, oy, TS, TS);
+    for (let i = 0; i < 4; i++) { const px = ox + 1 + Math.floor(hash2(tx, ty, 90 + i) * 14), py = oy + 1 + Math.floor(hash2(tx, ty, 95 + i) * 14); RC(c, px, py, 2, 1, hash2(tx, ty, 99 + i) < 0.5 ? 'rgba(110,76,40,0.7)' : 'rgba(200,160,100,0.55)'); }
+    c.g.fillStyle = 'rgba(30,20,10,0.16)'; c.g.fillRect(ox, oy, TS, 1); c.g.fillRect(ox, oy, 1, TS);
+    const U = siteAtT(tx, ty - 1) === z, D = siteAtT(tx, ty + 1) === z, L = siteAtT(tx - 1, ty) === z, R = siteAtT(tx + 1, ty) === z;
+    if (!U) { RC(c, ox, oy, TS, 1, '#efe2c0'); RC(c, ox, oy + 1, TS, 1, 'rgba(60,40,20,0.35)'); }
+    if (!D) { RC(c, ox, oy + TS - 1, TS, 1, '#efe2c0'); RC(c, ox, oy + TS, TS, 1, 'rgba(60,40,20,0.35)'); }
+    if (!L) { RC(c, ox, oy, 1, TS, '#efe2c0'); RC(c, ox + 1, oy, 1, TS, 'rgba(60,40,20,0.35)'); }
+    if (!R) { RC(c, ox + TS - 1, oy, 1, TS, '#efe2c0'); RC(c, ox + TS, oy, 1, TS, 'rgba(60,40,20,0.35)'); }
+    for (const [sx, sy, open] of [[ox, oy, !U && !L], [ox + TS - 1, oy, !U && !R], [ox, oy + TS - 1, !D && !L], [ox + TS - 1, oy + TS - 1, !D && !R]]) if (open) { RC(c, sx - 1, sy - 4, 3, 6, '#5a3a1a'); RC(c, sx - 1, sy - 4, 3, 2, col); RC(c, sx, sy - 4, 1, 1, '#ffffff'); }
+  }
+}
+function buildSiteRegions() { // one record per painted dig site (connected tiles of one zone): bounding box + tile list, used for the signs and level locks
+  W.sites = []; const seen = new Uint8Array(MW * MH);
+  for (let i = 0; i < SITE.length; i++) {
+    if (!SITE[i] || seen[i]) continue; const z = SITE[i], q = [i], tiles = []; seen[i] = 1; let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    for (let h = 0; h < q.length; h++) {
+      const j = q[h], x = j % MW, y = (j / MW) | 0; tiles.push(j); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue; const k = ny * MW + nx; if (SITE[k] === z && !seen[k]) { seen[k] = 1; q.push(k); } }
+    }
+    W.sites.push({ zone: z, tiles, x0: x0 * TS, y0: y0 * TS, x1: (x1 + 1) * TS, y1: (y1 + 1) * TS });
+  }
+}
+function serializeSite() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += SITE[ty * MW + tx]; rows.push(r); } return rows; }
 function serializeDeck() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += DECK[ty * MW + tx]; rows.push(r); } return rows; }
 function paintFlowers(c) {
   for (const p of W.patches) {
@@ -281,7 +310,7 @@ function generateDefaultCave() { // rock (0) with carved chambers (3), a stone p
   return { v: 1, w: MW, h: MH, theme: 'cave', tiles: serializeTiles(), pier: null, structs: [], spawn: { x: R(32), y: R(57) }, objects: OBJ };
 }
 function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
-function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
+function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
 function validMap(m) {
   if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
   const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
@@ -330,24 +359,15 @@ function rebuildObjects() {
   MAPDATA.objects.forEach(instantiate);
 }
 function rebuildAll() {
-  STRUCTS = (MAPDATA.structs || []).map(structPx); buildDist(); rebuildObjects(); W.terrain = renderTerrain(); paintFlowers(W.terrain); buildLilies();
+  STRUCTS = (MAPDATA.structs || []).map(structPx); buildDist(); rebuildObjects(); W.terrain = renderTerrain(); paintFlowers(W.terrain); buildLilies(); buildSiteRegions();
   let sx = 0, sy = 0, n = 0; for (let i = 0; i < GRID.length; i++) if (GRID[i] === 5) { sx += (i % MW) * TS + 8; sy += ((i / MW) | 0) * TS + 8; n++; }
   W.hub = n ? { x: sx / n, y: sy / n } : { x: W.spawn.x, y: W.spawn.y };
 }
-function computeShore() { // standing points along the coast for fishing NPCs
+function computeShore() { // standing points at the dig sites (used by wandering diggers): stand on a site tile, face the next site tile
   W.shore = []; const D = [[1, 0, 'r'], [-1, 0, 'l'], [0, 1, 'd'], [0, -1, 'u']];
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
-    if (GRID[ty * MW + tx] !== 2) continue;
-    for (const d of D) { const n = tileAt(tx + d[0], ty + d[1]); if (n <= 1 || n === 6) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2] }); break; } }
-  }
-  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // standing points along the edges of the decking
-    if (!DECK[ty * MW + tx]) continue;
-    for (const d of D) { const nx = tx + d[0], ny = ty + d[1], n = tileAt(nx, ny); if (!deckAt(nx, ny) && (n <= 1 || n === 6)) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2] }); break; } }
-  }
-  for (const t of STRUCTS) {
-    const cxm = (t.x0 + t.x1) / 2, cym = (t.y0 + t.y1) / 2;
-    if ((t.y1 - t.y0) >= (t.x1 - t.x0)) W.shore.push({ x: cxm - 8, y: t.y1 - 10, dir: 'd' }, { x: cxm + 4, y: t.y1 - 26, dir: 'd' });
-    else W.shore.push({ x: t.x1 - 10, y: cym - 8, dir: 'r' }, { x: t.x1 - 26, y: cym + 4, dir: 'r' });
+    const z = SITE[ty * MW + tx]; if (!z) continue;
+    for (const d of D) if (siteAtT(tx + d[0], ty + d[1]) === z) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2], zone: z }); break; }
   }
 }
 function loadMap(map) {
@@ -359,6 +379,7 @@ function loadMap(map) {
   if (Array.isArray(map.deck) && map.deck.length === MH && map.deck.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) DECK[y * MW + x] = Math.min(6, Math.max(0, map.deck[y].charCodeAt(x) - 48));
   for (const q of map.structs) { const id = (q.style | 0) % 3 + 1 + (q.rails ? 3 : 0); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) DECK[y * MW + x] = id; } // old pier / bridge rectangles become deck tiles
   map.structs = []; STRUCTS = [];
+  if (Array.isArray(map.site) && map.site.length === MH && map.site.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) SITE[y * MW + x] = Math.min(4, Math.max(0, map.site[y].charCodeAt(x) - 48));
   W.spawn = { x: map.spawn.x, y: map.spawn.y };
   rebuildAll(); computeShore();
 }
@@ -396,7 +417,7 @@ function updateBugs(dt, now, night) {
   for (const p of W.patches) {
     if (p.fl.length < 3) continue;
     const mine = W.bugs.filter(b => b.patch === p && !b.leave);
-    p.target = night ? 2 : 3;
+    p.target = 0; // butterflies are switched off in the archaeology branch
     if (mine.length < p.target && now > p.timer) { W.bugs.push(spawnBug(p, night)); p.timer = now + rnd(3, 8); }
   }
   for (let i = W.bugs.length - 1; i >= 0; i--) {

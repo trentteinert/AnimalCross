@@ -1,5 +1,5 @@
 'use strict';
-// Panels for the fishing shop, fish tank, leaderboard, gem shop and daily outfit shop.
+// Panels for the antiquities dealer, museum cases, leaderboard, gem shop and daily outfit shop.
 const isFish = i => ITEM[i.id].cat === 'fish';
 const fishVal = v => Math.round(v * (S.gearOwned.includes('coin') ? 1.05 : 1));
 function spend(cost, lv) {
@@ -13,32 +13,28 @@ const gemBtn = (act, n, dis) => `<button class="btn small gemb ${dis ? 'dis' : '
 function tabsHTML(list, cur, act) { return `<div class="tabs">${list.map(t => `<button class="tab ${t[0] === cur ? 'on' : ''}" data-act="${act}:${t[0]}">${t[1]}</button>`).join('')}</div>`; }
 function modalShell(id, title, extra) { UI.open(id, `<div id="${id}box"></div>`); UI.cur = id; UI['render' + id[0].toUpperCase() + id.slice(1)](extra); }
 
-// ---- fishing shop ---------------------------------------------------------------
+// ---- antiquities dealer ---------------------------------------------------------------
 const ROD_COLS = ['#a8743a', '#5fbf5a', '#78bfff', '#ffd23f'];
-UI.openTackle = function (tab) { UI.tab2 = tab || 'sell'; modalShell('tackle', 'Fishing Shop', UI.tab2); sfx('coin'); };
+UI.openTackle = function (tab) { UI.tab2 = tab || 'sell'; modalShell('tackle', 'Antiquities Dealer', UI.tab2); sfx('coin'); };
 UI.renderTackle = function (tab) {
   UI.tab2 = tab = tab || UI.tab2; const host = $('#tacklebox'); if (!host) return; let body = '';
-  const tabs = tabsHTML([['sell', 'Sell'], ['rods', 'Rods'], ['tackle', 'Tackle'], ['bait', 'Bait'], ['gear', 'Gear']], tab, 'tk');
+  const tabs = tabsHTML([['sell', 'Sell'], ['rods', 'Tools'], ['gear', 'Gear']], tab, 'tk');
   if (tab === 'sell') {
     const g = grouped(isFish), tot = S.bag.filter(isFish).reduce((s, i) => s + fishVal(i.val), 0);
-    body = g.length ? `<div class="list">${g.map(x => `<div class="row"><img src="${itemURL(x.id)}" alt=""><div><b>${esc(ITEM[x.id].name)}</b><small>×${x.n}</small></div><span class="gold">${fishVal(x.val)}g</span></div>`).join('')}</div><button class="btn big" data-act="sellfish">Sell all fish · +${tot}g</button>${S.gearOwned.includes('coin') ? '<p class="note">Lucky Coin: +5% on fish.</p>' : ''}<p class="note">Want to keep a prize catch? Put it in the fish tank first.</p>`
-      : '<p class="empty">No fish in your bag. This shop only buys fish. Bugs, berries and beach finds sell at the General Market.</p>';
+    body = g.length ? `<div class="list">${g.map(x => `<div class="row"><img src="${itemURL(x.id)}" alt=""><div><b>${esc(ITEM[x.id].name)}</b><small>×${x.n}</small></div><span class="gold">${fishVal(x.val)}g</span></div>`).join('')}</div><button class="btn big" data-act="sellfish">Sell all relics · +${tot}g</button>${S.gearOwned.includes('coin') ? '<p class="note">Lucky Coin: +5% on relics.</p>' : ''}<p class="note">Want to keep a prize catch? Put it in the fish tank first.</p>`
+      : '<p class="empty">No relics in your bag. The dealer only buys relics. Everything else sells at the General Market.</p>';
   } else if (tab === 'rods') {
     const rd = TOOLS.rod[S.tools.rod + 1], rl = GEAR.reel[S.gear.reel], ln = GEAR.line[S.gear.line];
     body = `<p class="note">Using: ${TOOLS.rod[S.tools.rod].n}${S.gear.reel ? ', ' + GEAR.reel[S.gear.reel - 1].n : ''}${S.gear.line ? ', ' + GEAR.line[S.gear.line - 1].n : ''}</p><div class="list">` +
-      (rd ? srow(shopIconURL('rod', ROD_COLS[S.tools.rod + 1]), rd.n, 'Faster bites, rarer fish.', priceBtn('tkb:rod', rd.cost, rd.lv)) : srow(shopIconURL('rod', ROD_COLS[3]), TOOLS.rod[3].n, 'Your best rod.', '<span class="max">MAX</span>')) +
-      (rl ? srow(shopIconURL('reel', '#f2b84b'), rl.n, rl.d, priceBtn('tkb:reel', rl.cost, rl.lv)) : srow(shopIconURL('reel', '#f2b84b'), 'Reels', 'All reels owned.', '<span class="max">MAX</span>')) +
-      (ln ? srow(shopIconURL('line', '#6cbc6a'), ln.n, ln.d, priceBtn('tkb:line', ln.cost, ln.lv)) : srow(shopIconURL('line', '#6cbc6a'), 'Lines', 'All lines owned.', '<span class="max">MAX</span>')) + '</div>';
-  } else if (tab === 'tackle') {
-    body = `<div class="list">${BOBBERS.map(b => { const own = S.bobbers.includes(b.id), eq = S.bobberSel === b.id; return srow(shopIconURL(b.id === 'spinner' ? 'spinner' : b.id === 'feather' ? 'feather' : 'bobber', b.col), b.n, b.d, own ? `<button class="btn small ${eq ? 'on' : ''}" data-act="tkq:bob:${b.id}">${eq ? 'Equipped' : 'Equip'}</button>` : priceBtn('tkb:bob:' + b.id, b.cost, b.lv)); }).join('')}</div><p class="note">One bobber at a time. Tap Equipped again to remove it.</p>`;
-  } else if (tab === 'bait') {
-    body = `<div class="list">${BAITS.map(b => { const n = S.bait[b.id] || 0, sel = S.baitSel === b.id; return srow(shopIconURL('bait', b.col), b.n + ' ×' + b.qty, b.d + (n ? '  (you have ' + n + ')' : ''), `<div class="col2">${priceBtn('tkb:bait:' + b.id, b.cost, b.lv)}${n ? `<button class="btn small ${sel ? 'on' : ''}" data-act="tkq:bait:${b.id}">${sel ? 'In use' : 'Use'}</button>` : ''}</div>`); }).join('')}</div><p class="note">Each cast uses one bait.</p>`;
+      (rd ? srow(shopIconURL('rod', ROD_COLS[S.tools.rod + 1]), rd.n, 'Deeper digs, rarer relics.', priceBtn('tkb:rod', rd.cost, rd.lv)) : srow(shopIconURL('rod', ROD_COLS[3]), TOOLS.rod[3].n, 'Your best pick.', '<span class="max">MAX</span>')) +
+      (rl ? srow(shopIconURL('reel', '#f2b84b'), rl.n, rl.d, priceBtn('tkb:reel', rl.cost, rl.lv)) : srow(shopIconURL('reel', '#f2b84b'), 'Brushes', 'All brushes owned.', '<span class="max">MAX</span>')) +
+      (ln ? srow(shopIconURL('line', '#6cbc6a'), ln.n, ln.d, priceBtn('tkb:line', ln.cost, ln.lv)) : srow(shopIconURL('line', '#6cbc6a'), 'Gloves', 'All gloves owned.', '<span class="max">MAX</span>')) + '</div>';
   } else {
     const pg = TOOLS.bag[S.tools.bag + 1];
     body = `<div class="list">${pg ? srow(shopIconURL('pouch'), pg.n, pg.d, priceBtn('tkb:pouch', pg.cost, pg.lv)) : srow(shopIconURL('pouch'), TOOLS.bag[3].n, 'Biggest bag.', '<span class="max">MAX</span>')}` +
       GEARS.map(g2 => { const own = S.gearOwned.includes(g2.id); return srow(shopIconURL(g2.id), g2.n, g2.d, own ? '<span class="max">Owned</span>' : priceBtn('tkb:gear:' + g2.id, g2.cost, g2.lv)); }).join('') + '</div>';
   }
-  host.innerHTML = `${head('Fishing Shop')}<div class="wallet"><img src="${actURL('coin')}" alt=""><b>${S.gold}g</b></div>${tabs}<div class="mbody">${body}</div>`;
+  host.innerHTML = `${head('Antiquities Dealer')}<div class="wallet"><img src="${actURL('coin')}" alt=""><b>${S.gold}g</b></div>${tabs}<div class="mbody">${body}</div>`;
 };
 function tackleBuy(type, id) {
   if (type === 'rod') { const n = TOOLS.rod[S.tools.rod + 1]; if (n && spend(n.cost, n.lv)) { S.tools.rod++; UI.toast(n.n + ' unlocked!', 'gold'); } }
@@ -55,11 +51,11 @@ function tackleEquip(type, id) {
 }
 function sellFish() {
   const list = S.bag.filter(isFish); if (!list.length) return; const tot = list.reduce((s, i) => s + fishVal(i.val), 0);
-  S.bag = S.bag.filter(i => !isFish(i)); S.gold += tot; S.stats.earned += tot; sfx('coin'); UI.toast(`Sold ${list.length} fish for ${tot}g`, 'gold'); questEvent('sell', 1); UI.refresh();
+  S.bag = S.bag.filter(i => !isFish(i)); S.gold += tot; S.stats.earned += tot; sfx('coin'); UI.toast(`Sold ${list.length} relics for ${tot}g`, 'gold'); questEvent('sell', 1); UI.refresh();
 }
 
-// ---- fish tank ---------------------------------------------------------------------
-UI.openTank = function () { modalShell('tank', 'Fish Tank'); };
+// ---- museum cases ---------------------------------------------------------------------
+UI.openTank = function () { modalShell('tank', 'Museum Cases'); };
 UI.renderTank = function () {
   const host = $('#tankbox'); if (!host) return; const cells = [];
   for (let i = 0; i < S.tankSlots; i++) {
@@ -67,11 +63,11 @@ UI.renderTank = function () {
     cells.push(f ? `<button class="cell r${ITEM[f.id].r}" data-act="tank:take:${i}"><img src="${itemURL(f.id)}" alt=""><span>${esc(ITEM[f.id].name)}</span><small>${fmtSz(f)}</small></button>` : '<div class="cell empty-slot"><span>Empty</span></div>');
   }
   const mine = S.bag.map((f, i) => ({ f, i })).filter(x => isFish(x.f) && x.f.sz != null).sort((a, b) => b.f.sz - a.f.sz);
-  host.innerHTML = `${head('Fish Tank')}<p class="note">Keep your prized fish safe and on display. Fish in the tank swim in the tank on the map, and can't be sold by accident.</p>
-  <div class="grid g3">${cells.join('')}</div><h4>Your fish (${S.tank.length}/${S.tankSlots} slots used)</h4>
+  host.innerHTML = `${head('Museum Cases')}<p class="note">Keep your prized relics safe and on display. Relics in the cases can't be sold by accident.</p>
+  <div class="grid g3">${cells.join('')}</div><h4>Your relics (${S.tank.length}/${S.tankSlots} slots used)</h4>
   <div class="list">${mine.length ? mine.map(x => `<div class="row"><img src="${itemURL(x.f.id)}" alt=""><div class="grow"><b>${esc(ITEM[x.f.id].name)}</b><small>${fmtSz(x.f)} · ${RAR[ITEM[x.f.id].r].n}</small></div><button class="btn small ${S.tank.length >= S.tankSlots ? 'dis' : ''}" data-act="tank:put:${x.i}">Display</button></div>`).join('') : '<p class="empty">No fish in your bag right now.</p>'}</div>`;
 };
-function tankPut(i) { const f = S.bag[i]; if (!f) return; if (S.tank.length >= S.tankSlots) { UI.toast('The tank is full', 'info'); sfx('no'); return; } S.tank.push(f); S.bag.splice(i, 1); sfx('pop'); UI.refresh(); }
+function tankPut(i) { const f = S.bag[i]; if (!f) return; if (S.tank.length >= S.tankSlots) { UI.toast('The cases are full', 'info'); sfx('no'); return; } S.tank.push(f); S.bag.splice(i, 1); sfx('pop'); UI.refresh(); }
 function tankTake(i) { if (bagFull()) { UI.toast('Your bag is full', 'info'); sfx('no'); return; } S.bag.push(S.tank[i]); S.tank.splice(i, 1); sfx('pop'); UI.refresh(); }
 
 // ---- leaderboard (simulated rivals until real multiplayer exists) ---------------------
@@ -86,7 +82,7 @@ UI.renderLeaders = function (tab) {
   const st = S.stats, found = ITEMS.filter(i => S.book[i.id]).length, big = st.big ? ITEM[st.big.id].name + ' · ' + Math.round(st.big.sz) + ' cm' : 'None yet', rare = st.rare ? ITEM[st.rare.id].name : 'None yet';
   let body = '';
   if (tab === 'me') {
-    const rows = [['Level', S.lv], ['Fish caught', st.fish], ['Things collected', st.total], ['Entries found', found + '/' + ITEMS.length], ['Biggest fish', big], ['Rarest find', rare], ['Gold earned from sales', st.earned + 'g'], ['Tips found', S.notes.length]];
+    const rows = [['Level', S.lv], ['Relics found', st.fish], ['Things collected', st.total], ['Entries found', found + '/' + ITEMS.length], ['Biggest relic', big], ['Rarest find', rare], ['Gold earned from sales', st.earned + 'g'], ['Tips found', S.notes.length]];
     body = `<div class="list">${rows.map(r => `<div class="row"><div class="grow"><b>${r[0]}</b></div><span class="gold">${esc(r[1])}</span></div>`).join('')}</div>`;
   } else {
     const key = { big: 'big', most: 'fish', level: 'lv', rich: 'gold' }[tab], fmt = { big: v => v + ' cm', most: v => v, level: v => 'Lv ' + v, rich: v => v + 'g' }[tab];
@@ -95,7 +91,7 @@ UI.renderLeaders = function (tab) {
     const line = (x, i) => `<div class="row ${x.me ? 'me' : ''}"><span class="rk">${i + 1}</span><div class="grow"><b>${esc(x.name)}</b><small>Lv ${x.lv}</small></div><span class="gold">${fmt(x[key])}</span></div>`;
     body = `<div class="list">${top.map(line).join('')}${mine >= 10 ? '<div class="dots">...</div>' + line(me, mine) : ''}</div><p class="note">Rivals are simulated in this prototype. Real players will appear once multiplayer is connected.</p>`;
   }
-  host.innerHTML = `${head('Leaderboard')}${tabsHTML([['me', 'My stats'], ['big', 'Biggest'], ['most', 'Most fish'], ['level', 'Level'], ['rich', 'Richest']], tab, 'ld')}<div class="mbody">${body}</div>`;
+  host.innerHTML = `${head('Leaderboard')}${tabsHTML([['me', 'My stats'], ['big', 'Biggest'], ['most', 'Most relics'], ['level', 'Level'], ['rich', 'Richest']], tab, 'ld')}<div class="mbody">${body}</div>`;
 };
 
 // ---- gem shop -------------------------------------------------------------------------------

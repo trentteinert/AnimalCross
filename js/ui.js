@@ -105,7 +105,7 @@ UI.openBag = function () {
   const g = grouped(), tot = S.bag.reduce((s, i) => s + i.val, 0);
   const cells = g.length ? g.map(x => `<button class="cell r${ITEM[x.id].r}" data-act="show:${x.id}"><img src="${itemURL(x.id)}" alt=""><b>${x.n > 1 ? '×' + x.n : ''}</b><span>${esc(ITEM[x.id].name)}</span></button>`).join('') : '<p class="empty">Nothing yet. Fish, shake a tree, net a butterfly or dig the beach!</p>';
   UI.open('bag', `${head('Bag')}<div class="capbar"><i style="width:${bagCount() / bagCap() * 100}%"></i><span>${bagCount()} / ${bagCap()} · worth ${tot}g</span></div><div class="grid">${cells}</div>
-  <p class="note">Tap an item to show it off. Fish sell at the Fishing Shop, everything else at the General Market.</p>
+  <p class="note">Tap an item to show it off. Relics sell at the Antiquities Dealer, everything else at the General Market.</p>
   <div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="lefty">Left-handed: ${S.lefty ? 'On' : 'Off'}</button><button class="btn small" data-act="fx">Effects: ${S.fx === false ? 'Off' : 'On'}</button></div>`);
 };
 
@@ -133,7 +133,7 @@ UI.renderMarket = function (tab) {
   if (tab === 'sell') {
     const g = grouped(i => !isFish(i)), tot = S.bag.filter(i => !isFish(i)).reduce((s, i) => s + i.val, 0);
     body = g.length ? `<div class="list">${g.map(x => `<div class="row"><img src="${itemURL(x.id)}" alt=""><div><b>${esc(ITEM[x.id].name)}</b><small>×${x.n}</small></div><span class="gold">${x.val}g</span></div>`).join('')}</div><button class="btn big" data-act="sell">Sell everything · +${tot}g</button>`
-      : '<p class="empty">Nothing to sell here. Fish sell at the Fishing Shop.</p>';
+      : '<p class="empty">Nothing to sell here. Relics sell at the Antiquities Dealer.</p>';
   } else if (tab === 'upgrades') {
     body = '<div class="list">' + ['net', 'shovel'].map(k => {
       const lv = S.tools[k], cur = TOOLS[k][lv], nx = TOOLS[k][lv + 1];
@@ -169,7 +169,7 @@ function buyCosm(kind, id) {
 UI.openBoard = function () {
   const q = curQuest();
   const rows = ONB.map((o, i) => `<div class="row"><span class="chk ${i < S.quest ? 'done' : ''}">${i < S.quest ? '✓' : ''}</span><div class="grow"><b>${o.txt}</b></div></div>`).join('');
-  UI.open('board', `${head('Notice Board')}<p class="note">Island goals. Finish them for gold and xp.</p><div class="list">${rows}</div><p class="note">Now: <b>${esc(q.txt)}</b>${q.need > 1 ? ' (' + S.qprog + '/' + q.need + ')' : ''}</p><p class="note">Tip notes found: <b>${S.notes.length}/${W.notes.length}</b>. Look for little signs along the paths.</p><p class="note mut">Coming soon: crew catches, weekly events and the island museum.</p>`);
+  UI.open('board', `${head('Notice Board')}<p class="note">Camp goals. Finish them for gold and xp.</p><div class="list">${rows}</div><p class="note">Now: <b>${esc(q.txt)}</b>${q.need > 1 ? ' (' + S.qprog + '/' + q.need + ')' : ''}</p><p class="note">Tip notes found: <b>${S.notes.length}/${W.notes.length}</b>. Look for little signs along the paths.</p><p class="note mut">Coming soon: crew catches, weekly events and the island museum.</p>`);
 };
 
 // ---- character creator ----------------------------------------------------
