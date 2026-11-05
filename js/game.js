@@ -116,7 +116,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
-    if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
+    if (SHOPK.includes(o.k) && !o.auto) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
   }
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
   if (DOG) consider('dog', DOG, DOG.x, DOG.y - 4, Math.hypot(DOG.x - px, DOG.y - py), 22, 10);
@@ -130,7 +130,7 @@ function findTarget() {
 }
 function tapWorld(sx, sy) {
   if (UI.isOpen || A) return; const wx = sx / Z + cam.x, wy = sy / Z + cam.y; let best = null, bd = 1e9;
-  const cand = W.objs.filter(o => SHOPK.includes(o.k)).concat(NPCS, DOG ? [DOG] : []);
+  const cand = W.objs.filter(o => SHOPK.includes(o.k) && !o.auto).concat(NPCS, DOG ? [DOG] : []);
   for (const o of cand) {
     const cy = SHOPK.includes(o.k) ? o.y - 16 : o.y - 8, d = Math.hypot(wx - o.x, wy - cy), rad = SHOPK.includes(o.k) ? 26 : 13;
     if (d < rad && d < bd) { best = o; bd = d; }
@@ -332,9 +332,14 @@ function updateNPC(n, dt) {
 }
 
 // ---- update ---------------------------------------------------------------
+let stairsCool = 0;
+function checkStairs() { // stairs take you to the other floor (another area) as soon as you walk onto them
+  if (A || UI.isOpen || fading || timeNow < stairsCool) return;
+  for (const o of W.objs) if (o.k === 'portal' && o.auto && Math.abs(ME.x - o.x) < 13 && ME.y > o.y - 16 && ME.y < o.y + 3) { stairsCool = timeNow + 1.6; sfx('ui'); goArea(o.to, o.sx, o.sy); return; }
+}
 function tick(dt) {
   timeNow = performance.now() / 1000;
-  const night = isNight(); updateMe(dt);
+  const night = isNight(); updateMe(dt); checkStairs();
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
   UI.setMini(A);

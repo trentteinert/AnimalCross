@@ -61,17 +61,33 @@ function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (
     g2.drawImage(img, (id - 1) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
     if (isW(tx, ty - 1)) { g2.fillStyle = 'rgba(30,20,20,0.20)'; g2.fillRect(tx * 16, ty * 16, 16, 2); g2.fillStyle = 'rgba(30,20,20,0.09)'; g2.fillRect(tx * 16, ty * 16 + 2, 16, 2); }
   }
-  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // thin trims (side walls, back walls of rooms, partitions)
+  // Thin trims. Every vertical run of wall keeps one x offset (hugging the floor on its inside, centred if floor is on both sides) and every
+  // horizontal run keeps one y offset, so corners, T-junctions and crossings always meet: each bar simply stretches to the far edge of the
+  // bar it meets when nothing continues in that direction.
+  const runX = (x, y) => { // x offset of the vertical bar for this whole run of wall: 9 = floor only on its east, 0 = only on its west, 5 = floor on both sides or neither
+    let E = false, Wf = false;
+    for (const sgn of [-1, 1]) for (let k = sgn === 1 ? 0 : 1; k <= 12 && isW(x, y + sgn * k); k++) { const cy = y + sgn * k; E = E || isF(x + 1, cy) || isF(x + 1, cy - 1) || isF(x + 1, cy + 1); Wf = Wf || isF(x - 1, cy) || isF(x - 1, cy - 1) || isF(x - 1, cy + 1); }
+    return E && !Wf ? 9 : Wf && !E ? 0 : 5;
+  };
+  const runY = (x, y) => { // y offset of the horizontal bar for this whole run: 0 if there is floor above any of it, otherwise centred
+    let up = false;
+    for (const sgn of [-1, 1]) for (let k = sgn === 1 ? 0 : 1; k <= 12 && capLike(x + sgn * k, y); k++) up = up || isF(x + sgn * k, y - 1);
+    return up ? 0 : 5;
+  };
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
     if (!isW(tx, ty) || isF(tx, ty + 1)) continue; const ox = tx * 16, oy = ty * 16;
-    const hs = capLike(tx - 1, ty) || capLike(tx + 1, ty), vs = isW(tx, ty - 1) || isW(tx, ty + 1);
-    const east = isF(tx + 1, ty) || isF(tx + 1, ty - 1) || isF(tx + 1, ty + 1), west = isF(tx - 1, ty) || isF(tx - 1, ty - 1) || isF(tx - 1, ty + 1);
-    const vx = east ? 9 : west ? 0 : 5, hy = isF(tx, ty - 1) || isF(tx - 1, ty - 1) || isF(tx + 1, ty - 1) ? 0 : isF(tx, ty + 1) ? 9 : 5;
-    if (hs) { let x0 = 0, x1 = 16; if (vs && east && !capLike(tx - 1, ty)) x0 = 9; if (vs && west && !capLike(tx + 1, ty)) x1 = 7; g2.drawImage(img, 80 + (tx % 3) * 16 + x0, 16, x1 - x0, 7, ox + x0, oy + hy, x1 - x0, 7); }
+    const left = capLike(tx - 1, ty), right = capLike(tx + 1, ty), up = isW(tx, ty - 1), down = isW(tx, ty + 1), hs = left || right, vs = up || down;
+    const vx = runX(tx, ty), hy = runY(tx, ty);
+    const fl1 = (nx, ny) => { const v = intAt(nx, ny); return v >= 1 && v <= 5 ? v : 0; }, fl = (nx, ny) => fl1(nx, ny) || (isW(nx, ny) ? fl1(nx, ny - 1) || fl1(nx, ny + 1) : 0), under = (id, sx, sy, w, h) => g2.drawImage(img, (id - 1) * 16 + sx, sy, w, h, ox + sx, oy + sy, w, h);
+    const vy0 = up ? 0 : hs ? hy : 0, vy1 = down ? 16 : hs ? hy + 7 : 16;
+    if (vs) { const Wf = fl(tx - 1, ty), Ef = fl(tx + 1, ty); const yl = left ? hy : vy1, yr = right ? hy : vy1; if (Wf && vx > 0 && yl > vy0) under(Wf, 0, vy0, vx, yl - vy0); if (Ef && vx + 7 < 16 && yr > vy0) under(Ef, vx + 7, vy0, 16 - vx - 7, yr - vy0); }   // a half-tile wall keeps the floor on either side of it, no black bar
+    if (hs) { const Nf = fl1(tx, ty - 1); if (Nf && hy > 0) under(Nf, 0, 0, 16, hy); }
     if (vs) {
-      const top = !isW(tx, ty - 1); let y1 = 16; if (hs && hy === 0 && !isW(tx, ty + 1)) y1 = 7;
-      if (top) g2.drawImage(img, 64, 16, 7, 32, ox + vx, oy - 32, 7, 32);          // the upper end of a wall rises to the height of a wall front
-      g2.drawImage(img, 64, 16 + 32, 7, y1, ox + vx, oy, 7, y1);
+      const y0 = vy0, y1 = vy1;
+      if (!up && !hs) g2.drawImage(img, 64, 16, 7, 32, ox + vx, oy - 32, 7, 32);   // the top end of a wall rises to the height of a wall front
+      g2.drawImage(img, 64, 16 + 32, 7, y1 - y0, ox + vx, oy + y0, 7, y1 - y0);
     }
+    if (hs) { const x0 = left ? 0 : vs ? vx : 0, x1 = right ? 16 : vs ? vx + 7 : 16; g2.drawImage(img, 80 + (tx % 3) * 16 + x0, 16, x1 - x0, 7, ox + x0, oy + hy, x1 - x0, 7); }
     if (!hs && !vs) g2.drawImage(img, 64, 16 + 32, 7, 7, ox + 5, oy + 5, 7, 7);
   }
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // wall fronts, drawn last so they hide what is behind them
@@ -220,7 +236,7 @@ function instantiate(s) {
     case 'fountain': o = { k: 'fountain', spr: SPR.fountain }; break;
     case 'tackle': o = { k: 'tackle', spr: SPR.tackle }; break;
     case 'furn': if (!SPR.furn || !SPR.furn[s.f]) return; o = { k: 'furn', f: s.f, spr: SPR.furn[s.f] }; break;
-    case 'portal': o = { k: 'portal', to: s.to || 'island', sx: s.sx || 0, sy: s.sy || 0, style: s.style, spr: s.style === 'door' && SPR.furn ? SPR.furn.door : s.style === 'exit' ? SPR.portalExit : SPR.portalCave }; break;
+    case 'portal': o = { k: 'portal', to: s.to || 'island', sx: s.sx || 0, sy: s.sy || 0, style: s.style, auto: s.style === 'stairsUp' || s.style === 'stairsDown', spr: s.style === 'door' && SPR.furn ? SPR.furn.door : s.style === 'stairsUp' && SPR.furn ? SPR.furn.stairs_up : s.style === 'stairsDown' && SPR.furn ? SPR.furn.stairs_down : s.style === 'exit' ? SPR.portalExit : SPR.portalCave }; break;
     case 'crystal': o = { k: 'crystal', spr: s.kind === 'purple' ? SPR.crystalP : SPR.crystalB }; W.glows.push(o); o.gc = s.kind === 'purple' ? '176,112,240' : '95,168,255'; break;
     case 'mushroom': o = { k: 'mushroom', spr: s.kind === 'pink' ? SPR.mushroomP : SPR.mushroom }; W.glows.push(o); o.gc = s.kind === 'pink' ? '232,111,168' : '95,216,208'; break;
     case 'stalagmite': o = { k: 'stalagmite', spr: SPR.stalagmite }; break;
@@ -234,7 +250,7 @@ function instantiate(s) {
     case 'patch': W.patches.push({ x: s.x, y: s.y, fl: [], src: s }); return;
     default: return;
   }
-  const fb = s.k === 'furn' ? ASSET.furn[s.f] && ASSET.furn[s.f].box : null, sd = s.k === 'furn' ? (fb ? [fb] : null) : s.k === 'portal' && s.style === 'door' ? [[-10, -3, 20, 3], 18] : SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
+  const fb = s.k === 'furn' ? ASSET.furn[s.f] && ASSET.furn[s.f].box : null, sd = s.k === 'furn' ? (fb ? [fb] : null) : s.k === 'portal' && (s.style === 'stairsUp' || s.style === 'stairsDown') ? null : s.k === 'portal' && s.style === 'door' ? [[-10, -3, 20, 3], 18] : SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
 }
