@@ -189,16 +189,16 @@ function startAction() {
 }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 // live-tunable numbers for testing the controller (sliders show up with ?debug)
-const TUNE = { speed: 58, fps: 10, fpsSide: 6 }; // fps = walking toward / away from the camera, fpsSide = walking left / right
-try { const t = JSON.parse(localStorage.getItem('angela.tune') || 'null'); if (t) { TUNE.speed = +t.speed || TUNE.speed; TUNE.fps = +t.fps || TUNE.fps; TUNE.fpsSide = +t.fpsSide || TUNE.fpsSide; } } catch (e) { }
+const TUNE = { speed: 58, fps: 8, fpsSide: 4 }; // fps = walking toward / away from the camera, fpsSide = walking left / right
+try { const t = JSON.parse(localStorage.getItem('angela.tune2') || 'null'); if (t) { TUNE.speed = +t.speed || TUNE.speed; TUNE.fps = +t.fps || TUNE.fps; TUNE.fpsSide = +t.fpsSide || TUNE.fpsSide; } } catch (e) { }
 const walkSp = () => TUNE.speed;
 function initTunePanel() {
   const el = document.createElement('div'); el.id = 'tune'; el.className = 'px';
   el.innerHTML = '<label>Walk speed <b id="tsv"></b><input id="ts" type="range" min="20" max="160" step="1"></label><label>Walk anim fps (up / down) <b id="tfv"></b><input id="tf" type="range" min="2" max="20" step="1"></label><label>Walk anim fps (left / right) <b id="tsdv"></b><input id="tsd" type="range" min="2" max="20" step="1"></label><button id="tr">Reset</button>';
   $('#hud').appendChild(el);
-  const sync = () => { $('#ts').value = TUNE.speed; $('#tf').value = TUNE.fps; $('#tsd').value = TUNE.fpsSide; $('#tsdv').textContent = TUNE.fpsSide; $('#tsv').textContent = TUNE.speed + ' px/s'; $('#tfv').textContent = TUNE.fps; try { localStorage.setItem('angela.tune', JSON.stringify(TUNE)); } catch (e) { } };
-  $('#ts').addEventListener('input', e => { TUNE.speed = +e.target.value; sync(); }); $('#tf').addEventListener('input', e => { TUNE.fps = +e.target.value; sync(); }); $('#tsd').addEventListener('input', e => { TUNE.fpsSide = +e.target.value; sync(); });
-  $('#tr').addEventListener('click', () => { TUNE.speed = 58; TUNE.fps = 10; TUNE.fpsSide = 6; sync(); }); sync();
+  const sync = save => { $('#ts').value = TUNE.speed; $('#tf').value = TUNE.fps; $('#tsd').value = TUNE.fpsSide; $('#tsdv').textContent = TUNE.fpsSide; $('#tsv').textContent = TUNE.speed + ' px/s'; $('#tfv').textContent = TUNE.fps; if (save) try { localStorage.setItem('angela.tune2', JSON.stringify(TUNE)); } catch (e) { } };
+  $('#ts').addEventListener('input', e => { TUNE.speed = +e.target.value; sync(true); }); $('#tf').addEventListener('input', e => { TUNE.fps = +e.target.value; sync(true); }); $('#tsd').addEventListener('input', e => { TUNE.fpsSide = +e.target.value; sync(true); });
+  $('#tr').addEventListener('click', () => { TUNE.speed = 58; TUNE.fps = 8; TUNE.fpsSide = 4; sync(true); }); sync();
 }
 function castFish() { // release: the charge bar sets how hard you strike, which decides how deep you dig (deeper = rarer finds)
   const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir], reach = A.d0 + 4;
