@@ -347,7 +347,7 @@ function tick(dt) {
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
   // the camera eases toward the player instead of being locked to them (snaps on teleports / first frame)
-  const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y - VH / 2 - 10, 0, Math.max(0, PH - VH));
+  const ctx_ = PW < VW ? (PW - VW) / 2 : clamp(ME.x - VW / 2, 0, PW - VW), cty_ = PH < VH ? (PH - VH) / 2 : clamp(ME.y - VH / 2 - 10, 0, PH - VH);
   if (Math.hypot(ctx_ - cam.x, cty_ - cam.y) > 120) { cam.x = ctx_; cam.y = cty_; }
   else { const k = 1 - Math.exp(-dt * 3.5); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
 }
@@ -437,8 +437,9 @@ function render(now) {
   const cx = Math.round(cam.x), cy = Math.round(cam.y), K = DPR * Z;
   // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
-  g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
-  if (fxOn()) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
+  const indoor = W.theme === 'interior';
+  g.fillStyle = indoor ? '#17131a' : '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
+  if (fxOn() && !indoor) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
   for (const r of W.sites) { // dig sites above your level are dimmed
     if (S.lv >= SITES[r.zone].lv || r.x1 < cx || r.x0 > cx + VW || r.y1 < cy || r.y0 > cy + VH) continue;
     g.fillStyle = 'rgba(30,14,14,0.42)'; for (const j of r.tiles) { const tx = j % MW, ty = (j / MW) | 0; g.fillRect(tx * TS - cx, ty * TS - cy, TS, TS); }
@@ -457,12 +458,12 @@ function render(now) {
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   // light
-  const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();
+  const cave = W.theme === 'cave', h = hourNow(), tc = indoor ? [255, 247, 238] : cave ? [84, 94, 138] : tintAt(h), rain = !cave && !indoor && isRain();
   g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4);
   if (rain) { g.fillStyle = 'rgb(196,206,222)'; g.fillRect(-2, -2, VW + 4, VH + 4); }
   g.globalCompositeOperation = 'source-over';
   const fdt = Math.min(0.1, now - (FX.t || now)); FX.t = now;
-  if (fxOn() && !cave) { fxClouds(cx, cy, now, clamp(((tc[0] + tc[1] + tc[2]) / 3 - 110) / 140, 0, 1) * (rain ? 0.4 : 1)); fxLeaves(fdt, cx, cy, now); }
+  if (fxOn() && !cave && !indoor) { fxClouds(cx, cy, now, clamp(((tc[0] + tc[1] + tc[2]) / 3 - 110) / 140, 0, 1) * (rain ? 0.4 : 1)); fxLeaves(fdt, cx, cy, now); }
   const dark = clamp((255 - (tc[0] + tc[1] + tc[2]) / 3) / 100, 0, 1) + (rain ? 0.15 : 0);
   if (dark > 0.15) {
     g.globalCompositeOperation = 'lighter';
@@ -552,7 +553,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) buildPropSprites(); buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
+  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }

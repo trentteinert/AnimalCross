@@ -2,16 +2,17 @@
 // Loads the painted sprite sheets (assets/) and builds the character renderer and prop sprites from them.
 // Character sheets: 4 walk frames x 8 directions, one cell = 24x38 px, feet on the bottom row.
 // Direction order (rows): down, down-left, left, up-left, up, up-right, right, down-right.
-const ASSET = { img: {}, props: null, ok: false };
+const ASSET = { img: {}, props: null, furn: {}, ok: false };
 const CW = 24, CH = 40;
 const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
-  let left = Object.keys(list).length + 1; const failed = [];
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', interior: 'assets/tiles/interior.png', furniture: 'assets/props/furniture.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  let left = Object.keys(list).length + 2; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
+  fetch('assets/props/furniture.json').then(r => r.json()).then(j => { ASSET.furn = j; done(); }).catch(() => { ASSET.furn = {}; done(); });
   fetch('assets/props/props.json').then(r => r.json()).then(j => { ASSET.props = j; done(); }).catch(() => { failed.push('props.json'); done(); });
 }
 function prop(name, anchorMid) {
@@ -95,6 +96,9 @@ function drawHat(c, look, face) { // hats are still drawn in code: they sit over
 function randLook() { return { b: Math.floor(rnd(0, 3)), hair: Math.random() < 0.85 ? 0 : 1, hc: Math.floor(rnd(0, 8)), skin: Math.floor(rnd(0, 6)), shirt: Math.floor(rnd(0, 8)), style: Math.floor(rnd(0, 3)), hat: Math.random() < 0.3 ? Math.floor(rnd(1, 4)) : 0, pc: Math.floor(rnd(0, 8)) }; }
 
 // ---- props from the new tileset ---------------------------------------------------------------------
+function buildFurniture() { // house furniture: sprites cut from furniture.png, anchored at the bottom centre
+  SPR.furn = {}; for (const k in ASSET.furn) { const r = ASSET.furn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.furniture, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.furn[k] = c; }
+}
 function buildPropSprites() {
   const P = n => prop(n), tint = (c, fn) => { const t = mk(c.width, c.height); t.g.drawImage(c, 0, 0); t.ax = c.ax; t.ay = c.ay; return recolorCanvas(t, fn); };
   const green = tint(P('tree_red'), (r, g, b) => (g < 0.45 * r && r > 120) ? [g + 14, r * 0.88, b * 0.9] : [r, g, b]);

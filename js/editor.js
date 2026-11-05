@@ -15,20 +15,22 @@ const PAL = [
   { k: 'deco', v: 0, n: 'Orange tree' }, { k: 'deco', v: 1, n: 'Red tree' }, { k: 'deco', v: 2, n: 'Yellow tree' }, { k: 'deco', v: 3, n: 'Green tree' }, { k: 'deco', v: 4, n: 'Pine' },
   { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'fountain', n: 'Fountain' },
   { k: 'patch', n: 'Flower patch' },
+  { k: 'furn', f: 'bed', n: 'Bed' }, { k: 'furn', f: 'sofa', n: 'Sofa' }, { k: 'furn', f: 'armchair', n: 'Armchair' }, { k: 'furn', f: 'table', n: 'Table' }, { k: 'furn', f: 'chair', n: 'Chair' }, { k: 'furn', f: 'shelf', n: 'Bookshelf' }, { k: 'furn', f: 'counter', n: 'Kitchen counter' }, { k: 'furn', f: 'fridge', n: 'Fridge' }, { k: 'furn', f: 'plant', n: 'Plant' }, { k: 'furn', f: 'lamp', n: 'Floor lamp' }, { k: 'furn', f: 'tv', n: 'TV' }, { k: 'furn', f: 'painting', n: 'Painting (hang on a wall)' }, { k: 'portal', style: 'door', n: 'Door (portal to another area)' },
   { k: 'tackle', n: 'Antiquities dealer' },
   { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }, { k: 'crystal', kind: 'blue', n: 'Crystal (blue)' }, { k: 'crystal', kind: 'purple', n: 'Crystal (purple)' },
   { k: 'mushroom', kind: 'cyan', n: 'Glow mushrooms' }, { k: 'mushroom', kind: 'pink', n: 'Glow mushrooms (pink)' }, { k: 'stalagmite', n: 'Stalagmite' },
   { k: 'campfire', n: 'Campfire (lights up at night)' }, { k: 'tent', kind: 'red', n: 'Tent (red)' }, { k: 'tent', kind: 'green', n: 'Tent (green)' }, { k: 'logseat', n: 'Log seat' },
   { k: 'crate', n: 'Crate' }, { k: 'barrel', n: 'Barrel' }, { k: 'signpost', n: 'Signpost' }, { k: 'fence', n: 'Fence' }
 ];
-const LABELS = { tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
+const LABELS = { tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', furn: 'Furniture', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'tree': return SPR.tree[e.kind][0]; case 'bush': return SPR.bush[e.kind][0]; case 'deco': return SPR.deco[e.v]; case 'rock': return SPR.rock; case 'lamp': return SPR.lamp;
+    case 'furn': return SPR.furn[e.f];
     case 'bench': return SPR.bench; case 'fountain': return SPR.fountain; case 'patch': return SPR.flower[0];
     case 'tackle': return SPR.tackle;
-    case 'portal': return e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
+    case 'portal': return e.style === 'door' ? SPR.furn.door : e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
     case 'campfire': return SPR.campfire; case 'tent': return e.kind === 'green' ? SPR.tentGreen : SPR.tentRed; case 'logseat': return SPR.logseat; case 'crate': return SPR.crate; case 'barrel': return SPR.barrel; case 'signpost': return SPR.signpost; case 'fence': return SPR.fence;
   }
 }
@@ -67,6 +69,7 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   m.spawn = { x: clamp(m.spawn.x + ox * TS, 8, nw * TS - 8), y: clamp(m.spawn.y + oy * TS, 8, nh * TS - 8) };
   const od = m.deck || []; m.deck = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && od[sy] ? od[sy][sx] : '0'; } m.deck.push(r); }
   const os = m.site || []; m.site = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && os[sy] ? os[sy][sx] : '0'; } m.site.push(r); }
+  const oi = m.int || []; m.int = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && oi[sy] ? oi[sy][sx] : '0'; } m.int.push(r); }
   m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
 }
 function commit() {
@@ -87,6 +90,7 @@ function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
+    if (ED.tile >= 300) { const id = ED.tile - 300; if (INT[y * MW + x] !== id) { INT[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 200) { const id = ED.tile - 200; if (SITE[y * MW + x] !== id) { SITE[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 100) { const id = ED.tile - 100; if (DECK[y * MW + x] !== id) { DECK[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (GRID[y * MW + x] !== ED.tile) { GRID[y * MW + x] = ED.tile; ED.dirty = true; ED.strokeChanged = true; }
@@ -98,7 +102,7 @@ function lineTiles(x0, y0, x1, y1, fn) {
 }
 function placeAt(wx, wy) {
   const e = ED.place; if (!e) { msg('Pick an object from the palette first.'); return; }
-  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style;
+  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style; if (e.f) o.f = e.f;
   if (e.k === 'portal') { o.to = e.style === 'exit' ? 'island' : 'cave'; o.sx = e.style === 'exit' ? 512 : 512; o.sy = e.style === 'exit' ? 224 : 912; } if (e.k === 'note') o.text = 'Write your tip here.';
   MAPDATA.objects.push(o); rebuildAndSelect(o); commit();
 }
@@ -280,6 +284,8 @@ function buildEditorUI() {
   const tiles = TILE_NAMES.map((n, i) => `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('')
     + `<h4>Decking (piers, bridges, boardwalks)</h4>` + ['Driftwood', 'Dark oak', 'Pale stone', 'Driftwood + rails', 'Dark oak + rails', 'Pale stone + rails'].map((n, i) => `<button class="edt" data-ed="tile:${101 + i}" data-t="${101 + i}"><span style="background:${STRUCT_STYLES[i % 3].a}"></span>${n}</button>`).join('')
     + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`
+    + `<h4>House interior (build rooms: floors, walls, doors)</h4>` + [[1, 'Oak floor', '#cca474'], [2, 'Dark wood floor', '#7e5a44'], [3, 'Ceramic tile floor', '#e8e8eb'], [4, 'Carpet floor', '#68949f'], [5, 'Wall', '#e4dccd'], [6, 'Wall with window', '#94bcd6'], [7, 'Doorway (open)', '#28222a'], [8, 'Door (closed)', '#966248']].map(t => `<button class="edt" data-ed="tile:${300 + t[0]}" data-t="${300 + t[0]}"><span style="background:${t[2]}"></span>${t[1]}</button>`).join('')
+    + `<button class="edt" data-ed="tile:300" data-t="300"><span style="background:#17131a"></span>Remove interior</button>`
     + `<h4>Dig sites (fixed spots, unlock by level)</h4>` + [1, 2, 3, 4].map(z => `<button class="edt" data-ed="tile:${200 + z}" data-t="${200 + z}"><span style="background:${SITES[z].col}"></span>${SITES[z].n} (Lv ${SITES[z].lv})</button>`).join('')
     + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`;
   const pal = PAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
@@ -301,7 +307,7 @@ function buildEditorUI() {
     <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>
     <h4>Objects</h4><div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
-    <h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
+    <h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option><option value="interior">House interior (dark void)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
     <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Piers and bridges are decking tiles: paint them like any tile. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
