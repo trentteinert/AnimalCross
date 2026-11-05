@@ -201,7 +201,7 @@ function initTunePanel() {
   const sync = save => { $('#ts').value = TUNE.speed; $('#tf').value = TUNE.fps; $('#tsd').value = TUNE.fpsSide; $('#tsdv').textContent = TUNE.fpsSide; $('#tsv').textContent = TUNE.speed + ' px/s'; $('#tfv').textContent = TUNE.fps; if (save) try { localStorage.setItem('angela.tune2', JSON.stringify(TUNE)); } catch (e) { } };
   $('#ts').addEventListener('input', e => { TUNE.speed = +e.target.value; sync(true); }); $('#tf').addEventListener('input', e => { TUNE.fps = +e.target.value; sync(true); }); $('#tsd').addEventListener('input', e => { TUNE.fpsSide = +e.target.value; sync(true); });
   const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
-  for (const [role, label] of [['hair', 'Hair'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']]) {
+  for (const [role, label] of [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']]) {
     const l = document.createElement('label'); l.className = 'lk'; l.innerHTML = label + '<input type="color" data-role="' + role + '">'; $('#looks').appendChild(l);
     const inp = l.querySelector('input'); inp.value = HERO.tint[role] || hex(heroRoleColor(role));
     inp.addEventListener('input', () => { HERO.tint[role] = inp.value; heroApply(); try { localStorage.setItem('angela.look', JSON.stringify(HERO.tint)); } catch (e) { } });

@@ -82,14 +82,17 @@ function heroInit() {
   HERO.roles = ASSET.heroRoles || {}; try { HERO.tint = JSON.parse(localStorage.getItem('angela.look') || '{}') || {}; } catch (e) { HERO.tint = {}; }
   heroApply();
 }
-function heroRoleColor(role) { const cols = (HERO.roles[role] || []).slice().sort((a, b) => heroLum(a) - heroLum(b)); return cols.length ? cols[Math.floor(cols.length / 2)] : [128, 128, 128]; }
-function heroApply() { // the live skin = the original skin with the chosen colour per role (every shade of the role keeps its brightness relation)
+const heroPix = (role, k) => { const q = HERO.roles[role][k]; return (q[1] * 64 + q[0]) * 4; };
+function heroRoleColor(role) { // the role's middle-brightness colour in the original skin (what the colour picker starts at)
+  const l = HERO.roles[role] || []; if (!l.length) return [128, 128, 128];
+  const cs = l.map((q, k) => { const i = heroPix(role, k); return [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; }).sort((a, b) => heroLum(a) - heroLum(b)); return cs[Math.floor(cs.length / 2)];
+}
+function heroApply() { // the live skin = the original skin with the chosen colour per role; each pixel keeps its brightness relation to the role's middle shade
   const d = new Uint8ClampedArray(HERO.base);
   for (const role in HERO.tint) {
-    const cols = HERO.roles[role], hex = HERO.tint[role]; if (!cols || !hex) continue;
+    const l = HERO.roles[role], hex = HERO.tint[role]; if (!l || !hex) continue;
     const t = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), rl = Math.max(1, heroLum(heroRoleColor(role)));
-    const map = cols.map(c => [c, [0, 1, 2].map(i => clamp(Math.round(t[i] * heroLum(c) / rl), 0, 255))]);
-    for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; for (const [c, n] of map) if (HERO.base[i] === c[0] && HERO.base[i + 1] === c[1] && HERO.base[i + 2] === c[2]) { d[i] = n[0]; d[i + 1] = n[1]; d[i + 2] = n[2]; break; } }
+    l.forEach((q, k) => { const i = heroPix(role, k), f = heroLum([HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]) / rl; for (let c = 0; c < 3; c++) d[i + c] = clamp(Math.round(t[c] * f), 0, 255); });
   }
   HERO.data = d; HERO.cache = {};
 }

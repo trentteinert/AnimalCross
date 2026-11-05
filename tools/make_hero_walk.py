@@ -10,7 +10,7 @@ side only...) changes every animation at once, even at runtime.
 Output (5 columns = idle + 4 walk frames, 4 rows = down, left, right, up, cell 32x48, feet centre at (16, 47)):
   assets/chars/hero_uv.png     the animation as lookup coordinates
   assets/chars/hero_skin.png   the skin texture (= the 4-view reference)
-  assets/chars/hero_roles.json which colours of the skin are hair / skin / shirt / jeans / boots (used for live recolouring)
+  assets/chars/hero_roles.json which skin pixels are hair / eyes / skin / shirt / jeans / boots (used for live recolouring)
   assets/chars/hero_walk.png   the same frames as plain colours (preview, and a check that the lookup reproduces them)
 Run: python3 tools/make_hero_walk.py"""
 from PIL import Image
@@ -18,7 +18,8 @@ import numpy as np
 from collections import deque
 
 CW, CH, CX, OY = 32, 48, 16, 16          # cell size, feet centre x, sprite y -> cell y offset
-src = Image.open('tools/src/hero_ref.png').convert('RGBA'); A = np.array(src)
+SKIN_PATH = 'assets/chars/hero_skin.png'        # the file you paint on (64x64); tools/src/hero_ref.png is only the untouched original
+src = Image.open(SKIN_PATH).convert('RGBA'); A = np.array(src)
 ROLE = np.array(Image.open('tools/src/hero_ref_v1.png').convert('RGBA'))   # original colours = what each pixel is
 
 def components():
@@ -151,22 +152,45 @@ def lookup(uv):  # turn a lookup image into colours with the skin
             if p[3]: o[x, y] = tuple(int(c) for c in A[p[1], p[0]])
     return out
 
-def roles():  # which skin colours belong to which part, found by position in the original reference
+def roles():  # which skin PIXELS belong to which part (by position in the original reference), so two parts may share a colour (eyes / hair)
+    taken = set()
     def at(old_colors, y0=0, y1=63):
         out = []
         for y in range(y0, y1 + 1):
             for x in range(64):
-                if ROLE[y, x][3] and A[y, x][3] and tuple(int(v) for v in ROLE[y, x][:3]) in old_colors:
-                    c = [int(v) for v in A[y, x][:3]]
-                    if c not in out: out.append(c)
+                if ROLE[y, x][3] and A[y, x][3] and (x, y) not in taken and tuple(int(v) for v in ROLE[y, x][:3]) in old_colors: out.append([x, y]); taken.add((x, y))
         return out
-    r = {'hair': at({(73, 49, 44), (105, 70, 59), (136, 96, 75), (122, 82, 59)}, 0, 31), 'skin': at({(208, 169, 137), (236, 191, 154), (192, 151, 118)}),
-         'shirt': at({(235, 223, 204), (231, 229, 226), (221, 206, 186), (108, 135, 141)}, 32, 43), 'jeans': at({(108, 135, 141), (95, 110, 113)}, 44, 63),
-         'boots': at({(166, 131, 119), (163, 132, 118), (142, 111, 101), (127, 99, 87)}, 59, 63)}
-    seen = set()   # a colour belongs to one role only
-    for k in ['boots', 'jeans', 'skin', 'hair', 'shirt']:
-        r[k] = [c for c in r[k] if tuple(c) not in seen]; seen.update(tuple(c) for c in r[k])
+    r = {}
+    r['eyes'] = at({(142, 111, 101)}, 24, 30)
+    r['boots'] = at({(166, 131, 119), (163, 132, 118), (142, 111, 101), (127, 99, 87)}, 59, 63)
+    r['jeans'] = at({(108, 135, 141), (95, 110, 113)}, 44, 63)
+    r['skin'] = at({(208, 169, 137), (236, 191, 154), (192, 151, 118)})
+    r['hair'] = at({(73, 49, 44), (105, 70, 59), (136, 96, 75), (122, 82, 59)}, 0, 31)
+    r['shirt'] = at({(235, 223, 204), (231, 229, 226), (221, 206, 186), (108, 135, 141)}, 32, 43)
     return r
+
+def guides(uv):  # pictures to paint with: a labelled 8x guide, a flat map of which part is which, and the pixels the animations actually use
+    from PIL import ImageDraw
+    r = roles(); cols = {'hair': (160, 80, 200), 'eyes': (0, 220, 255), 'skin': (255, 160, 60), 'shirt': (80, 200, 80), 'jeans': (60, 100, 230), 'boots': (240, 220, 60)}
+    rm = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); p = rm.load()
+    for k, l in r.items():
+        for x, y in l: p[x, y] = cols[k] + (255,)
+    rm.save('assets/chars/hero_skin_roles.png')
+    used = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); up = used.load(); u = uv.load()
+    for y in range(uv.height):
+        for x in range(uv.width):
+            if u[x, y][3]: up[u[x, y][0], u[x, y][1]] = (255, 255, 255, 255)
+    used.save('assets/chars/hero_skin_used.png')
+    S = 8; g = Image.new('RGBA', (64 * S, 64 * S), (58, 62, 70, 255)); d = ImageDraw.Draw(g)
+    for y in range(64):
+        for x in range(64):
+            if (x + y) % 2 == 0: d.rectangle((x * S, y * S, x * S + S - 1, y * S + S - 1), fill=(66, 70, 78, 255))
+    g.alpha_composite(src.resize((64 * S, 64 * S), Image.NEAREST))
+    for i in range(0, 64 * S + 1, S * 8): d.line((i, 0, i, 64 * S), fill=(255, 255, 255, 40)); d.line((0, i, 64 * S, i), fill=(255, 255, 255, 40))
+    for name, cx in [('LEFT', 15), ('FRONT', 25), ('RIGHT', 36), ('BACK', 50)]: d.text((cx * S - 10, 10 * S), name, fill=(255, 235, 150, 255))
+    d.text((8, 12), 'Paint on assets/chars/hero_skin.png (64x64). This picture is only a guide.', fill=(255, 255, 255, 255))
+    d.text((8, 26), 'Layers: hero_skin_roles.png = which part is which, hero_skin_used.png = pixels the animations read.', fill=(210, 220, 255, 255))
+    g.save('assets/chars/hero_skin_guide.png')
 
 def main():
     rows = [('down', front_back(fig(2), 25)), ('left', side(fig(1), 13, -1)), ('right', side(fig(3), 37, +1)), ('up', front_back(fig(4), 50, True))]
@@ -174,7 +198,7 @@ def main():
     sheet = Image.new('RGBA', (CW * 5, CH * 4), (0, 0, 0, 0))
     for r, (name, frames) in enumerate(rows):
         for c, layers in enumerate(frames): sheet.alpha_composite(render(layers, cxs[name]), (c * CW, r * CH))
-    sheet.save('assets/chars/hero_uv.png'); src.save('assets/chars/hero_skin.png'); lookup(sheet).save('assets/chars/hero_walk.png')
+    sheet.save('assets/chars/hero_uv.png'); lookup(sheet).save('assets/chars/hero_walk.png'); guides(sheet)
     import json; json.dump(roles(), open('assets/chars/hero_roles.json', 'w'))
     print('saved uv sheet', sheet.size)
 if __name__ == '__main__': main()
