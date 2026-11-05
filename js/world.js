@@ -4,7 +4,7 @@ let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels;
 function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); SITE = new Uint8Array(w * h); INT = new Uint8Array(w * h); }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
 let SITE = new Uint8Array(MW * MH); // dig sites: 0 = none, 1-4 = zone (see SITES in data.js)
-let INT = new Uint8Array(MW * MH);  // house interiors: 0 none, 1-4 floors (oak, dark wood, ceramic, carpet), 5 wall, 6 window wall, 7 doorway, 8 closed door
+let INT = new Uint8Array(MW * MH);  // house interiors: 0 none, 1-5 floors (teal, oak, dark wood, ceramic, carpet), 6 wall, 7 wall with a window
 let DECK = new Uint8Array(MW * MH); // wooden / stone decking laid over the tiles (piers, bridges, boardwalks): 0 = none, 1-3 = plank styles, 4-6 = the same with rails
 let LASTD = 0, MAPDATA = null;
 
@@ -53,21 +53,31 @@ function renderTerrain() {
   }
   decorate(c); drawSites(c); drawDeck(c); drawInterior(c); return c;
 }
-function drawInterior(c) { // floors, then walls: a wall with floor to its south shows its front face; any other wall cell shows its top
-  const img = ASSET.img.interior, indoor = W.theme === 'interior'; let any = false;
-  if (!img) return; const put = (col, row, tx, ty) => c.g.drawImage(img, col * 16, row * 16, 16, 16, tx * 16, ty * 16, 16, 16);
+function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (3 cells tall) wherever a wall has floor to its south
+  const img = ASSET.img.interior; if (!img) return; const g2 = c.g;
+  const isW = (x, y) => intAt(x, y) >= 6, isF = (x, y) => { const v = intAt(x, y); return v >= 1 && v <= 5; }, capLike = (x, y) => isW(x, y) && !isF(x, y + 1);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
-    const id = INT[ty * MW + tx]; if (!id || id > 4) continue; any = true;
-    put((id - 1) * 2 + (hash2(tx, ty, 41) < 0.5 ? 0 : 1), 0, tx, ty);
-    if (intAt(tx, ty - 1) >= 5 && intAt(tx, ty - 1) !== 0) { c.g.fillStyle = 'rgba(30,20,20,0.22)'; c.g.fillRect(tx * 16, ty * 16, 16, 2); c.g.fillStyle = 'rgba(30,20,20,0.10)'; c.g.fillRect(tx * 16, ty * 16 + 2, 16, 2); }
+    const id = INT[ty * MW + tx]; if (id < 1 || id > 5) continue;
+    g2.drawImage(img, (id - 1) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
+    if (isW(tx, ty - 1)) { g2.fillStyle = 'rgba(30,20,20,0.20)'; g2.fillRect(tx * 16, ty * 16, 16, 2); g2.fillStyle = 'rgba(30,20,20,0.09)'; g2.fillRect(tx * 16, ty * 16 + 2, 16, 2); }
   }
-  const isW = (x, y) => intAt(x, y) >= 5, isF = (x, y) => { const v = intAt(x, y); return v >= 1 && v <= 4; };
-  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
-    const id = INT[ty * MW + tx]; if (id < 5) continue; any = true;
-    if (isF(tx, ty + 1)) {
-      const l = isW(tx - 1, ty), r = isW(tx + 1, ty);
-      put(id === 6 ? 4 : id === 7 ? 5 : id === 8 ? 6 : l && r ? 0 : !l && r ? 1 : l && !r ? 2 : 3, 1, tx, ty);
-    } else put((isW(tx, ty - 1) ? 1 : 0) | (isW(tx + 1, ty) ? 2 : 0) | (isW(tx, ty + 1) ? 4 : 0) | (isW(tx - 1, ty) ? 8 : 0), 2, tx, ty);
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // thin trims (side walls, back walls of rooms, partitions)
+    if (!isW(tx, ty) || isF(tx, ty + 1)) continue; const ox = tx * 16, oy = ty * 16;
+    const hs = capLike(tx - 1, ty) || capLike(tx + 1, ty), vs = isW(tx, ty - 1) || isW(tx, ty + 1);
+    const east = isF(tx + 1, ty) || isF(tx + 1, ty - 1) || isF(tx + 1, ty + 1), west = isF(tx - 1, ty) || isF(tx - 1, ty - 1) || isF(tx - 1, ty + 1);
+    const vx = east ? 9 : west ? 0 : 5, hy = isF(tx, ty - 1) || isF(tx - 1, ty - 1) || isF(tx + 1, ty - 1) ? 0 : isF(tx, ty + 1) ? 9 : 5;
+    if (hs) { let x0 = 0, x1 = 16; if (vs && east && !capLike(tx - 1, ty)) x0 = 9; if (vs && west && !capLike(tx + 1, ty)) x1 = 7; g2.drawImage(img, 80 + (tx % 3) * 16 + x0, 16, x1 - x0, 7, ox + x0, oy + hy, x1 - x0, 7); }
+    if (vs) {
+      const top = !isW(tx, ty - 1); let y1 = 16; if (hs && hy === 0 && !isW(tx, ty + 1)) y1 = 7;
+      if (top) g2.drawImage(img, 64, 16, 7, 32, ox + vx, oy - 32, 7, 32);          // the upper end of a wall rises to the height of a wall front
+      g2.drawImage(img, 64, 16 + 32, 7, y1, ox + vx, oy, 7, y1);
+    }
+    if (!hs && !vs) g2.drawImage(img, 64, 16 + 32, 7, 7, ox + 5, oy + 5, 7, 7);
+  }
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // wall fronts, drawn last so they hide what is behind them
+    const id = INT[ty * MW + tx]; if (id < 6 || !isF(tx, ty + 1)) continue;
+    g2.drawImage(img, (tx % 3) * 16, 16, 16, 48, tx * 16, (ty + 1) * 16 - 48, 16, 48);
+    if (id === 7) g2.drawImage(img, 48, 16, 16, 48, tx * 16, (ty + 1) * 16 - 48, 16, 48);
   }
 }
 function serializeInt() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += INT[ty * MW + tx]; rows.push(r); } return rows; }
@@ -253,7 +263,7 @@ function loadMap(map) {
   if (Array.isArray(map.deck) && map.deck.length === MH && map.deck.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) DECK[y * MW + x] = Math.min(6, Math.max(0, map.deck[y].charCodeAt(x) - 48));
   for (const q of map.structs) { const id = (q.style | 0) % 3 + 1 + (q.rails ? 3 : 0); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) DECK[y * MW + x] = id; } // old pier / bridge rectangles become deck tiles
   map.structs = [];
-  if (Array.isArray(map.int) && map.int.length === MH && map.int.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) INT[y * MW + x] = Math.min(8, Math.max(0, map.int[y].charCodeAt(x) - 48));
+  if (Array.isArray(map.int) && map.int.length === MH && map.int.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) INT[y * MW + x] = Math.min(7, Math.max(0, map.int[y].charCodeAt(x) - 48));
   if (Array.isArray(map.site) && map.site.length === MH && map.site.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) SITE[y * MW + x] = Math.min(4, Math.max(0, map.site[y].charCodeAt(x) - 48));
   W.spawn = { x: map.spawn.x, y: map.spawn.y };
   rebuildAll(); computeShore();
@@ -263,7 +273,7 @@ function initWorld(map) { loadMap(map); }
 // ---- collision --------------------------------------------------------------------------------------
 function blockedAt(x, y) {
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
-  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const w = intAt(Math.floor((x + o[0]) / TS), Math.floor((y + o[1]) / TS)); if (w >= 5 && w !== 7) return true; }
+  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const w = intAt(Math.floor((x + o[0]) / TS), Math.floor((y + o[1]) / TS)); if (w >= 6) return true; }
   const x0 = x - 3, x1 = x + 3, y0 = y - 3, y1 = y;
   for (const o of W.solids) {
     if (Math.abs(o.x - x) > 40 || Math.abs(o.y - y) > 30) continue;

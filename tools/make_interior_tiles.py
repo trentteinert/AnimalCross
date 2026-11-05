@@ -1,23 +1,18 @@
-"""Generates the modern-ish house interior art:
-  assets/tiles/interior.png      16px tile atlas  (row 0 floors, row 1 wall faces, row 2 wall tops by neighbour mask)
-  assets/props/furniture.png/json furniture sprites (bottom-centre anchored) + collision boxes
-Layout of interior.png (16x16 cells):
-  row 0:  oak A, oak B, dark wood A, dark wood B, ceramic A, ceramic B, carpet A, carpet B
-  row 1:  wall face: mid, left end, right end, single, window, doorway (open), door (closed)
-  row 2:  wall top, 16 cells indexed by mask  N*1 + E*2 + S*4 + W*8  (bit set = the neighbour is wall)
+"""House interior art. The wall, door, painting, trims and the teal floor are cut straight out of the hand-drawn sheet
+(tools/src/interior_sheet_user.png); the extra floors, the window and the furniture are drawn here in the same flat style.
+  assets/tiles/interior.png   192x64 atlas:
+     (  0..79, 0..15)  floors, 16x16 each: teal (yours), oak, dark wood, ceramic, carpet
+     (  0, 16) 48x48   plain wall front (3 cells wide, 3 cells tall; repeats every 3 cells)
+     ( 48, 16) 16x48   window, drawn over a wall front
+     ( 64, 16)  7x48   vertical wall trim (yours)         ( 80, 16) 48x7  horizontal wall trim (yours)
+  assets/props/furniture.png/json  furniture sprites, bottom-centre anchored, with collision boxes
 Run: python3 tools/make_interior_tiles.py"""
 from PIL import Image
 import json, random
 
-OUT = (47, 41, 41, 255)
+OUT = (86, 66, 64, 255)
 def C(r, g, b, a=255): return (r, g, b, a)
-CAP, CAP_HI, CAP_LO = C(88, 94, 108), C(122, 130, 146), C(64, 68, 80)
-P1, P2, PSH = C(228, 220, 206), C(217, 208, 193), C(190, 180, 166)
-BBH, BB, BBL = C(252, 249, 242), C(240, 235, 225), C(206, 198, 186)
-WOOD = {'oak': (C(204, 164, 116), C(192, 152, 106), C(224, 186, 138), C(160, 122, 84)),
-        'dark': (C(126, 90, 68), C(112, 78, 58), C(146, 108, 84), C(86, 60, 46)),
-        'tile': (C(232, 232, 235), C(214, 216, 222), C(246, 246, 248), C(180, 184, 196)),
-        'carpet': (C(104, 148, 160), C(92, 134, 148), C(126, 170, 180), C(70, 108, 122))}
+USER = Image.open('tools/src/interior_sheet_user.png').convert('RGBA')
 
 class Img:
     def __init__(self, w, h): self.im = Image.new('RGBA', (w, h), (0, 0, 0, 0)); self.p = self.im.load(); self.w, self.h = w, h
@@ -33,68 +28,27 @@ class Img:
                 if sp[x, y][3] == 0 and any(0 <= x + dx < self.w and 0 <= y + dy < self.h and sp[x + dx, y + dy][3] > 0 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))): self.p[x, y] = col
         return self
 
-# ---------------------------------------------------------------------------------------------- tiles
-def floor_tile(kind, v):
-    a, b, hi, lo = WOOD[kind]; t = Img(16, 16); rnd = random.Random(hash((kind, v)) & 0xffff)
-    if kind in ('oak', 'dark'):
-        t.rc(0, 0, 16, 16, a)
-        for row in range(2):
-            y0 = row * 8; joint = ((5 if v == 0 else 11) + row * 7) % 16
-            t.rc(0, y0, 16, 1, hi); t.rc(0, y0 + 7, 16, 1, lo)
-            t.rc(joint, y0, 1, 8, lo)
-            for _ in range(5): t.px(rnd.randrange(16), y0 + 1 + rnd.randrange(6), b)
-    elif kind == 'tile':
-        t.rc(0, 0, 16, 16, a)
-        for ty in range(2):
-            for tx in range(2):
-                chk = (tx + ty + v) % 2; x0, y0 = tx * 8, ty * 8
-                t.rc(x0, y0, 8, 8, b if chk else a); t.rc(x0, y0, 8, 1, hi); t.rc(x0, y0, 1, 8, hi); t.rc(x0 + 7, y0, 1, 8, lo); t.rc(x0, y0 + 7, 8, 1, lo)
+def floor(kind):
+    t = Img(16, 16); r = random.Random(kind)
+    if kind == 'teal': t.im.paste(USER.crop((64 + 16, 64 + 16, 64 + 32, 64 + 32)), (0, 0))
+    elif kind == 'oak':
+        t.rc(0, 0, 16, 16, C(214, 178, 132))
+        for row in range(2): y = row * 8; t.rc(0, y + 7, 16, 1, C(190, 152, 108)); t.rc(5 + row * 6, y, 1, 7, C(190, 152, 108)); t.rc(0, y, 16, 1, C(226, 192, 148))
+    elif kind == 'dark':
+        t.rc(0, 0, 16, 16, C(126, 92, 72))
+        for row in range(2): y = row * 8; t.rc(0, y + 7, 16, 1, C(104, 74, 58)); t.rc(10 - row * 6, y, 1, 7, C(104, 74, 58)); t.rc(0, y, 16, 1, C(142, 106, 84))
+    elif kind == 'ceramic':
+        t.rc(0, 0, 16, 16, C(232, 233, 236))
+        for k in (7, 15): t.rc(0, k, 16, 1, C(205, 208, 214)); t.rc(k, 0, 1, 16, C(205, 208, 214))
     else:  # carpet
-        t.rc(0, 0, 16, 16, a)
-        for _ in range(26): t.px(rnd.randrange(16), rnd.randrange(16), b if rnd.random() < 0.6 else hi)
-        if v == 1:
-            for k in range(0, 16, 4): t.px(k + 1, 3, lo); t.px(k + 3, 9, lo); t.px(k + 1, 13, lo)
+        t.rc(0, 0, 16, 16, C(172, 112, 114))
+        for _ in range(14): t.px(r.randrange(16), r.randrange(16), C(156, 98, 102))
     return t
 
-def face(kind):  # kind: mid left right single window door_open door_closed
-    t = Img(16, 16)
-    t.rc(0, 0, 16, 16, P1)
-    for x in range(0, 16, 4): t.rc(x, 3, 1, 8, P2)                       # faint vertical panelling
-    t.rc(0, 0, 16, 1, OUT); t.rc(0, 1, 16, 2, PSH)                        # where the wall top meets the face
-    t.rc(0, 11, 16, 1, BBH); t.rc(0, 12, 16, 2, BB); t.rc(0, 14, 16, 1, BBL); t.rc(0, 15, 16, 1, OUT)   # skirting board and the line it sits on
-    if kind in ('left', 'single'): t.rc(0, 0, 1, 16, OUT)
-    if kind in ('right', 'single'): t.rc(15, 0, 1, 16, OUT)
-    if kind == 'window':
-        t.rc(3, 3, 10, 9, BBH); t.rc(4, 4, 8, 7, C(148, 188, 214)); t.rc(7, 4, 2, 7, BBH); t.rc(4, 7, 8, 1, BBH)
-        t.rc(5, 5, 2, 1, C(214, 236, 248)); t.rc(9, 8, 2, 1, C(214, 236, 248)); t.rc(2, 12, 12, 1, BBH); t.rc(3, 11, 10, 1, BBL)
-    if kind in ('door_open', 'door_closed'):
-        t.rc(1, 3, 14, 12, BBH); t.rc(2, 4, 12, 11, C(40, 34, 40) if kind == 'door_open' else C(150, 98, 72))
-        if kind == 'door_open':
-            for y in range(4, 15): t.rc(2, y, 12, 1, C(40 + (y - 4) * 2, 34 + (y - 4) * 2, 40 + (y - 4) * 2))
-        else:
-            t.rc(4, 6, 3, 4, C(128, 80, 58)); t.rc(9, 6, 3, 4, C(128, 80, 58)); t.rc(4, 11, 3, 3, C(128, 80, 58)); t.rc(9, 11, 3, 3, C(128, 80, 58)); t.px(11, 10, C(238, 206, 120)); t.px(11, 11, C(238, 206, 120))
-        t.rc(1, 15, 14, 1, OUT)
-    return t
-
-def cap(mask):
-    t = Img(16, 16); N, E, S, W = [bool(mask >> i & 1) for i in range(4)]
-    t.rc(0, 0, 16, 16, CAP)
-    if not N: t.rc(0, 1, 16, 1, CAP_HI)
-    if not W: t.rc(1, 0, 1, 16, CAP_HI)
-    if not E: t.rc(14, 0, 1, 16, CAP_LO)
-    if not S: t.rc(0, 14, 16, 1, CAP_LO)
-    if not N: t.rc(0, 0, 16, 1, OUT)
-    if not S: t.rc(0, 15, 16, 1, OUT)
-    if not W: t.rc(0, 0, 1, 16, OUT)
-    if not E: t.rc(15, 0, 1, 16, OUT)
-    return t
-
-def atlas():
-    a = Img(16 * 16, 16 * 3)
-    for i, (k, v) in enumerate([(k, v) for k in ('oak', 'dark', 'tile', 'carpet') for v in (0, 1)]): a.im.paste(floor_tile(k, v).im, (i * 16, 0))
-    for i, k in enumerate(['mid', 'left', 'right', 'single', 'window', 'door_open', 'door_closed']): a.im.paste(face(k).im, (i * 16, 16))
-    for m in range(16): a.im.paste(cap(m).im, (m * 16, 32))
-    return a.im
+def window():  # 16x48, drawn over the wall front
+    t = Img(16, 48); F, G, H, S = C(235, 237, 233), C(164, 221, 219), C(214, 240, 238), C(213, 213, 213)
+    t.rc(2, 12, 12, 21, F); t.rc(3, 13, 10, 19, G); t.rc(7, 13, 2, 19, F); t.rc(3, 21, 10, 2, F)
+    t.rc(4, 14, 2, 2, H); t.rc(10, 24, 2, 2, H); t.rc(1, 33, 14, 2, C(231, 231, 231)); t.rc(1, 35, 14, 1, S); return t
 
 # ---------------------------------------------------------------------------------------------- furniture
 SPRITES = {}   # name -> (Img, anchor x, collision box [x, y, w, h] relative to the bottom-centre anchor, or None)
@@ -173,15 +127,27 @@ def door():
 
 BUILD = [('bed', bed, [-15, -22, 30, 22]), ('sofa', sofa, [-20, -12, 40, 12]), ('armchair', armchair, [-10, -12, 20, 12]), ('table', table, [-17, -14, 34, 14]),
          ('chair', chair, [-6, -8, 12, 8]), ('shelf', shelf, [-14, -12, 28, 12]), ('counter', counter, [-17, -14, 34, 14]), ('fridge', fridge, [-9, -10, 18, 10]),
-         ('plant', plant, [-5, -5, 10, 5]), ('lamp', lamp, [-4, -4, 8, 4]), ('tv', tv, [-15, -10, 30, 10]), ('painting', painting, None), ('door', door, None)]
+         ('plant', plant, [-5, -5, 10, 5]), ('lamp', lamp, [-4, -4, 8, 4]), ('tv', tv, [-15, -10, 30, 10])]
+
+def atlas():
+    a = Image.new('RGBA', (192, 64), (0, 0, 0, 0))
+    for i, k in enumerate(['teal', 'oak', 'dark', 'ceramic', 'carpet']): a.paste(floor(k).im, (i * 16, 0))
+    a.paste(USER.crop((0, 64, 48, 112)), (0, 16))                 # plain wall front
+    a.paste(window().im, (48, 16))
+    a.paste(USER.crop((128, 0, 135, 48)), (64, 16))               # vertical trim
+    a.paste(USER.crop((128, 64, 176, 71)), (80, 16))              # horizontal trim
+    return a
 
 def main():
     atlas().save('assets/tiles/interior.png')
     for name, fn, box in BUILD: add(name, fn(), box)
+    # the hand-drawn door and painting, exactly as drawn (no outline added)
+    for name, rect, box in [('painting', (16, 11, 32, 26), None), ('door', (80, 11, 96, 48), None)]:
+        im = Img(rect[2] - rect[0], rect[3] - rect[1]); im.im.paste(USER.crop(rect), (0, 0)); SPRITES[name] = (im, im.w // 2, box)
     gap = 2; W = sum(i.w + gap for i, _, _ in SPRITES.values()) + gap; H = max(i.h for i, _, _ in SPRITES.values()) + gap * 2
     sheet = Image.new('RGBA', (W, H), (0, 0, 0, 0)); meta = {}; x = gap
     for name, (img, ax, box) in SPRITES.items():
         sheet.alpha_composite(img.im, (x, gap)); meta[name] = {'x': x, 'y': gap, 'w': img.w, 'h': img.h, 'ax': ax, 'box': box}; x += img.w + gap
     sheet.save('assets/props/furniture.png'); json.dump(meta, open('assets/props/furniture.json', 'w'))
-    print('interior.png', Image.open('assets/tiles/interior.png').size, 'furniture', sheet.size, len(meta))
+    print('interior.png', atlas().size, 'furniture', sheet.size, len(meta))
 if __name__ == '__main__': main()
