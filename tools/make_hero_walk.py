@@ -1,4 +1,7 @@
 """Builds a walk cycle for the hero from the 4-view reference (tools/src/hero_ref.png: left, front, right, back).
+The art is whatever hero_ref.png currently holds, so recolours can be dropped in. tools/src/hero_ref_v1.png is the original
+version; it only tells the script which pixels are skin / jeans / boots / sleeves (by position) so the far leg and the arm gap
+can be shaded from the colours the art actually uses.
 Every pixel comes from the reference: parts (head, body, arms, legs) are moved, sheared or stretched, never redrawn,
 and the palette is untouched (the far leg only uses darker colours that already exist in the reference).
 Output: assets/chars/hero_walk.png  = 5 columns (idle + 4 walk frames) x 4 rows (down, left, right, up), cell 32x48,
@@ -9,6 +12,7 @@ from collections import deque
 
 CW, CH, CX, OY = 32, 48, 16, 16          # cell size, feet centre x, sprite y -> cell y offset
 src = Image.open('tools/src/hero_ref.png').convert('RGBA'); A = np.array(src)
+ROLE = np.array(Image.open('tools/src/hero_ref_v1.png').convert('RGBA'))   # original colours = what each pixel is
 
 def components():
     a = A[..., 3] > 0; lab = np.zeros(a.shape, int); n = 0
@@ -26,11 +30,16 @@ def components():
 LAB = components()
 def fig(i): return {(int(x), int(y)): tuple(int(v) for v in A[y, x]) for y, x in zip(*np.where(LAB == i))}
 
-# reference colours used for the far (darker) leg
-HEX = lambda t: t[:3]
-PANT, PANT_DK = (108, 135, 141), (95, 110, 113)
-BOOT_MAP = {(166, 131, 119): (142, 111, 101), (163, 132, 118): (142, 111, 101), (142, 111, 101): (127, 99, 87)}
-SKIN = {(208, 169, 137), (236, 191, 154), (192, 151, 118)}
+# colours of the current art, found by position from the original reference (so recolours keep working)
+def vote(old, y0=0, y1=63):
+    from collections import Counter
+    c = Counter(tuple(int(v) for v in A[y, x][:3]) for y in range(y0, y1 + 1) for x in range(64) if tuple(int(v) for v in ROLE[y, x][:3]) == old and ROLE[y, x][3] and A[y, x][3])
+    return c.most_common(1)[0][0] if c else old
+PANT, PANT_DK = vote((108, 135, 141), 44, 63), vote((95, 110, 113), 44, 63)        # jeans and their shaded side
+BOOT_LIGHT = vote((166, 131, 119), 59, 63); BOOT_MID = vote((142, 111, 101), 59, 63); BOOT_DARK = vote((127, 99, 87), 59, 63)
+BOOT_MAP = {BOOT_LIGHT: BOOT_MID, vote((163, 132, 118), 59, 63): BOOT_MID, BOOT_MID: BOOT_DARK}   # the far leg's boot is one shade darker
+SKIN = {vote(c) for c in [(208, 169, 137), (236, 191, 154), (192, 151, 118)]}
+SLEEVE = vote((235, 223, 204), 33, 43) + (255,)                                                   # sleeve colour behind a swinging forearm
 
 def shift(px, dx=0, dy=0): return {(x + dx, y + dy): c for (x, y), c in px.items()}
 def where(px, f): return {k: v for k, v in px.items() if f(*k)}
@@ -57,7 +66,7 @@ def shear(px, y0, y1, s, rigid_from=None):  # lean a column: dx grows from 0 at 
     for (x, y), c in px.items():
         t = (min(y, rigid_from if rigid_from is not None else y1) - y0) / max(1, (y1 - y0)); out[(x + int(round(s * max(0, min(1, t)))), y)] = c
     return out
-def far_leg(px): return {k: (PANT_DK if c == PANT else BOOT_MAP.get(c, c)) for k, c in px.items()}
+def far_leg(px): return {k: ((PANT_DK + (255,)) if c[:3] == PANT else (BOOT_MAP.get(c[:3], c[:3]) + (255,))) for k, c in px.items()}
 
 def render(layers, cx, dy_all=0):
     cell = Image.new('RGBA', (CW, CH), (0, 0, 0, 0)); pix = cell.load()
@@ -102,7 +111,7 @@ def side(px, cx, f):  # f = -1 faces left, +1 faces right
             if (x, y) not in leg_src: leg_src[(x, y)] = PANT + (255,)
     fill = {}
     for (x, y) in arm_skin:
-        if y <= 43: fill[(x, y)] = (235, 223, 204, 255)
+        if y <= 43: fill[(x, y)] = SLEEVE
     torso = merge(fill, torso)
     near = leg_src; far = far_leg(leg_src)
     ANK = 58
