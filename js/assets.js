@@ -8,7 +8,7 @@ const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
   let left = Object.keys(list).length + 1; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
@@ -67,6 +67,12 @@ function actSprite(look, sheet, row, col, noItem) {
   c.g.putImageData(id, 0, 0); c.ax = 24; c.ay = 48; c.sheet = sheet; c.row = row; c.col = col;
   c.tip = sheet === 'fish' && typeof ACT_TIPS !== 'undefined' ? ACT_TIPS.fish[row * 8 + col] : null;
   actCache.set(key, c); return c;
+}
+// ---- the hero (angela branch): 4 directions x (idle + 4 walk frames), cell 32x48, feet centre at (16, 47)
+const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, heroCache = {};
+function heroSprite(dir, frame) { // frame 0 = idle, 1..4 = walk cycle
+  const key = dir + frame; if (heroCache[key]) return heroCache[key];
+  const c = mk(32, 48); c.g.drawImage(ASSET.img.hero_walk, frame * 32, (HERO_ROW[dir] || 0) * 48, 32, 48, 0, 0, 32, 48); c.ax = 16; c.ay = 49; return heroCache[key] = c;
 }
 function digPose(dir, f, now, hit) { // [sheet, row, col] for each dig phase (player and wandering diggers): crouch frames from the gather sheet
   const D = AROW[dir] || 0;

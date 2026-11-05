@@ -255,7 +255,6 @@ function actState() {
 function updateMe(dt) {
   const v = inputVec(), mag = Math.hypot(v[0], v[1]);
   ME.moving = false;
-  if (mag > 0.4) UI.hideNote();
   if (ME.wave) { ME.wave.t += dt; if (ME.wave.t > 1.3 || mag > 0.3) ME.wave = null; }
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
   if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite'))) { ME.t += 0; return; }
@@ -354,18 +353,10 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   }
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
-function mePose(now) { // which painted action frame the player is in right now (null = normal walking sprite)
-  const D = AROW[ME.dir] || 0;
-  if (ME.hold) return ['gather', 4 + D, 7, true];
-  if (A) switch (A.k) {
-    case 'fish': return digPose(ME.dir, A, now, A.hit);
-  }
-  if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
-  return null;
-}
+function mePose() { return null; } // the old body's action frames do not match the hero, so the hero only walks and idles here
 function drawChar(e, cx, cy, now) {
   const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? digPose(e.dir, e.rod, now, false) : null),
-    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : charSprite(look, faceIdx(e), fr);
+    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : e === ME ? heroSprite(ME.dir, ME.moving ? 1 + Math.floor(ME.t * 10) % 4 : 0) : charSprite(look, faceIdx(e), fr);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
   let off = 0; if (A && e === ME && false) off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
@@ -468,7 +459,7 @@ function render(now) {
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
     if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); }
-    const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - 38 - cy);
+    const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - (o === ME ? 54 : 38) - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; const txt = nm + ' lv' + lv, w = g.measureText(txt).width; g.strokeText(txt, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x - g.measureText(' lv' + lv).width / 2, y);
     g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
@@ -483,6 +474,7 @@ function render(now) {
   }
   g.font = 'bold 7px "Pixelify Sans", monospace';
   for (const f of FL) { const u = f.t / 1.3; g.globalAlpha = 1 - u * u; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); g.fillStyle = f.col; g.fillText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); } g.globalAlpha = 1;
+  if (qs.has('debug')) { g.textAlign = 'left'; g.font = '6px "Pixelify Sans", monospace'; g.lineWidth = 2; g.strokeStyle = 'rgba(20,16,24,0.9)'; const t = `x ${ME.x.toFixed(1)} y ${ME.y.toFixed(1)} dir ${ME.dir} ${ME.moving ? 'walk f' + (1 + Math.floor(ME.t * 10) % 4) : 'idle'} tile ${typeAt(ME.x, ME.y)}`; g.strokeText(t, 4, VH - 6); g.fillStyle = '#fff'; g.fillText(t, 4, VH - 6); }
   g.textAlign = 'left';
 }
 
@@ -508,7 +500,7 @@ function goArea(to, sx, sy) { // fade out, load the other map, drop the player a
   setTimeout(() => {
     const done = map => {
       AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
-      NPCS = []; for (let i = 0; i < (to === 'cave' ? 3 : 10); i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink); FX.leaves = [];
+      NPCS = []; FX.leaves = [];
       setTimeout(() => { f.classList.remove('on'); fading = false; if (to === 'cave') UI.toast('A quiet cave. The pools here hold their own fish.', 'info'); }, 140);
     };
     fetch('maps/' + to + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => done(validMap(m) ? m : defaultFor(to))).catch(() => done(defaultFor(to)));
@@ -530,7 +522,6 @@ function boot() {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
     ME = { k: 'me', x: W.spawn.x, y: W.spawn.y, dir: 'd', t: 0, moving: false, bubble: null, bt: 0 };
-    for (let i = 0; i < 10; i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink);
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
     if (S.lv >= 2 && !S.created) setTimeout(() => UI.openCreator(true), 600);
