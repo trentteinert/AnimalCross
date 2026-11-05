@@ -8,7 +8,7 @@ const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
   let left = Object.keys(list).length + 1; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }

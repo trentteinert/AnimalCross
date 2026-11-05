@@ -128,7 +128,7 @@ function defaultState() {
   return {
     gold: 0, xp: 0, lv: 1, bag: [], book: {}, tools: { rod: 0, bag: 0 }, gear: { reel: 0, line: 0 },
     look: { b: 1, hair: 0, hc: 1, skin: 1, shirt: 4, style: 0, hat: 0, pc: 0 },
-    name: 'digger#' + (1000 + Math.floor(Math.random() * 9000)), created: false,
+    name: 'Angela', created: false,
     stats: { fish: 0, total: 0, earned: 0, big: null, rare: null }, sound: true, lefty: false, fx: true
   };
 }
@@ -143,6 +143,7 @@ function loadState() {
     S.tools = Object.assign(d.tools, o.tools || {});
     S.look = Object.assign(d.look, o.look || {});
     S.stats = Object.assign(d.stats, o.stats || {});
+    if (/^digger#/.test(S.name)) S.name = 'Angela';
   } catch (e) { }
 }
 let saveTimer = 0;

@@ -5,7 +5,7 @@ const cam = { x: 0, y: 0 };
 const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 const qs = new URLSearchParams(location.search);
 let AREA = 'island', fading = false;
-let ME = null, NPCS = [], A = null, held = false, target = null, autoWalk = null, tOff = 0, timeNow = 0;
+let ME = null, DOG = null, NPCS = [], A = null, held = false, target = null, autoWalk = null, tOff = 0, timeNow = 0;
 const PT = [], FL = [], RP = [];
 if (qs.has('hour')) { const d = new Date(); tOff = parseFloat(qs.get('hour')) - (d.getHours() + d.getMinutes() / 60); }
 
@@ -104,8 +104,8 @@ function doEmote(e) {
 
 // ---- targets --------------------------------------------------------------
 const SHOPK = ['portal', 'tackle'];
-const ICON = { portal: 'portal', tackle: 'tackle', dig: 'beach', npc: 'wave' };
-const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', dig: 'Hold to charge your swing, release to strike', npc: 'Press to wave hello' };
+const ICON = { portal: 'portal', tackle: 'tackle', dig: 'beach', npc: 'wave', dog: 'wave' };
+const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', dig: 'Hold to charge your swing, release to strike', npc: 'Press to wave hello', dog: 'Press to pet Fito' };
 function findTarget() {
   if (A || UI.isOpen) return null;
   const px = ME.x, py = ME.y, fv = DV[ME.dir]; let best = null;
@@ -119,6 +119,7 @@ function findTarget() {
     if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
   }
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
+  if (DOG) consider('dog', DOG, DOG.x, DOG.y - 4, Math.hypot(DOG.x - px, DOG.y - py), 22, 10);
   let sb = null; // a dig site tile just in front of the player
   for (const dn of ['u', 'd', 'l', 'r']) {
     const v = DV[dn];
@@ -129,7 +130,7 @@ function findTarget() {
 }
 function tapWorld(sx, sy) {
   if (UI.isOpen || A) return; const wx = sx / Z + cam.x, wy = sy / Z + cam.y; let best = null, bd = 1e9;
-  const cand = W.objs.filter(o => SHOPK.includes(o.k)).concat(NPCS);
+  const cand = W.objs.filter(o => SHOPK.includes(o.k)).concat(NPCS, DOG ? [DOG] : []);
   for (const o of cand) {
     const cy = SHOPK.includes(o.k) ? o.y - 16 : o.y - 8, d = Math.hypot(wx - o.x, wy - cy), rad = SHOPK.includes(o.k) ? 26 : 13;
     if (d < rad && d < bd) { best = o; bd = d; }
@@ -180,6 +181,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.hold = null;
   if (t.kind === 'portal') { held = false; goArea(t.ref.to, t.ref.sx, t.ref.sy); return; }
   if (t.kind === 'tackle') { held = false; UI.openDealer('sell'); return; }
+  if (t.kind === 'dog') { DOG.bubble = '❤️'; DOG.bt = 2.2; DOG.jump = 0.5; sfx('pop'); doEmote('❤️'); return; }
   if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   if (t.kind === 'dig') {
@@ -284,6 +286,17 @@ function updateMe(dt) {
   }
 }
 
+// ---- Fito, Angela's dog: trails her, sits when she stops, hops when petted -------------------------------------
+function updateDog(dt) {
+  const d = Math.hypot(ME.x - DOG.x, ME.y - DOG.y); DOG.bt = Math.max(0, DOG.bt - dt); if (!DOG.bt) DOG.bubble = null; DOG.jump = Math.max(0, (DOG.jump || 0) - dt); DOG.moving = false;
+  if (d > 150) { DOG.x = ME.x - 12; DOG.y = ME.y + 6; return; }                                     // far away (teleport, new area): catch up at once
+  if (d > 26) DOG.chasing = true; else if (d < 15) DOG.chasing = false;                              // follow when she gets away, rest when close
+  if (!DOG.chasing) return;
+  const v = DV[ME.dir], tx = ME.x - v[0] * 12, ty = ME.y - v[1] * 8 + 3;                              // aim for a spot just behind her
+  const dx = tx - DOG.x; DOG.moving = stepToward(DOG, tx, ty, Math.min(walkSp() * 1.3, 40 + d * 2.4), dt);
+  if (DOG.moving) { DOG.t += dt; if (Math.abs(dx) > 1.5) DOG.flip = dx < 0; }                       // the sprite has its tail on the left: flip when heading left
+}
+
 // ---- NPC players (stand-ins for real multiplayer) -------------------------
 const NNAMES = ['mossy', 'kelpie', 'pipsqueak', 'fernfox', 'tidy88', 'lilac', 'noodle', 'bramble', 'sunny', 'quill', 'marlow', 'poppy', 'otter_k', 'dune'];
 const PHRASES = ['nice!', 'hi!', '👋', 'wow, big one!', '🎣', 'what a view', 'so peaceful', 'anyone seen the golden koi?', '🦋', 'gg', '🍎', 'brb, selling', '✨'];
@@ -329,7 +342,7 @@ function tick(dt) {
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
-  NPCS.forEach(n => updateNPC(n, dt));
+  NPCS.forEach(n => updateNPC(n, dt)); if (DOG) updateDog(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
@@ -386,6 +399,12 @@ function drawChar(e, cx, cy, now) {
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
+    case 'dog': {
+      const hop = (o.moving ? Math.round(Math.abs(Math.sin(o.t * 14)) * 2) : 0) + (o.jump > 0 ? Math.round(Math.sin((0.5 - o.jump) / 0.5 * Math.PI) * 4) : 0), X = Math.round(o.x - 8 - cx), Y = Math.round(o.y - 17 - hop - cy);
+      g.drawImage(shadowSpr(12, 4), Math.round(o.x - 6 - cx), Math.round(o.y - 3 - cy));
+      if (o.flip) { g.save(); g.translate(X + 16, Y); g.scale(-1, 1); g.drawImage(ASSET.img.fito, 0, 0); g.restore(); } else g.drawImage(ASSET.img.fito, X, Y);
+      break;
+    }
     case 'me': case 'npc': if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); drawChar(o, cx, cy, now); g.restore(); } else drawChar(o, cx, cy, now); break;
     case 'tree': case 'bush': {
       const spr = o.k === 'tree' ? SPR.tree[o.kind][o.fruit ? 0 : 1] : SPR.bush[o.kind][o.berry ? 0 : 1];
@@ -433,7 +452,7 @@ function render(now) {
   }
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
-  L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
+  L.push(ME); if (DOG) L.push(DOG); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
   L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
@@ -467,6 +486,10 @@ function render(now) {
       tags.forEach((t, i) => sw(t[0], by - 27 - i * 9, t[1], 'bold 7px "Pixelify Sans", monospace'));
       g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
     }
+  }
+  if (DOG) { // Fito's name tag (and a heart when petted)
+    const x = Math.round(DOG.x - cx), y = Math.round(DOG.y - 24 - cy); g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText('Fito', x, y); g.fillStyle = '#f0e0c0'; g.fillText('Fito', x, y);
+    if (DOG.bubble) { g.font = '9px "Pixelify Sans", monospace'; g.fillStyle = '#fff'; g.fillText(DOG.bubble, x, y - 8 - Math.round(Math.sin(performance.now() / 160) * 1.5)); g.font = '6px "Pixelify Sans", monospace'; }
   }
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
@@ -534,11 +557,12 @@ function boot() {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
     ME = { k: 'me', x: W.spawn.x, y: W.spawn.y, dir: 'd', t: 0, moving: false, bubble: null, bt: 0 };
+    DOG = { k: 'dog', name: 'Fito', x: W.spawn.x - 14, y: W.spawn.y + 6, t: 0, moving: false, flip: false, dir: 'd', bubble: null, bt: 0, jump: 0, chasing: false };
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
     if (S.lv >= 2 && !S.created) setTimeout(() => UI.openCreator(true), 600);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
-    window.__game = { get ME() { return ME; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };
+    window.__game = { get ME() { return ME; }, get DOG() { return DOG; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };
   })), 40);
   });
 }
