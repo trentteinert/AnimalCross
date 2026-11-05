@@ -255,7 +255,6 @@ function actState() {
 function updateMe(dt) {
   const v = inputVec(), mag = Math.hypot(v[0], v[1]);
   ME.moving = false;
-  if (mag > 0.4) UI.hideNote();
   if (ME.wave) { ME.wave.t += dt; if (ME.wave.t > 1.3 || mag > 0.3) ME.wave = null; }
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
   if (A && !(A.k === 'fish' && (A.ph === 'charge' || A.ph === 'wait' || A.ph === 'bite'))) { ME.t += 0; return; }
