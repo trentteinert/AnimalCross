@@ -67,9 +67,6 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .rv .nm{font-size:18px;color:var(--rc)}.rv .mt{font-size:12px;color:var(--muted);margin-top:2px}.rv .vl{font-size:13px;color:var(--amber);margin-top:3px}
 .rv .exs{display:flex;gap:8px;justify-content:center;margin-top:6px}.rv .ex{display:flex;align-items:center;gap:2px;font-size:12px}.rv .ex img{width:26px;height:26px}
 .rv .full{font-size:11px;color:#ff8a7a;margin-top:4px}
-/* tutorial notes: a small paper card, not a full-screen sheet */
-  box-shadow:0 -3px 0 #5a3a1f,0 3px 0 #5a3a1f,-3px 0 0 #5a3a1f,3px 0 0 #5a3a1f,inset 0 -3px 0 rgba(90,58,31,.18);pointer-events:auto;cursor:pointer}
-@keyframes noteIn{from{transform:translateX(-50%) rotate(-4deg) translateY(10px) scale(.8);opacity:0}}
 #banner{position:absolute;left:50%;top:34%;transform:translateX(-50%);text-align:center;opacity:0;pointer-events:none;white-space:nowrap}
 #banner b{display:block;font-size:30px;color:var(--amber);text-shadow:0 3px 0 var(--ink),3px 0 0 var(--ink),-3px 0 0 var(--ink),0 -3px 0 var(--ink)}
 #banner span{font-size:14px;text-shadow:0 2px 0 var(--ink),2px 0 0 var(--ink),-2px 0 0 var(--ink),0 -2px 0 var(--ink)}
@@ -124,7 +121,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #loading{position:fixed;inset:0;z-index:50;background:#1b2433;display:grid;place-items:center;transition:opacity .4s}
 #loading.hidden{display:grid!important;opacity:0;pointer-events:none}
 .ld{padding:14px 20px;font-size:16px}
-@media(max-height:560px){#reveal{top:12%}.tl 
+@media(max-height:560px){#reveal{top:12%}}
 .btn.lock{background:#5a2a2a;color:#ff9a8a}.col2{display:flex;flex-direction:column;gap:5px;align-items:stretch}.grid.g3{grid-template-columns:repeat(3,1fr)}
 .cell.empty-slot{border:2px dashed #3b4a68;background:transparent;min-height:78px;justify-content:center}.cell small{font-size:10px;color:#9db0cf}
 .row.me{background:#2c4a46}.rk{width:22px;text-align:center;color:#f2b84b}.dots{text-align:center;color:#9db0cf}
@@ -149,3 +146,6 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .tapw .tbar{width:100%;height:4px;background:#101826;position:relative}.tapw .tbar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--amber)}
 .taplab{display:none}
 #mcv{width:150px;height:180px;image-rendering:pixelated;background:#000;touch-action:none;cursor:pointer}
+#tune{position:absolute;left:calc(var(--sal) + 14px);top:calc(var(--sat) + 70px);padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12px;pointer-events:auto;z-index:7}
+#tune label{display:flex;flex-direction:column;gap:2px}#tune b{color:var(--amber);font-weight:400}#tune input{width:150px}
+#tune button{align-self:flex-start;padding:3px 8px;font-size:11px;background:#101826;border:0;color:var(--muted)}

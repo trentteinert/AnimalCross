@@ -188,7 +188,18 @@ function startAction() {
   }
 }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
-const walkSp = () => 58;
+// live-tunable numbers for testing the controller (sliders show up with ?debug)
+const TUNE = { speed: 58, fps: 10, fpsSide: 6 }; // fps = walking toward / away from the camera, fpsSide = walking left / right
+try { const t = JSON.parse(localStorage.getItem('angela.tune') || 'null'); if (t) { TUNE.speed = +t.speed || TUNE.speed; TUNE.fps = +t.fps || TUNE.fps; TUNE.fpsSide = +t.fpsSide || TUNE.fpsSide; } } catch (e) { }
+const walkSp = () => TUNE.speed;
+function initTunePanel() {
+  const el = document.createElement('div'); el.id = 'tune'; el.className = 'px';
+  el.innerHTML = '<label>Walk speed <b id="tsv"></b><input id="ts" type="range" min="20" max="160" step="1"></label><label>Walk anim fps (up / down) <b id="tfv"></b><input id="tf" type="range" min="2" max="20" step="1"></label><label>Walk anim fps (left / right) <b id="tsdv"></b><input id="tsd" type="range" min="2" max="20" step="1"></label><button id="tr">Reset</button>';
+  $('#hud').appendChild(el);
+  const sync = () => { $('#ts').value = TUNE.speed; $('#tf').value = TUNE.fps; $('#tsd').value = TUNE.fpsSide; $('#tsdv').textContent = TUNE.fpsSide; $('#tsv').textContent = TUNE.speed + ' px/s'; $('#tfv').textContent = TUNE.fps; try { localStorage.setItem('angela.tune', JSON.stringify(TUNE)); } catch (e) { } };
+  $('#ts').addEventListener('input', e => { TUNE.speed = +e.target.value; sync(); }); $('#tf').addEventListener('input', e => { TUNE.fps = +e.target.value; sync(); }); $('#tsd').addEventListener('input', e => { TUNE.fpsSide = +e.target.value; sync(); });
+  $('#tr').addEventListener('click', () => { TUNE.speed = 58; TUNE.fps = 10; TUNE.fpsSide = 6; sync(); }); sync();
+}
 function castFish() { // release: the charge bar sets how hard you strike, which decides how deep you dig (deeper = rarer finds)
   const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir], reach = A.d0 + 4;
   const bx = ME.x + v[0] * reach, by = ME.y - 2 + v[1] * reach;
@@ -354,9 +365,10 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
 function mePose() { return null; } // the old body's action frames do not match the hero, so the hero only walks and idles here
+const heroFrame = () => ME.moving ? 1 + Math.floor(ME.t * (ME.dir === 'l' || ME.dir === 'r' ? TUNE.fpsSide : TUNE.fps)) % 4 : 0;
 function drawChar(e, cx, cy, now) {
   const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? digPose(e.dir, e.rod, now, false) : null),
-    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : e === ME ? heroSprite(ME.dir, ME.moving ? 1 + Math.floor(ME.t * 10) % 4 : 0) : charSprite(look, faceIdx(e), fr);
+    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : e === ME ? heroSprite(ME.dir, heroFrame()) : charSprite(look, faceIdx(e), fr);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
   let off = 0; if (A && e === ME && false) off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
@@ -474,7 +486,7 @@ function render(now) {
   }
   g.font = 'bold 7px "Pixelify Sans", monospace';
   for (const f of FL) { const u = f.t / 1.3; g.globalAlpha = 1 - u * u; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); g.fillStyle = f.col; g.fillText(f.txt, Math.round(f.x - cx), Math.round(f.y - cy - u * 14)); } g.globalAlpha = 1;
-  if (qs.has('debug')) { g.textAlign = 'left'; g.font = '6px "Pixelify Sans", monospace'; g.lineWidth = 2; g.strokeStyle = 'rgba(20,16,24,0.9)'; const t = `x ${ME.x.toFixed(1)} y ${ME.y.toFixed(1)} dir ${ME.dir} ${ME.moving ? 'walk f' + (1 + Math.floor(ME.t * 10) % 4) : 'idle'} tile ${typeAt(ME.x, ME.y)}`; g.strokeText(t, 4, VH - 6); g.fillStyle = '#fff'; g.fillText(t, 4, VH - 6); }
+  if (qs.has('debug')) { g.textAlign = 'left'; g.font = '6px "Pixelify Sans", monospace'; g.lineWidth = 2; g.strokeStyle = 'rgba(20,16,24,0.9)'; const t = `x ${ME.x.toFixed(1)} y ${ME.y.toFixed(1)} dir ${ME.dir} ${ME.moving ? 'walk f' + heroFrame() : 'idle'} tile ${typeAt(ME.x, ME.y)}`; g.strokeText(t, 4, VH - 6); g.fillStyle = '#fff'; g.fillText(t, 4, VH - 6); }
   g.textAlign = 'left';
 }
 
@@ -517,7 +529,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) buildPropSprites(); buildClouds(); if (!EDIT) UI.init();
+  buildSprites(); if (ASSET.ok) buildPropSprites(); buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
