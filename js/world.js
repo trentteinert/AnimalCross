@@ -64,10 +64,15 @@ function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (
   // Thin trims. Every vertical run of wall keeps one x offset (hugging the floor on its inside, centred if floor is on both sides) and every
   // horizontal run keeps one y offset, so corners, T-junctions and crossings always meet: each bar simply stretches to the far edge of the
   // bar it meets when nothing continues in that direction.
-  const runX = (x, y) => { // x offset of the vertical bar for this whole run of wall: 9 = floor only on its east, 0 = only on its west, 5 = floor on both sides or neither
-    let E = false, Wf = false;
-    for (const sgn of [-1, 1]) for (let k = sgn === 1 ? 0 : 1; k <= 12 && isW(x, y + sgn * k); k++) { const cy = y + sgn * k; E = E || isF(x + 1, cy) || isF(x + 1, cy - 1) || isF(x + 1, cy + 1); Wf = Wf || isF(x - 1, cy) || isF(x - 1, cy - 1) || isF(x - 1, cy + 1); }
-    return E && !Wf ? 9 : Wf && !E ? 0 : 5;
+  const faceAt = (x, y) => isW(x, y) && isF(x, y + 1);   // a wall front
+  const runX = (x, y) => { // x offset of the vertical bar for this whole run of wall: 9 = hugs its east side, 0 = its west side, 5 = centred
+    let E = false, Wf = false, FL = false, FR = false;
+    for (const sgn of [-1, 1]) for (let k = sgn === 1 ? 0 : 1; k <= 12 && isW(x, y + sgn * k); k++) {
+      const cy = y + sgn * k; E = E || isF(x + 1, cy) || isF(x + 1, cy - 1) || isF(x + 1, cy + 1); Wf = Wf || isF(x - 1, cy) || isF(x - 1, cy - 1) || isF(x - 1, cy + 1);
+      if (!faceAt(x, cy)) { FL = FL || faceAt(x - 1, cy); FR = FR || faceAt(x + 1, cy); }   // (a front that closes the run does not count)
+    }
+    if (FL !== FR) return FL ? 0 : 9;                   // a wall front beside the run: the bar touches it
+    return E && !Wf ? 9 : Wf && !E ? 0 : 5;           // otherwise it hugs the floor on its inside
   };
   const runY = (x, y) => { // y offset of the horizontal bar for this whole run: 0 if there is floor above any of it, otherwise centred
     let up = false;
@@ -84,7 +89,7 @@ function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (
     if (hs) { const Nf = fl1(tx, ty - 1); if (Nf && hy > 0) under(Nf, 0, 0, 16, hy); }
     if (vs) {
       const y0 = vy0, y1 = vy1;
-      if (!up && !hs) g2.drawImage(img, 64, 16, 7, 32, ox + vx, oy - 32, 7, 32);   // the top end of a wall rises to the height of a wall front
+      if (!up && !hs) { if (faceAt(tx - 1, ty) && faceAt(tx + 1, ty)) { g2.fillStyle = 'rgb(213,200,175)'; g2.fillRect(ox, oy - 32, 16, 32); } else g2.drawImage(img, 64, 16, 7, 32, ox + vx, oy - 32, 7, 32); }   // the top end of a wall rises to the height of a wall front (a pillar between two fronts fills the gap)
       g2.drawImage(img, 64, 16 + 32, 7, y1 - y0, ox + vx, oy + y0, 7, y1 - y0);
     }
     if (hs) { const x0 = left ? 0 : vs ? vx : 0, x1 = right ? 16 : vs ? vx + 7 : 16; g2.drawImage(img, 80 + (tx % 3) * 16 + x0, 16, x1 - x0, 7, ox + x0, oy + hy, x1 - x0, 7); }
