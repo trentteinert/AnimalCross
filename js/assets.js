@@ -8,10 +8,11 @@ const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_walk: 'assets/chars/hero_walk.png', interior: 'assets/tiles/interior.png', furniture: 'assets/props/furniture.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
-  let left = Object.keys(list).length + 2; const failed = [];
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', interior: 'assets/tiles/interior.png', furniture: 'assets/props/furniture.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  let left = Object.keys(list).length + 3; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
+  fetch('assets/chars/hero_roles.json').then(r => r.json()).then(j => { ASSET.heroRoles = j; done(); }).catch(() => { ASSET.heroRoles = {}; done(); });
   fetch('assets/props/furniture.json').then(r => r.json()).then(j => { ASSET.furn = j; done(); }).catch(() => { ASSET.furn = {}; done(); });
   fetch('assets/props/props.json').then(r => r.json()).then(j => { ASSET.props = j; done(); }).catch(() => { failed.push('props.json'); done(); });
 }
@@ -69,11 +70,37 @@ function actSprite(look, sheet, row, col, noItem) {
   c.tip = sheet === 'fish' && typeof ACT_TIPS !== 'undefined' ? ACT_TIPS.fish[row * 8 + col] : null;
   actCache.set(key, c); return c;
 }
-// ---- the hero (angela branch): 4 directions x (idle + 4 walk frames), cell 32x48, feet centre at (16, 47)
-const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, heroCache = {};
+// ---- the hero (angela branch): pixel-art "rigging" by UV lookup ----------------------------------------------------------------------
+// assets/chars/hero_uv.png holds the animation (4 directions x idle + 4 walk frames, cell 32x48, feet centre at (16, 47)), but not as colours:
+// every pixel stores a coordinate (R = x, G = y) into the skin texture assets/chars/hero_skin.png. Sprites are built by looking those
+// coordinates up, so editing the skin (or recolouring it live) changes every frame of every animation.
+const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, HERO = { base: null, data: null, uv: null, roles: {}, tint: {}, cache: {} };
+const heroLum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+function heroInit() {
+  const k = mk(64, 64); k.g.drawImage(ASSET.img.hero_skin, 0, 0); HERO.base = k.g.getImageData(0, 0, 64, 64).data;
+  const u = mk(160, 192); u.g.drawImage(ASSET.img.hero_uv, 0, 0); HERO.uv = u.g.getImageData(0, 0, 160, 192).data;
+  HERO.roles = ASSET.heroRoles || {}; try { HERO.tint = JSON.parse(localStorage.getItem('angela.look') || '{}') || {}; } catch (e) { HERO.tint = {}; }
+  heroApply();
+}
+function heroRoleColor(role) { const cols = (HERO.roles[role] || []).slice().sort((a, b) => heroLum(a) - heroLum(b)); return cols.length ? cols[Math.floor(cols.length / 2)] : [128, 128, 128]; }
+function heroApply() { // the live skin = the original skin with the chosen colour per role (every shade of the role keeps its brightness relation)
+  const d = new Uint8ClampedArray(HERO.base);
+  for (const role in HERO.tint) {
+    const cols = HERO.roles[role], hex = HERO.tint[role]; if (!cols || !hex) continue;
+    const t = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), rl = Math.max(1, heroLum(heroRoleColor(role)));
+    const map = cols.map(c => [c, [0, 1, 2].map(i => clamp(Math.round(t[i] * heroLum(c) / rl), 0, 255))]);
+    for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; for (const [c, n] of map) if (HERO.base[i] === c[0] && HERO.base[i + 1] === c[1] && HERO.base[i + 2] === c[2]) { d[i] = n[0]; d[i + 1] = n[1]; d[i + 2] = n[2]; break; } }
+  }
+  HERO.data = d; HERO.cache = {};
+}
 function heroSprite(dir, frame) { // frame 0 = idle, 1..4 = walk cycle
-  const key = dir + frame; if (heroCache[key]) return heroCache[key];
-  const c = mk(32, 48); c.g.drawImage(ASSET.img.hero_walk, frame * 32, (HERO_ROW[dir] || 0) * 48, 32, 48, 0, 0, 32, 48); c.ax = 16; c.ay = 49; return heroCache[key] = c;
+  const key = dir + frame; if (HERO.cache[key]) return HERO.cache[key];
+  const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, row = HERO_ROW[dir] || 0;
+  for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) {
+    const i = ((row * 48 + y) * 160 + frame * 32 + x) * 4; if (!HERO.uv[i + 3]) continue;
+    const j = (HERO.uv[i + 1] * 64 + HERO.uv[i]) * 4, k = (y * 32 + x) * 4; o[k] = HERO.data[j]; o[k + 1] = HERO.data[j + 1]; o[k + 2] = HERO.data[j + 2]; o[k + 3] = HERO.data[j + 3];
+  }
+  c.g.putImageData(id, 0, 0); c.ax = 16; c.ay = 49; return HERO.cache[key] = c;
 }
 function digPose(dir, f, now, hit) { // [sheet, row, col] for each dig phase (player and wandering diggers): crouch frames from the gather sheet
   const D = AROW[dir] || 0;

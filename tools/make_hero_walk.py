@@ -4,8 +4,15 @@ version; it only tells the script which pixels are skin / jeans / boots / sleeve
 can be shaded from the colours the art actually uses.
 Every pixel comes from the reference: parts (head, body, arms, legs) are moved, sheared or stretched, never redrawn,
 and the palette is untouched (the far leg only uses darker colours that already exist in the reference).
-Output: assets/chars/hero_walk.png  = 5 columns (idle + 4 walk frames) x 4 rows (down, left, right, up), cell 32x48,
-feet centre at (16, 47).   Run: python3 tools/make_hero_walk.py"""
+UV lookup (the "pixel-art rigging" idea): the frames are NOT stored as colours. Every pixel of a frame stores where it comes from in
+the skin texture (R = x, G = y); the game looks the colour up in the skin, so editing the skin (recolours, outfits, a hairpin on one
+side only...) changes every animation at once, even at runtime.
+Output (5 columns = idle + 4 walk frames, 4 rows = down, left, right, up, cell 32x48, feet centre at (16, 47)):
+  assets/chars/hero_uv.png     the animation as lookup coordinates
+  assets/chars/hero_skin.png   the skin texture (= the 4-view reference)
+  assets/chars/hero_roles.json which colours of the skin are hair / skin / shirt / jeans / boots (used for live recolouring)
+  assets/chars/hero_walk.png   the same frames as plain colours (preview, and a check that the lookup reproduces them)
+Run: python3 tools/make_hero_walk.py"""
 from PIL import Image
 import numpy as np
 from collections import deque
@@ -28,7 +35,10 @@ def components():
                             if 0 <= ny < 64 and 0 <= nx < 64 and a[ny, nx] and not lab[ny, nx]: lab[ny, nx] = n; q.append((ny, nx))
     return lab
 LAB = components()
-def fig(i): return {(int(x), int(y)): tuple(int(v) for v in A[y, x]) for y, x in zip(*np.where(LAB == i))}
+def fig(i): return {(int(x), int(y)): (int(x), int(y), 0, 255) for y, x in zip(*np.where(LAB == i))}   # a pixel is stored as the skin coordinate it comes from
+def col(v): return tuple(int(c) for c in A[v[1], v[0]][:3])                                             # ...and its colour is whatever the skin holds there
+def rep(c):  # a skin coordinate that holds this colour
+    ys, xs = np.where((A[..., 0] == c[0]) & (A[..., 1] == c[1]) & (A[..., 2] == c[2]) & (A[..., 3] > 0)); return (int(xs[0]), int(ys[0]), 0, 255)
 
 # colours of the current art, found by position from the original reference (so recolours keep working)
 def vote(old, y0=0, y1=63):
@@ -39,7 +49,8 @@ PANT, PANT_DK = vote((108, 135, 141), 44, 63), vote((95, 110, 113), 44, 63)     
 BOOT_LIGHT = vote((166, 131, 119), 59, 63); BOOT_MID = vote((142, 111, 101), 59, 63); BOOT_DARK = vote((127, 99, 87), 59, 63)
 BOOT_MAP = {BOOT_LIGHT: BOOT_MID, vote((163, 132, 118), 59, 63): BOOT_MID, BOOT_MID: BOOT_DARK}   # the far leg's boot is one shade darker
 SKIN = {vote(c) for c in [(208, 169, 137), (236, 191, 154), (192, 151, 118)]}
-SLEEVE = vote((235, 223, 204), 33, 43) + (255,)                                                   # sleeve colour behind a swinging forearm
+SLEEVE = vote((235, 223, 204), 33, 43)                                                            # sleeve colour behind a swinging forearm
+UV_PANT, UV_PANT_DK, UV_SLEEVE = rep(PANT), rep(PANT_DK), rep(SLEEVE)
 
 def shift(px, dx=0, dy=0): return {(x + dx, y + dy): c for (x, y), c in px.items()}
 def where(px, f): return {k: v for k, v in px.items() if f(*k)}
@@ -66,7 +77,7 @@ def shear(px, y0, y1, s, rigid_from=None):  # lean a column: dx grows from 0 at 
     for (x, y), c in px.items():
         t = (min(y, rigid_from if rigid_from is not None else y1) - y0) / max(1, (y1 - y0)); out[(x + int(round(s * max(0, min(1, t)))), y)] = c
     return out
-def far_leg(px): return {k: ((PANT_DK + (255,)) if c[:3] == PANT else (BOOT_MAP.get(c[:3], c[:3]) + (255,))) for k, c in px.items()}
+def far_leg(px): return {k: (UV_PANT_DK if col(c) == PANT else rep(BOOT_MAP[col(c)]) if col(c) in BOOT_MAP else c) for k, c in px.items()}
 
 def render(layers, cx, dy_all=0):
     cell = Image.new('RGBA', (CW, CH), (0, 0, 0, 0)); pix = cell.load()
@@ -102,16 +113,16 @@ def front_back(px, cx, back=False):
 # ----------------------------------------------------------------------------------------------- side views
 def side(px, cx, f):  # f = -1 faces left, +1 faces right
     head = where(px, lambda x, y: y <= 31)
-    arm_skin = where(px, lambda x, y: y >= 40 and px[(x, y)][:3] in SKIN)
+    arm_skin = where(px, lambda x, y: y >= 40 and col(px[(x, y)]) in SKIN)
     torso = where(px, lambda x, y: 32 <= y <= 43 and (x, y) not in arm_skin)
     leg_src = where(px, lambda x, y: y >= 44 and (x, y) not in arm_skin)
     cols = sorted({x for (x, y) in leg_src if y <= 58}); lx0, lx1 = cols[0], cols[-1]
     for y in range(44, 51):                                   # under the arm there is pants
         for x in range(lx0, lx1 + 1):
-            if (x, y) not in leg_src: leg_src[(x, y)] = PANT + (255,)
+            if (x, y) not in leg_src: leg_src[(x, y)] = UV_PANT
     fill = {}
     for (x, y) in arm_skin:
-        if y <= 43: fill[(x, y)] = SLEEVE
+        if y <= 43: fill[(x, y)] = UV_SLEEVE
     torso = merge(fill, torso)
     near = leg_src; far = far_leg(leg_src)
     ANK = 58
@@ -132,11 +143,38 @@ def side(px, cx, f):  # f = -1 faces left, +1 faces right
             build(+1, -4, +4, 0, 0, +3, far_on_top=True),  # contact: far leg forward
             build(-1, +2, 0, 3, 0, 0)]                     # passing: near leg swings through
 
+def lookup(uv):  # turn a lookup image into colours with the skin
+    out = Image.new('RGBA', uv.size, (0, 0, 0, 0)); u, o = uv.load(), out.load()
+    for y in range(uv.height):
+        for x in range(uv.width):
+            p = u[x, y]
+            if p[3]: o[x, y] = tuple(int(c) for c in A[p[1], p[0]])
+    return out
+
+def roles():  # which skin colours belong to which part, found by position in the original reference
+    def at(old_colors, y0=0, y1=63):
+        out = []
+        for y in range(y0, y1 + 1):
+            for x in range(64):
+                if ROLE[y, x][3] and A[y, x][3] and tuple(int(v) for v in ROLE[y, x][:3]) in old_colors:
+                    c = [int(v) for v in A[y, x][:3]]
+                    if c not in out: out.append(c)
+        return out
+    r = {'hair': at({(73, 49, 44), (105, 70, 59), (136, 96, 75), (122, 82, 59)}, 0, 31), 'skin': at({(208, 169, 137), (236, 191, 154), (192, 151, 118)}),
+         'shirt': at({(235, 223, 204), (231, 229, 226), (221, 206, 186), (108, 135, 141)}, 32, 43), 'jeans': at({(108, 135, 141), (95, 110, 113)}, 44, 63),
+         'boots': at({(166, 131, 119), (163, 132, 118), (142, 111, 101), (127, 99, 87)}, 59, 63)}
+    seen = set()   # a colour belongs to one role only
+    for k in ['boots', 'jeans', 'skin', 'hair', 'shirt']:
+        r[k] = [c for c in r[k] if tuple(c) not in seen]; seen.update(tuple(c) for c in r[k])
+    return r
+
 def main():
     rows = [('down', front_back(fig(2), 25)), ('left', side(fig(1), 13, -1)), ('right', side(fig(3), 37, +1)), ('up', front_back(fig(4), 50, True))]
     cxs = {'down': 25, 'left': 13, 'right': 37, 'up': 50}
     sheet = Image.new('RGBA', (CW * 5, CH * 4), (0, 0, 0, 0))
     for r, (name, frames) in enumerate(rows):
         for c, layers in enumerate(frames): sheet.alpha_composite(render(layers, cxs[name]), (c * CW, r * CH))
-    sheet.save('assets/chars/hero_walk.png'); print('saved', sheet.size)
+    sheet.save('assets/chars/hero_uv.png'); src.save('assets/chars/hero_skin.png'); lookup(sheet).save('assets/chars/hero_walk.png')
+    import json; json.dump(roles(), open('assets/chars/hero_roles.json', 'w'))
+    print('saved uv sheet', sheet.size)
 if __name__ == '__main__': main()

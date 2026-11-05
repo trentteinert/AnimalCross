@@ -149,3 +149,4 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #tune{position:absolute;left:calc(var(--sal) + 14px);top:calc(var(--sat) + 70px);padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12px;pointer-events:auto;z-index:7}
 #tune label{display:flex;flex-direction:column;gap:2px}#tune b{color:var(--amber);font-weight:400}#tune input{width:150px}
 #tune button{align-self:flex-start;padding:3px 8px;font-size:11px;background:#101826;border:0;color:var(--muted)}
+#looks{display:flex;flex-direction:column;gap:3px;margin-top:4px}#looks b{font-weight:400;color:var(--muted);font-size:11px}#looks .lk{flex-direction:row!important;justify-content:space-between;align-items:center}#looks input{width:34px!important;height:20px;padding:0;border:0;background:none}

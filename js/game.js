@@ -196,11 +196,17 @@ try { const t = JSON.parse(localStorage.getItem('angela.tune2') || 'null'); if (
 const walkSp = () => TUNE.speed;
 function initTunePanel() {
   const el = document.createElement('div'); el.id = 'tune'; el.className = 'px';
-  el.innerHTML = '<label>Walk speed <b id="tsv"></b><input id="ts" type="range" min="20" max="160" step="1"></label><label>Walk anim fps (up / down) <b id="tfv"></b><input id="tf" type="range" min="2" max="20" step="1"></label><label>Walk anim fps (left / right) <b id="tsdv"></b><input id="tsd" type="range" min="2" max="20" step="1"></label><button id="tr">Reset</button>';
+  el.innerHTML = '<label>Walk speed <b id="tsv"></b><input id="ts" type="range" min="20" max="160" step="1"></label><label>Walk anim fps (up / down) <b id="tfv"></b><input id="tf" type="range" min="2" max="20" step="1"></label><label>Walk anim fps (left / right) <b id="tsdv"></b><input id="tsd" type="range" min="2" max="20" step="1"></label><div id="looks"><b>Look (edits the skin, every animation follows)</b></div><button id="tr">Reset</button>';
   $('#hud').appendChild(el);
   const sync = save => { $('#ts').value = TUNE.speed; $('#tf').value = TUNE.fps; $('#tsd').value = TUNE.fpsSide; $('#tsdv').textContent = TUNE.fpsSide; $('#tsv').textContent = TUNE.speed + ' px/s'; $('#tfv').textContent = TUNE.fps; if (save) try { localStorage.setItem('angela.tune2', JSON.stringify(TUNE)); } catch (e) { } };
   $('#ts').addEventListener('input', e => { TUNE.speed = +e.target.value; sync(true); }); $('#tf').addEventListener('input', e => { TUNE.fps = +e.target.value; sync(true); }); $('#tsd').addEventListener('input', e => { TUNE.fpsSide = +e.target.value; sync(true); });
-  $('#tr').addEventListener('click', () => { TUNE.speed = 58; TUNE.fps = 8; TUNE.fpsSide = 4; sync(true); }); sync();
+  const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+  for (const [role, label] of [['hair', 'Hair'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']]) {
+    const l = document.createElement('label'); l.className = 'lk'; l.innerHTML = label + '<input type="color" data-role="' + role + '">'; $('#looks').appendChild(l);
+    const inp = l.querySelector('input'); inp.value = HERO.tint[role] || hex(heroRoleColor(role));
+    inp.addEventListener('input', () => { HERO.tint[role] = inp.value; heroApply(); try { localStorage.setItem('angela.look', JSON.stringify(HERO.tint)); } catch (e) { } });
+  }
+  $('#tr').addEventListener('click', () => { TUNE.speed = 58; TUNE.fps = 8; TUNE.fpsSide = 4; HERO.tint = {}; heroApply(); try { localStorage.removeItem('angela.look'); } catch (e) { } document.querySelectorAll('#looks input').forEach(i => { i.value = hex(heroRoleColor(i.dataset.role)); }); sync(true); }); sync();
 }
 function castFish() { // release: the charge bar sets how hard you strike, which decides how deep you dig (deeper = rarer finds)
   const rod = TOOLS.rod[S.tools.rod], v = DV[A.dir], reach = A.d0 + 4;
@@ -558,7 +564,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
+  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); heroInit(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
