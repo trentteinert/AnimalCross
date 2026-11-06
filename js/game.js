@@ -183,7 +183,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.hold = null;
   if (t.kind === 'portal') { held = false; goArea(t.ref.to, t.ref.sx, t.ref.sy); return; }
   if (t.kind === 'tackle') { held = false; UI.openDealer('sell'); return; }
-  if (t.kind === 'dog') { const d = t.ref; d.bubble = '❤️'; d.bt = 2.2; floater(d.x, d.y - 30, '❤', '#ff8aa8'); sfx('pop'); doEmote('❤️'); return; }
+  if (t.kind === 'dog') { const d = t.ref; d.bubble = '❤️'; d.bt = 2.2; sfx('pop'); doEmote('❤️'); return; }
   if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   if (t.kind === 'dig') {
