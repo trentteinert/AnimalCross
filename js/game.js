@@ -572,6 +572,7 @@ function loadMapData(cb) {
   AREA = qs.get('area') || 'island';
   const ok = m => validMap(m) ? m : null;
   let draft = null; try { if (qs.get('map') === 'draft' || EDIT) draft = ok(JSON.parse(localStorage.getItem(areaDraftKey(AREA)))); } catch (e) { }
+  if (draft && draft.theme === 'interior' && !draft.int) draft = null;   // a stale draft saved without the floors/walls layer: use the saved map instead
   if (draft) return cb(draft, 'draft');
   fetch('maps/' + AREA + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => ok(m) ? cb(m, 'file') : cb(defaultFor(AREA), 'default')).catch(() => cb(defaultFor(AREA), 'default'));
 }
