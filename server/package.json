@@ -1,0 +1,16 @@
+{
+  "name": "angela-multiplayer-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node relay.js",
+    "dev": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "partykit": "^0.0.111"
+  }
+}

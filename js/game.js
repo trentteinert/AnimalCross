@@ -98,7 +98,7 @@ function burst(x, y, col, n, sp, life, grav, sz) {
 function floater(x, y, txt, col) { FL.push({ x, y, txt, col: col || '#fff', t: 0 }); }
 function ripple(x, y, big) { RP.push({ x, y, t: 0, max: big ? 1.1 : 0.9, big }); }
 function doEmote(e) {
-  ME.bubble = e; ME.bt = 2.6; sfx('pop'); if (e === '👋' && !A) ME.wave = { t: 0 };
+  ME.bubble = e; ME.bt = 2.6; sfx('pop'); NET.emote(e); if (e === '👋' && !A) ME.wave = { t: 0 };
   NPCS.forEach(n => { if (Math.hypot(n.x - ME.x, n.y - ME.y) < 90 && Math.random() < 0.4) setTimeout(() => { n.bubble = pick(['👋', '❤️', '😄', '✨']); n.bt = 2.4; }, rnd(700, 1600)); });
 }
 
@@ -353,7 +353,7 @@ function tick(dt) {
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
-  NPCS.forEach(n => updateNPC(n, dt)); if (DOG) updateDog(dt);
+  NPCS.forEach(n => updateNPC(n, dt)); if (DOG) updateDog(dt); NET.update(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
@@ -389,7 +389,7 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
 function mePose() { return null; } // the old body's action frames do not match the hero, so the hero only walks and idles here
-const heroFrame = () => ME.moving ? 1 + Math.floor(ME.t * (ME.dir === 'l' || ME.dir === 'r' ? TUNE.fpsSide : TUNE.fps)) % 4 : 0;
+const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * (e.dir === 'l' || e.dir === 'r' ? TUNE.fpsSide : TUNE.fps)) % 4 : 0, heroFrame = () => heroFrameOf(ME);
 function drawChar(e, cx, cy, now) {
   const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? digPose(e.dir, e.rod, now, false) : null),
     spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : e === ME ? heroSprite(ME.dir, heroFrame()) : charSprite(look, faceIdx(e), fr);
@@ -410,6 +410,11 @@ function drawChar(e, cx, cy, now) {
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
+    case 'rp': { // another player
+      const spr = heroSprite(o.dir, heroFrameOf(o), o.look);
+      g.drawImage(shadowSpr(14, 5), Math.round(o.x - 7 - cx), Math.round(o.y - 3 - cy)); g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
+      break;
+    }
     case 'dog': {
       const hop = (o.moving ? Math.round(Math.abs(Math.sin(o.t * 14)) * 2) : 0) + (o.jump > 0 ? Math.round(Math.sin((0.5 - o.jump) / 0.5 * Math.PI) * 4) : 0), X = Math.round(o.x - 8 - cx), Y = Math.round(o.y - 17 - hop - cy);
       g.drawImage(shadowSpr(12, 4), Math.round(o.x - 6 - cx), Math.round(o.y - 3 - cy));
@@ -464,7 +469,7 @@ function render(now) {
   }
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
-  L.push(ME); if (DOG) L.push(DOG); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
+  L.push(ME); if (DOG) L.push(DOG); for (const r of NET.remotes.values()) if (r.x > cx - 30 && r.x < cx + VW + 30 && r.y > cy - 10 && r.y < cy + VH + 70) L.push(r); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
   L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
@@ -503,10 +508,10 @@ function render(now) {
     const x = Math.round(DOG.x - cx), y = Math.round(DOG.y - 24 - cy); g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText('Fito', x, y); g.fillStyle = '#f0e0c0'; g.fillText('Fito', x, y);
     if (DOG.bubble) { g.font = '9px "Pixelify Sans", monospace'; g.fillStyle = '#fff'; g.fillText(DOG.bubble, x, y - 8 - Math.round(Math.sin(performance.now() / 160) * 1.5)); g.font = '6px "Pixelify Sans", monospace'; }
   }
-  for (const o of L) if (o.k === 'me' || o.k === 'npc') {
+  for (const o of L) if (o.k === 'me' || o.k === 'npc' || o.k === 'rp') {
     if (o === ME && ME.hold) continue;
     if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); }
-    const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - (o === ME ? 54 : 38) - cy);
+    const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - (o.k === 'npc' ? 38 : 54) - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; const txt = nm + ' lv' + lv, w = g.measureText(txt).width; g.strokeText(txt, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x - g.measureText(' lv' + lv).width / 2, y);
     g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
@@ -529,7 +534,7 @@ function render(now) {
 function updateClock() {
   const h = hourNow(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60), ap = hh >= 12 ? 'pm' : 'am', h12 = hh % 12 || 12;
   $('#clock').textContent = (isRain() ? '☂ ' : isNight() ? '☾ ' : '☀ ') + h12 + ':' + String(mm).padStart(2, '0') + ap;
-  $('#onlineN').textContent = 61 + Math.floor(Math.abs(Math.sin(Date.now() / 90000)) * 24) + NPCS.length;
+  $('#onlineN').textContent = NET.open ? NET.count : 61 + Math.floor(Math.abs(Math.sin(Date.now() / 90000)) * 24) + NPCS.length;
 }
 $('#clock').addEventListener('click', () => { tOff += 3; updateClock(); UI.toast('Time travel (prototype): +3 hours', 'info'); });
 
@@ -546,7 +551,7 @@ function goArea(to, sx, sy) { // fade out, load the other map, drop the player a
   if (fading) return; fading = true; const f = $('#fade'); f.classList.add('on'); sfx('pop');
   setTimeout(() => {
     const done = map => {
-      AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
+      AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null; NET.area();
       NPCS = []; FX.leaves = [];
       setTimeout(() => { f.classList.remove('on'); fading = false; if (to === 'cave') UI.toast('A quiet cave. The pools here hold their own fish.', 'info'); }, 140);
     };
@@ -574,6 +579,7 @@ function boot() {
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
     if (S.lv >= 2 && !S.created) setTimeout(() => UI.openCreator(true), 600);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
+    NET.start();
     window.__game = { get ME() { return ME; }, get DOG() { return DOG; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };
   })), 40);
   });

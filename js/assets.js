@@ -74,7 +74,7 @@ function actSprite(look, sheet, row, col, noItem) {
 // assets/chars/hero_uv.png holds the animation (4 directions x idle + 4 walk frames, cell 32x48, feet centre at (16, 47)), but not as colours:
 // every pixel stores a coordinate (R = x, G = y) into the skin texture assets/chars/hero_skin.png. Sprites are built by looking those
 // coordinates up, so editing the skin (or recolouring it live) changes every frame of every animation.
-const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, HERO = { base: null, data: null, uv: null, roles: {}, tint: {}, cache: {} };
+const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, HERO = { base: null, data: null, uv: null, roles: {}, tint: {}, cache: {}, skins: {} };
 const heroLum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
 function heroInit() {
   const k = mk(64, 64); k.g.drawImage(ASSET.img.hero_skin, 0, 0); HERO.base = k.g.getImageData(0, 0, 64, 64).data;
@@ -87,23 +87,30 @@ function heroRoleColor(role) { // the role's middle-brightness colour in the ori
   const l = HERO.roles[role] || []; if (!l.length) return [128, 128, 128];
   const cs = l.map((q, k) => { const i = heroPix(role, k); return [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; }).sort((a, b) => heroLum(a) - heroLum(b)); return cs[Math.floor(cs.length / 2)];
 }
-function heroApply() { // the live skin = the original skin with the chosen colour per role; each pixel keeps its brightness relation to the role's middle shade
+function heroBuild(tint) { // a skin = the original skin with the chosen colour per role; each pixel keeps its brightness relation to the role's middle shade
   const d = new Uint8ClampedArray(HERO.base);
-  for (const role in HERO.tint) {
-    const l = HERO.roles[role], hex = HERO.tint[role]; if (!l || !hex) continue;
+  for (const role in tint) {
+    const l = HERO.roles[role], hex = tint[role]; if (!l || !hex) continue;
     const t = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), rl = Math.max(1, heroLum(heroRoleColor(role)));
     l.forEach((q, k) => { const i = heroPix(role, k), f = heroLum([HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]) / rl; for (let c = 0; c < 3; c++) d[i + c] = clamp(Math.round(t[c] * f), 0, 255); });
   }
-  HERO.data = d; HERO.cache = {};
+  return d;
 }
-function heroSprite(dir, frame) { // frame 0 = idle, 1..4 = walk cycle
-  const key = dir + frame; if (HERO.cache[key]) return HERO.cache[key];
+function heroApply() { HERO.data = heroBuild(HERO.tint); HERO.cache = {}; if (typeof NET !== 'undefined') NET.profileSoon(); }   // the local player's skin
+function heroSprite(dir, frame, tint) { // frame 0 = idle, 1..4 = walk cycle. `tint` is another player's look (their skins are cached by look)
+  let data = HERO.data, cache = HERO.cache;
+  if (tint) {
+    const key = JSON.stringify(tint); let sk = HERO.skins[key];
+    if (!sk) { if (Object.keys(HERO.skins).length > 48) HERO.skins = {}; sk = HERO.skins[key] = { data: heroBuild(tint), cache: {} }; }
+    data = sk.data; cache = sk.cache;
+  }
+  const key = dir + frame; if (cache[key]) return cache[key];
   const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, row = HERO_ROW[dir] || 0;
   for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) {
     const i = ((row * 48 + y) * 160 + frame * 32 + x) * 4; if (!HERO.uv[i + 3]) continue;
-    const j = (HERO.uv[i + 1] * 64 + HERO.uv[i]) * 4, k = (y * 32 + x) * 4; o[k] = HERO.data[j]; o[k + 1] = HERO.data[j + 1]; o[k + 2] = HERO.data[j + 2]; o[k + 3] = HERO.data[j + 3];
+    const j = (HERO.uv[i + 1] * 64 + HERO.uv[i]) * 4, k = (y * 32 + x) * 4; o[k] = data[j]; o[k + 1] = data[j + 1]; o[k + 2] = data[j + 2]; o[k + 3] = data[j + 3];
   }
-  c.g.putImageData(id, 0, 0); c.ax = 16; c.ay = 49; return HERO.cache[key] = c;
+  c.g.putImageData(id, 0, 0); c.ax = 16; c.ay = 49; return cache[key] = c;
 }
 function digPose(dir, f, now, hit) { // [sheet, row, col] for each dig phase (player and wandering diggers): crouch frames from the gather sheet
   const D = AROW[dir] || 0;

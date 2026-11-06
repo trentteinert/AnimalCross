@@ -1,0 +1,6 @@
+{
+  "$schema": "https://www.partykit.io/schema.json",
+  "name": "angela-multiplayer",
+  "main": "party.js",
+  "compatibilityDate": "2024-09-02"
+}
