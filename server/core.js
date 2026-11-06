@@ -9,6 +9,7 @@ const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+v) ? +v : 
 
 export const cleanName = n => (typeof n === 'string' ? n.replace(NAME, '').trim().slice(0, 14) : '') || 'Player';
 export function cleanLook(l) { const out = {}; if (l && typeof l === 'object') for (const r of ROLES) if (typeof l[r] === 'string' && HEX.test(l[r])) out[r] = l[r].toLowerCase(); return out; }
+export const cleanText = s => (typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) : '');
 const cleanArea = a => (typeof a === 'string' && AREA.test(a) ? a : 'island');
 const cleanDir = d => (d === 'l' || d === 'r' || d === 'u' ? d : 'd');
 
@@ -43,6 +44,10 @@ export function createCore(io, now = () => Date.now()) {
         const now2 = peers(p); tell(now2, { t: 'join', p: pub(p) }); io.send(id, { t: 'players', players: now2.map(pub) });   // ...and the new one meets you
       }
       else if (m.t === 'emote') tell(peers(p), { t: 'emote', id, e: String(m.e || '').slice(0, 8) });
+      else if (m.t === 'chat') {                                                        // typed text: cleaned, limited to one line every 0.4s, shown to the same area
+        const text = cleanText(m.text), t = now(); if (!text || t - (p.lastChat || 0) < 400) return; p.lastChat = t;
+        tell(peers(p), { t: 'chat', id, text });
+      }
       else if (m.t === 'ping') io.send(id, { t: 'pong' });
     },
     close(id) { buckets.delete(id); const p = players.get(id); if (!p) return; const list = peers(p); players.delete(id); tell(list, { t: 'leave', id }); count(); },

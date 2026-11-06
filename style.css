@@ -150,3 +150,16 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #tune label{display:flex;flex-direction:column;gap:2px}#tune b{color:var(--amber);font-weight:400}#tune input{width:150px}
 #tune button{align-self:flex-start;padding:3px 8px;font-size:11px;background:#101826;border:0;color:var(--muted)}
 #looks{display:flex;flex-direction:column;gap:3px;margin-top:4px}#looks b{font-weight:400;color:var(--muted);font-size:11px}#looks .lk{flex-direction:row!important;justify-content:space-between;align-items:center}#looks input{width:34px!important;height:20px;padding:0;border:0;background:none}
+
+/* chat + You panel */
+#chatlog{position:absolute;left:calc(var(--sal) + 14px);bottom:calc(var(--sab) + 70px);display:flex;flex-direction:column;gap:3px;max-width:min(360px,calc(100% - 140px));pointer-events:none}
+#chatlog .cl{font-size:13px;padding:3px 7px;color:var(--cream);background:rgba(20,24,36,.78);transition:opacity .5s;word-break:break-word}
+#chatlog .cl b{color:var(--amber);font-weight:600}#chatlog .cl.out{opacity:0}
+#chatbar{position:absolute;left:calc(var(--sal) + 14px);bottom:calc(var(--sab) + 24px);display:flex;gap:6px;padding:5px;width:min(360px,calc(100% - 140px));pointer-events:auto}
+#chatbar.hidden{display:none}
+#chatbar input{flex:1;min-width:0;font:inherit;font-size:16px;padding:6px 8px;background:var(--ink);color:var(--cream);border:0;outline:0}
+#meprev{width:96px;height:144px;image-rendering:pixelated;background:rgba(0,0,0,.25);cursor:pointer}
+.looks2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.looks2 .lk{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+.looks2 input[type=color]{width:42px;height:30px;padding:0;border:0;background:none}
+#hint{bottom:calc(var(--sab) + 110px)}

@@ -19,6 +19,7 @@ NET.hello = () => NET.send(Object.assign({ t: 'hello', area: AREA, x: Math.round
 NET.profileSoon = () => { clearTimeout(NET.pt); NET.pt = setTimeout(() => NET.send(Object.assign({ t: 'profile' }, NET.me())), 300); };   // name, level or look changed
 NET.area = () => { NET.remotes.clear(); NET.last = null; NET.send({ t: 'area', area: AREA, x: Math.round(ME.x), y: Math.round(ME.y), dir: ME.dir }); };
 NET.emote = e => NET.send({ t: 'emote', e });
+NET.chat = text => NET.send({ t: 'chat', text });
 NET.add = p => NET.remotes.set(p.id, { k: 'rp', id: p.id, name: p.name, lv: p.lv, look: p.look || {}, x: p.x, y: p.y, tx: p.x, ty: p.y, dir: p.dir || 'd', moving: !!p.mv, mvFlag: !!p.mv, t: 0, bubble: null, bt: 0, seen: performance.now() });
 NET.onMsg = function (m) {
   const r = m.id && NET.remotes.get(m.id);
@@ -30,6 +31,7 @@ NET.onMsg = function (m) {
     case 'state': if (r) { r.tx = m.x; r.ty = m.y; r.dir = m.dir; r.mvFlag = !!m.mv; r.seen = performance.now(); } break;
     case 'profile': if (r) { r.name = m.name; r.lv = m.lv; r.look = m.look || {}; } break;
     case 'emote': if (r) { r.bubble = m.e; r.bt = 2.6; } break;
+    case 'chat': if (typeof m.text === 'string' && m.text) { if (r) { r.bubble = m.text.slice(0, 80); r.bt = 6; } CHAT.add(r ? r.name : '?', m.text.slice(0, 80)); } break;
     case 'count': NET.count = m.n; break;
     case 'full': UI.toast('The server is full right now', 'info'); break;
   }

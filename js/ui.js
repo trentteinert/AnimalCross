@@ -5,10 +5,8 @@ const EMOTES = ['👋', '❤️', '😄', '❓', '⛏️', '✨'];
 
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
-  $('#menu').innerHTML = [['book', 'Book'], ['bag', 'Bag'], ['chat', 'Emote']].map(m =>
-    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[0])}" alt=""><i id="badge-${m[0]}"></i></button>`).join('');
-  $('#emotes').innerHTML = EMOTES.map(e => `<button data-act="emote:${e}">${e}</button>`).join('');
-  $('#coinimg').src = actURL('coin');
+  $('#menu').innerHTML = [['me', 'You', 'wave'], ['chat', 'Chat', 'chat']].map(m =>
+    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
@@ -16,9 +14,6 @@ UI.init = function () {
 };
 
 UI.refresh = function () {
-  $('#gold').textContent = S.gold; $('#lv').textContent = S.lv;
-  $('#xpfill').style.width = clamp(S.xp / needXP(S.lv), 0, 1) * 100 + '%';
-  const b = $('#badge-bag'); b.textContent = bagCount() >= bagCap() ? 'FULL' : bagCount() + '/' + bagCap(); b.className = bagCount() >= bagCap() ? 'full' : '';
   const R = { dealer: () => UI.renderDealer() }; if (R[UI.cur]) R[UI.cur]();
   saveState();
 };
@@ -56,7 +51,6 @@ UI.hideReveal = function () { const el = $('#reveal'); el.classList.remove('go')
 // ---- modal plumbing -------------------------------------------------------
 UI.open = function (type, html) {
   UI.cur = type; UI.isOpen = true; const m = $('#modal'); m.innerHTML = `<div class="sheet px" data-type="${type}">${html}</div>`; m.classList.remove('hidden');
-  $('#emotes').classList.add('hidden');
 };
 UI.close = function () {
   if (!UI.isOpen) return; clearInterval(UI.crTimer); UI.isOpen = false; UI.cur = null; $('#modal').classList.add('hidden'); $('#modal').innerHTML = ''; saveState();
@@ -70,8 +64,7 @@ UI.onClick = function (e) {
   switch (a) {
     case 'x': UI.hideReveal(); break;
     case 'close': UI.close(); break;
-    case 'open': if (p1 === 'chat') { $('#emotes').classList.toggle('hidden'); } else UI['open' + p1[0].toUpperCase() + p1.slice(1)](); break;
-    case 'emote': doEmote(p1); $('#emotes').classList.add('hidden'); break;
+    case 'open': if (p1 === 'chat') CHAT.toggle(); else UI['open' + p1[0].toUpperCase() + p1.slice(1)](); break;
     case 'bookcat': UI.renderBook(p1); break;
     case 'bookitem': UI.bookDetail(p1); break;
     case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openBag(); break;

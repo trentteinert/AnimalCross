@@ -49,7 +49,7 @@ const joy = { id: null, sx: 0, sy: 0, moved: false, t0: 0, vx: 0, vy: 0, mag: 0 
 const keys = {};
 const inp = $('#inp'), joyEl = $('#joy'), knob = $('#knob');
 inp.addEventListener('pointerdown', e => {
-  if (EDIT || joy.id !== null || UI.isOpen) return; audioInit(); $('#emotes').classList.add('hidden');
+  if (EDIT || joy.id !== null || UI.isOpen) return; audioInit();
   joy.id = e.pointerId; joy.sx = e.clientX; joy.sy = e.clientY; joy.moved = false; joy.t0 = performance.now(); joy.vx = joy.vy = joy.mag = 0;
   try { inp.setPointerCapture(e.pointerId); } catch (_) { }
 });
@@ -75,7 +75,9 @@ const miniBox = $('#mini');
 miniBox.addEventListener('pointerdown', e => { if (e.target.id === 'mx') return; if (MINI.mode === 'reel') { e.preventDefault(); actDown(); } });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => miniBox.addEventListener(ev, actUp));
 addEventListener('keydown', e => {
-  if (EDIT || (e.target && e.target.tagName === 'INPUT')) return; keys[e.code] = true;
+  if (EDIT || (e.target && e.target.tagName === 'INPUT')) return;
+  if ((e.code === 'KeyT' || e.code === 'Slash') && !UI.isOpen && !e.repeat) { e.preventDefault(); CHAT.open(); return; }
+  keys[e.code] = true;
   if (['Space', 'KeyE', 'Enter'].includes(e.code)) { e.preventDefault(); if (!e.repeat) actDown(); }
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (['Space', 'KeyE', 'Enter'].includes(e.code)) actUp(); });
@@ -146,7 +148,6 @@ function addXP(n) {
   while (S.xp >= needXP(S.lv)) { S.xp -= needXP(S.lv); S.lv++; up = true; }
   if (up) {
     sfx('level'); UI.banner('Level ' + S.lv, S.created ? 'Nice work!' : 'You are getting the hang of this'); burst(ME.x, ME.y - 16, '#ffe08a', 24, 70, 1.1, 40, 2);
-    if (!S.created) setTimeout(() => { if (!S.created && !UI.isOpen) UI.openCreator(true); }, 1900);
   }
   UI.refresh();
 }
@@ -514,7 +515,7 @@ function render(now) {
     const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - (o.k === 'npc' ? 38 : 54) - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; const txt = nm + ' lv' + lv, w = g.measureText(txt).width; g.strokeText(txt, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x - g.measureText(' lv' + lv).width / 2, y);
     g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
-    if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
+    if (o.bubble) drawBubble(g, o.bubble, x, y - 11);
     if (o === ME) g.restore();
   }
   for (const r of W.sites) { // name boards over every dig site: everyone sees the same sites and the level they open at
@@ -530,13 +531,20 @@ function render(now) {
   g.textAlign = 'left';
 }
 
+function drawBubble(g, txt, x, base) { // speech bubble above (x, base); long chat is word-wrapped into up to 3 lines
+  const lines = []; let cur = '';
+  for (const w of String(txt).split(' ')) { let word = w; while (word.length > 18) { if (cur) { lines.push(cur); cur = ''; } lines.push(word.slice(0, 18)); word = word.slice(18); } if ((cur + ' ' + word).trim().length > 18) { lines.push(cur); cur = word; } else cur = (cur + ' ' + word).trim(); }
+  if (cur) lines.push(cur); if (lines.length > 3) { lines.length = 3; lines[2] = lines[2].slice(0, 16) + '...'; }
+  const LH = 8, bw = Math.round(Math.max(14, ...lines.map(l => g.measureText(l).width)) + 8), bh = lines.length * LH + 3, bx = Math.round(x - bw / 2), by = base - 11 - bh + 11;
+  g.fillStyle = '#f5e9cf'; g.fillRect(bx, by, bw, bh); g.fillStyle = '#2a1c1c'; g.fillRect(bx, by + bh, bw, 1); g.fillRect(x - 1, by + bh + 1, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + bh, 2, 2);
+  g.fillStyle = '#2a1c1c'; lines.forEach((l, i) => g.fillText(l, x, by + 7 + i * LH));
+}
+
 // ---- hud clock -------------------------------------------------------------
 function updateClock() {
   const h = hourNow(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60), ap = hh >= 12 ? 'pm' : 'am', h12 = hh % 12 || 12;
-  $('#clock').textContent = (isRain() ? '☂ ' : isNight() ? '☾ ' : '☀ ') + h12 + ':' + String(mm).padStart(2, '0') + ap;
   $('#onlineN').textContent = NET.open ? NET.count : 61 + Math.floor(Math.abs(Math.sin(Date.now() / 90000)) * 24) + NPCS.length;
 }
-$('#clock').addEventListener('click', () => { tOff += 3; updateClock(); UI.toast('Time travel (prototype): +3 hours', 'info'); });
 
 // ---- boot ------------------------------------------------------------------
 let last = 0;
@@ -577,9 +585,8 @@ function boot() {
     DOG = { k: 'dog', name: 'Fito', x: W.spawn.x - 14, y: W.spawn.y + 6, t: 0, moving: false, flip: false, dir: 'd', bubble: null, bt: 0, jump: 0, chasing: false };
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
-    if (S.lv >= 2 && !S.created) setTimeout(() => UI.openCreator(true), 600);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
-    NET.start();
+    NET.start(); if (!S.created) setTimeout(() => UI.openMe(true), 500);
     window.__game = { get ME() { return ME; }, get DOG() { return DOG; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };
   })), 40);
   });
