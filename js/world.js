@@ -240,6 +240,7 @@ function instantiate(s) {
     case 'bench': o = { k: 'bench', spr: SPR.bench }; break;
     case 'fountain': o = { k: 'fountain', spr: SPR.fountain }; break;
     case 'tackle': o = { k: 'tackle', spr: SPR.tackle }; break;
+    case 'house': if (!SPR.scn || !SPR.scn.house) return; o = { k: 'house', to: s.to || 'house', sx: s.sx || 0, sy: s.sy || 0, spr: SPR.scn.house }; break;
     case 'furn': if (!SPR.furn || !SPR.furn[s.f]) return; o = { k: 'furn', f: s.f, spr: SPR.furn[s.f] }; break;
     case 'portal': o = { k: 'portal', to: s.to || 'island', sx: s.sx || 0, sy: s.sy || 0, style: s.style, auto: s.style === 'stairsUp' || s.style === 'stairsDown', spr: s.style === 'door' && SPR.furn ? SPR.furn.door : s.style === 'stairsUp' && SPR.furn ? SPR.furn.stairs_up : s.style === 'stairsDown' && SPR.furn ? SPR.furn.stairs_down : s.style === 'exit' ? SPR.portalExit : SPR.portalCave }; break;
     case 'crystal': o = { k: 'crystal', spr: s.kind === 'purple' ? SPR.crystalP : SPR.crystalB }; W.glows.push(o); o.gc = s.kind === 'purple' ? '176,112,240' : '95,168,255'; break;
@@ -255,7 +256,7 @@ function instantiate(s) {
     case 'patch': W.patches.push({ x: s.x, y: s.y, fl: [], src: s }); return;
     default: return;
   }
-  const fb = s.k === 'furn' ? ASSET.furn[s.f] && ASSET.furn[s.f].box : null, sd = s.k === 'furn' ? (fb ? [fb] : null) : s.k === 'portal' && (s.style === 'stairsUp' || s.style === 'stairsDown') ? null : s.k === 'portal' && s.style === 'door' ? [[-10, -3, 20, 3], 18] : SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
+  const fb = s.k === 'furn' ? ASSET.furn[s.f] && ASSET.furn[s.f].box : null, sd = s.k === 'house' ? [ASSET.scn.house.box] : s.k === 'deco' && (s.v | 0) >= 6 && ASSET.scn.tree1 ? [ASSET.scn['tree' + ((s.v | 0) - 5)].box] : s.k === 'furn' ? (fb ? [fb] : null) : s.k === 'portal' && (s.style === 'stairsUp' || s.style === 'stairsDown') ? null : s.k === 'portal' && s.style === 'door' ? [[-10, -3, 20, 3], 18] : SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
 }

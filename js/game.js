@@ -118,6 +118,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
+    if (o.k === 'house') { const d = ASSET.scn.house.door, dx = o.x + d[0], dy = o.y + d[1]; consider('portal', o, dx, dy, Math.hypot(dx - px, dy - py), 28, -14); }
     if (SHOPK.includes(o.k) && !o.auto) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
   }
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
@@ -577,7 +578,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); heroInit(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
+  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); buildScenery(); heroInit(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }

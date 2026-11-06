@@ -8,7 +8,7 @@ const ED = {
 };
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#7b9b45', '#b88652', '#c9b790', '#54a0b8'];
-const DECO_NAMES = ['Orange tree', 'Red tree', 'Yellow tree', 'Green tree', 'Pine', 'Pine (b)'];
+const DECO_NAMES = ['Orange tree', 'Red tree', 'Yellow tree', 'Green tree', 'Pine', 'Pine (b)', 'Leafy tree', 'Autumn tree'];
 const PAL = [
   { k: 'tree', kind: 'apple', n: 'Apple tree (fruit)' }, { k: 'tree', kind: 'orange', n: 'Orange tree (fruit)' }, { k: 'tree', kind: 'pear', n: 'Pear tree (fruit)' }, { k: 'tree', kind: 'plum', n: 'Plum tree (fruit)' },
   { k: 'bush', kind: 'blueberry', n: 'Blueberry bush' }, { k: 'bush', kind: 'raspberry', n: 'Raspberry bush' }, { k: 'bush', kind: 'blackberry', n: 'Blackberry bush' }, { k: 'bush', kind: 'elderberry', n: 'Elderberry bush' },
@@ -16,18 +16,18 @@ const PAL = [
   { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'fountain', n: 'Fountain' },
   { k: 'patch', n: 'Flower patch' },
   { k: 'furn', f: 'bed', n: 'Bed' }, { k: 'furn', f: 'sofa', n: 'Sofa' }, { k: 'furn', f: 'armchair', n: 'Armchair' }, { k: 'furn', f: 'table', n: 'Table' }, { k: 'furn', f: 'chair', n: 'Chair' }, { k: 'furn', f: 'shelf', n: 'Bookshelf' }, { k: 'furn', f: 'counter', n: 'Kitchen counter' }, { k: 'furn', f: 'fridge', n: 'Fridge' }, { k: 'furn', f: 'plant', n: 'Plant' }, { k: 'furn', f: 'lamp', n: 'Floor lamp' }, { k: 'furn', f: 'tv', n: 'TV' }, { k: 'furn', f: 'painting', n: 'Painting (hang on a wall)' }, { k: 'portal', style: 'door', n: 'Door (portal to another area)' }, { k: 'portal', style: 'stairsUp', n: 'Stairs up (walk on to change floor)' }, { k: 'portal', style: 'stairsDown', n: 'Stairs down (walk on to change floor)' },
-  { k: 'tackle', n: 'Antiquities dealer' },
+  { k: 'tackle', n: 'Antiquities dealer' }, { k: 'house', n: 'House (door enters the house)' }, { k: 'deco', v: 6, n: 'Leafy tree' }, { k: 'deco', v: 7, n: 'Autumn tree' },
   { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }, { k: 'crystal', kind: 'blue', n: 'Crystal (blue)' }, { k: 'crystal', kind: 'purple', n: 'Crystal (purple)' },
   { k: 'mushroom', kind: 'cyan', n: 'Glow mushrooms' }, { k: 'mushroom', kind: 'pink', n: 'Glow mushrooms (pink)' }, { k: 'stalagmite', n: 'Stalagmite' },
   { k: 'campfire', n: 'Campfire (lights up at night)' }, { k: 'tent', kind: 'red', n: 'Tent (red)' }, { k: 'tent', kind: 'green', n: 'Tent (green)' }, { k: 'logseat', n: 'Log seat' },
   { k: 'crate', n: 'Crate' }, { k: 'barrel', n: 'Barrel' }, { k: 'signpost', n: 'Signpost' }, { k: 'fence', n: 'Fence' }
 ];
-const LABELS = { tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', furn: 'Furniture', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
+const LABELS = { house: 'House', tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', furn: 'Furniture', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'tree': return SPR.tree[e.kind][0]; case 'bush': return SPR.bush[e.kind][0]; case 'deco': return SPR.deco[e.v]; case 'rock': return SPR.rock; case 'lamp': return SPR.lamp;
-    case 'furn': return SPR.furn[e.f];
+    case 'furn': return SPR.furn[e.f]; case 'house': return SPR.scn.house;
     case 'bench': return SPR.bench; case 'fountain': return SPR.fountain; case 'patch': return SPR.flower[0];
     case 'tackle': return SPR.tackle;
     case 'portal': return e.style === 'stairsUp' ? SPR.furn.stairs_up : e.style === 'stairsDown' ? SPR.furn.stairs_down : e.style === 'door' ? SPR.furn.door : e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
@@ -103,7 +103,7 @@ function lineTiles(x0, y0, x1, y1, fn) {
 function placeAt(wx, wy) {
   const e = ED.place; if (!e) { msg('Pick an object from the palette first.'); return; }
   const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style; if (e.f) o.f = e.f;
-  if (e.k === 'portal' && (e.style === 'stairsUp' || e.style === 'stairsDown')) { o.to = e.style === 'stairsUp' ? 'upstairs' : 'house'; o.sx = 128; o.sy = 190; } else if (e.k === 'portal') { o.to = e.style === 'exit' ? 'island' : 'cave'; o.sx = e.style === 'exit' ? 512 : 512; o.sy = e.style === 'exit' ? 224 : 912; } if (e.k === 'note') o.text = 'Write your tip here.';
+  if (e.k === 'portal' && (e.style === 'stairsUp' || e.style === 'stairsDown')) { o.to = e.style === 'stairsUp' ? 'upstairs' : 'house'; o.sx = 128; o.sy = 190; } else if (e.k === 'portal') { o.to = e.style === 'exit' ? 'island' : 'cave'; o.sx = e.style === 'exit' ? 512 : 512; o.sy = e.style === 'exit' ? 224 : 912; } if (e.k === 'house') { o.to = 'house'; o.sx = 232; o.sy = 196; } if (e.k === 'note') o.text = 'Write your tip here.';
   MAPDATA.objects.push(o); rebuildAndSelect(o); commit();
 }
 function hitTest(wx, wy) {
@@ -328,7 +328,7 @@ function refreshInspector(quick) {
   const src = s.src, k = src.k; let extra = '';
   if (k === 'crystal') extra = `<label>Colour<select id="edKind">${['blue', 'purple'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'mushroom') extra = `<label>Colour<select id="edKind">${['cyan', 'pink'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-  if (k === 'portal') extra = `<label>Goes to area<input id="edPTo" type="text" value="${esc2(src.to || '')}"></label><div class="ednums"><label>Lands at x<input id="edPSx" type="number" value="${src.sx || 0}"></label><label>Lands at y<input id="edPSy" type="number" value="${src.sy || 0}"></label></div><p class="mut">Where the player appears in that area, in pixels. Open that area in the editor and read the pixel position from the status bar.</p>`;
+  if (k === 'portal' || k === 'house') extra = `<label>Goes to area<input id="edPTo" type="text" value="${esc2(src.to || '')}"></label><div class="ednums"><label>Lands at x<input id="edPSx" type="number" value="${src.sx || 0}"></label><label>Lands at y<input id="edPSy" type="number" value="${src.sy || 0}"></label></div><p class="mut">Where the player appears in that area, in pixels. Open that area in the editor and read the pixel position from the status bar.</p>`;
   if (k === 'tent') extra = `<label>Colour<select id="edKind">${['red', 'green'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'tree') extra = `<label>Fruit<select id="edKind">${['apple', 'orange', 'pear', 'plum'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'bush') extra = `<label>Berries<select id="edKind">${['blueberry', 'raspberry', 'blackberry', 'elderberry'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;

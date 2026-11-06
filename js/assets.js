@@ -8,12 +8,13 @@ const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };
 const PANTSC = ['#9a5a3a', '#3f5f94', '#4b4b66', '#6b6b52', '#8a3a30', '#2f6a5a', '#c9b890', '#2a2a34'];
 
 function loadAssets(cb) {
-  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', interior: 'assets/tiles/interior.png', furniture: 'assets/props/furniture.png', fito: 'assets/chars/fito.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
-  let left = Object.keys(list).length + 3; const failed = [];
+  const list = { body: 'assets/chars/body.png', hair: 'assets/chars/hair.png', top: 'assets/chars/top.png', pants: 'assets/chars/pants.png', hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', interior: 'assets/tiles/interior.png', furniture: 'assets/props/furniture.png', fito: 'assets/chars/fito.png', scenery: 'assets/props/scenery.png', act_gather: 'assets/chars/act_gather.png', act_net: 'assets/chars/act_net.png', act_fish: 'assets/chars/act_fish.png', act_emote: 'assets/chars/act_emote.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
+  let left = Object.keys(list).length + 4; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
   fetch('assets/chars/hero_roles.json').then(r => r.json()).then(j => { ASSET.heroRoles = j; done(); }).catch(() => { ASSET.heroRoles = {}; done(); });
   fetch('assets/props/furniture.json').then(r => r.json()).then(j => { ASSET.furn = j; done(); }).catch(() => { ASSET.furn = {}; done(); });
+  fetch('assets/props/scenery.json').then(r => r.json()).then(j => { ASSET.scn = j; done(); }).catch(() => { ASSET.scn = {}; done(); });
   fetch('assets/props/props.json').then(r => r.json()).then(j => { ASSET.props = j; done(); }).catch(() => { failed.push('props.json'); done(); });
 }
 function prop(name, anchorMid) {
@@ -135,6 +136,10 @@ function randLook() { return { b: Math.floor(rnd(0, 3)), hair: Math.random() < 0
 // ---- props from the new tileset ---------------------------------------------------------------------
 function buildFurniture() { // house furniture: sprites cut from furniture.png, anchored at the bottom centre
   SPR.furn = {}; for (const k in ASSET.furn) { const r = ASSET.furn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.furniture, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.furn[k] = c; }
+}
+function buildScenery() { // house + two trees from scenery.png (bottom-centre anchored); the trees are appended to SPR.deco as v 6 and 7
+  SPR.scn = {}; for (const k in ASSET.scn) { const r = ASSET.scn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.scenery, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.scn[k] = c; }
+  if (SPR.scn.tree1 && SPR.deco) { SPR.deco[6] = SPR.scn.tree1; SPR.deco[7] = SPR.scn.tree2; }
 }
 function buildPropSprites() {
   const P = n => prop(n), tint = (c, fn) => { const t = mk(c.width, c.height); t.g.drawImage(c, 0, 0); t.ax = c.ax; t.ay = c.ay; return recolorCanvas(t, fn); };
