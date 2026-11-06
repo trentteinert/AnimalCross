@@ -438,7 +438,7 @@ function drawEnt(o, cx, cy, now) {
     case 'campfire': g.drawImage(shadowSpr(26, 8), Math.round(o.x - 13 - cx), Math.round(o.y - 5 - cy)); drawCampfire(o, cx, cy, now); break;
     default: {
       const spr = o.spr; if (!spr) return;
-      if (o.k === 'deco' || o.k === 'rock') g.drawImage(shadowSpr(o.k === 'rock' ? 16 : 26, o.k === 'rock' ? 5 : 8), Math.round(o.x - (o.k === 'rock' ? 8 : 13) - cx), Math.round(o.y - 4 - cy));
+      if (o.k === 'deco' || o.k === 'rock') g.drawImage(shadowSpr(o.k === 'rock' ? 16 : 26, o.k === 'rock' ? 5 : 8), Math.round(o.x - (o.k === 'rock' ? 8 : 13) - cx), Math.round(o.y - 4 - (o.spr && o.spr.base || 0) - cy));
       if (o.k === 'deco') drawSway(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), now, 1, Math.round(spr.height * (SPR.deco.indexOf(spr) >= 4 ? 0.7 : 0.58)));
       else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
     }

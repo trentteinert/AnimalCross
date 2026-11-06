@@ -143,7 +143,7 @@ function buildScenery() { // house + two trees from scenery.png (bottom-centre a
   for (const k in ASSET.scn) {
     const r = ASSET.scn[k], w = sc(r.w), h = sc(r.h), c = mk(w, h); c.g.drawImage(ASSET.img.scenery, r.x, r.y, r.w, r.h, 0, 0, w, h);
     if (!r.done) { r.ax = sc(r.ax); r.box = r.box.map(sc); if (r.door) r.door = r.door.map(sc); r.done = true; }
-    c.ax = r.ax; c.ay = h; SPR.scn[k] = c;
+    c.ax = r.ax; c.ay = h; c.base = sc(r.base || 0); SPR.scn[k] = c;   // base = how far the trunk's foot sits above the sprite's bottom edge (the shadow goes there)
   }
   if (SPR.scn.tree1 && SPR.deco) { SPR.deco[6] = SPR.scn.tree1; SPR.deco[7] = SPR.scn.tree2; }
 }
