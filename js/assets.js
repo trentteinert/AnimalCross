@@ -138,6 +138,19 @@ function buildFurniture() { // house furniture: sprites cut from furniture.png, 
   SPR.furn = {}; for (const k in ASSET.furn) { const r = ASSET.furn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.furniture, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.furn[k] = c; }
 }
 const SCN_SCALE = 1.1;   // how much bigger the house and trees are drawn than in the sheet
+function buildFitoBed() { // Fito sitting on a dark green dog bed (the bed is drawn around his lower half)
+  const W_ = 34, H_ = 26, c = mk(W_, H_), g = c.g, cx = 17, cy = 17, ell = (rx, ry, x, y) => ((x - cx + 0.5) / rx) ** 2 + ((y - cy + 0.5) / ry) ** 2 <= 1;
+  const fill = (col, rx, ry, ymin, ymax) => { g.fillStyle = col; for (let y = ymin; y < ymax; y++) for (let x = 0; x < W_; x++) if (ell(rx, ry, x, y)) g.fillRect(x, y, 1, 1); };
+  g.globalAlpha = 0.28; g.fillStyle = '#000'; for (let y = 19; y < 26; y++) for (let x = 0; x < W_; x++) if (ell(17, 7.5, x, y + 0.5)) g.fillRect(x, y, 1, 1); g.globalAlpha = 1;   // ground shadow
+  fill('#173222', 16.5, 8, 9, 25); fill('#2b5a3b', 15.5, 7, 9, 24);          // outer rim (back)
+  fill('#193a28', 12.5, 5, 10, 24);                                           // cushion
+  g.fillStyle = '#3a7350'; for (let x = 6; x < 28; x += 3) { const dy = Math.round(Math.sqrt(Math.max(0, 1 - ((x - cx) / 12.5) ** 2)) * 4.2); g.fillRect(x, cy - dy - 1, 1, 1); }   // stitching
+  g.drawImage(ASSET.img.fito, 9, 3);                                         // Fito sits in the middle (feet at y 18)
+  g.fillStyle = '#2b5a3b'; for (let y = 18; y < 25; y++) for (let x = 0; x < W_; x++) if (ell(15.5, 7, x, y) && !ell(11.5, 3.6, x, y - 1)) g.fillRect(x, y, 1, 1);   // front rim over his paws
+  g.fillStyle = '#3f7a55'; for (let x = 0; x < W_; x++) for (let y = 18; y < 25; y++) if (ell(15.5, 7, x, y) && !ell(15.5, 7, x, y - 1) && y > 19) g.fillRect(x, y, 1, 1);   // rim highlight
+  g.fillStyle = '#173222'; for (let x = 0; x < W_; x++) for (let y = 18; y < 26; y++) if (ell(15.5, 7, x, y) && !ell(15.5, 7, x, y + 1)) g.fillRect(x, y, 1, 1);   // underside outline
+  c.ax = 17; c.ay = 25; SPR.fitobed = c;
+}
 function buildScenery() { // house + two trees from scenery.png (bottom-centre anchored); the trees are appended to SPR.deco as v 6 and 7
   const S = SCN_SCALE, sc = v => Math.round(v * S); SPR.scn = {};   // drawn bigger (nearest-neighbour); size, anchor, collision box and door scale together
   for (const k in ASSET.scn) {

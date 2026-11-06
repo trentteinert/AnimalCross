@@ -16,20 +16,20 @@ const PAL = [
   { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'fountain', n: 'Fountain' },
   { k: 'patch', n: 'Flower patch' },
   { k: 'furn', f: 'bed', n: 'Bed' }, { k: 'furn', f: 'sofa', n: 'Sofa' }, { k: 'furn', f: 'armchair', n: 'Armchair' }, { k: 'furn', f: 'table', n: 'Table' }, { k: 'furn', f: 'chair', n: 'Chair' }, { k: 'furn', f: 'shelf', n: 'Bookshelf' }, { k: 'furn', f: 'counter', n: 'Kitchen counter' }, { k: 'furn', f: 'fridge', n: 'Fridge' }, { k: 'furn', f: 'plant', n: 'Plant' }, { k: 'furn', f: 'lamp', n: 'Floor lamp' }, { k: 'furn', f: 'tv', n: 'TV' }, { k: 'furn', f: 'painting', n: 'Painting (hang on a wall)' }, { k: 'portal', style: 'door', n: 'Door (portal to another area)' }, { k: 'portal', style: 'stairsUp', n: 'Stairs up (walk on to change floor)' }, { k: 'portal', style: 'stairsDown', n: 'Stairs down (walk on to change floor)' },
-  { k: 'tackle', n: 'Antiquities dealer' }, { k: 'house', n: 'House (door enters the house)' }, { k: 'deco', v: 6, n: 'Leafy tree' }, { k: 'deco', v: 7, n: 'Autumn tree' },
+  { k: 'tackle', n: 'Antiquities dealer' }, { k: 'fitobed', n: 'Fito on his bed (pet him)' }, { k: 'house', n: 'House (door enters the house)' }, { k: 'deco', v: 6, n: 'Leafy tree' }, { k: 'deco', v: 7, n: 'Autumn tree' },
   { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }, { k: 'crystal', kind: 'blue', n: 'Crystal (blue)' }, { k: 'crystal', kind: 'purple', n: 'Crystal (purple)' },
   { k: 'mushroom', kind: 'cyan', n: 'Glow mushrooms' }, { k: 'mushroom', kind: 'pink', n: 'Glow mushrooms (pink)' }, { k: 'stalagmite', n: 'Stalagmite' },
   { k: 'campfire', n: 'Campfire (lights up at night)' }, { k: 'tent', kind: 'red', n: 'Tent (red)' }, { k: 'tent', kind: 'green', n: 'Tent (green)' }, { k: 'logseat', n: 'Log seat' },
   { k: 'crate', n: 'Crate' }, { k: 'barrel', n: 'Barrel' }, { k: 'signpost', n: 'Signpost' }, { k: 'fence', n: 'Fence' }
 ];
-const LABELS = { house: 'House', tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', furn: 'Furniture', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
+const LABELS = { fitobed: 'Fito on his bed', house: 'House', tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', furn: 'Furniture', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'tree': return SPR.tree[e.kind][0]; case 'bush': return SPR.bush[e.kind][0]; case 'deco': return SPR.deco[e.v]; case 'rock': return SPR.rock; case 'lamp': return SPR.lamp;
     case 'furn': return SPR.furn[e.f]; case 'house': return SPR.scn.house;
     case 'bench': return SPR.bench; case 'fountain': return SPR.fountain; case 'patch': return SPR.flower[0];
-    case 'tackle': return SPR.tackle;
+    case 'tackle': return SPR.tackle; case 'fitobed': return SPR.fitobed;
     case 'portal': return e.style === 'stairsUp' ? SPR.furn.stairs_up : e.style === 'stairsDown' ? SPR.furn.stairs_down : e.style === 'door' ? SPR.furn.door : e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
     case 'campfire': return SPR.campfire; case 'tent': return e.kind === 'green' ? SPR.tentGreen : SPR.tentRed; case 'logseat': return SPR.logseat; case 'crate': return SPR.crate; case 'barrel': return SPR.barrel; case 'signpost': return SPR.signpost; case 'fence': return SPR.fence;
   }

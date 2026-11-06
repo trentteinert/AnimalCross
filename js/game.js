@@ -105,7 +105,7 @@ function doEmote(e) {
 }
 
 // ---- targets --------------------------------------------------------------
-const SHOPK = ['portal', 'tackle'];
+const SHOPK = ['portal', 'tackle', 'fitobed'];
 const ICON = { portal: 'portal', tackle: 'tackle', dig: 'beach', npc: 'wave', dog: 'wave' };
 const HINT = { portal: 'Press to go through', tackle: 'Press to visit the antiquities dealer', dig: 'Hold to charge your swing, release to strike', npc: 'Press to wave hello', dog: 'Press to pet Fito' };
 function findTarget() {
@@ -119,7 +119,7 @@ function findTarget() {
   for (const o of W.objs) {
     if (o.k !== 'house' && (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60)) continue;
     if (o.k === 'house') { const d = ASSET.scn.house.door, dx = o.x + d[0], dy = o.y + d[1]; consider('portal', o, dx, dy, Math.hypot(dx - px, dy - py), 28, -14); }
-    if (SHOPK.includes(o.k) && !o.auto) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
+    if (SHOPK.includes(o.k) && !o.auto) consider(o.k === 'fitobed' ? 'dog' : o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
   }
   for (const n of NPCS) consider('npc', n, n.x, n.y, Math.hypot(n.x - px, n.y - py), 22, 14);
   if (DOG) consider('dog', DOG, DOG.x, DOG.y - 4, Math.hypot(DOG.x - px, DOG.y - py), 22, 10);
@@ -183,7 +183,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.hold = null;
   if (t.kind === 'portal') { held = false; goArea(t.ref.to, t.ref.sx, t.ref.sy); return; }
   if (t.kind === 'tackle') { held = false; UI.openDealer('sell'); return; }
-  if (t.kind === 'dog') { DOG.bubble = '❤️'; DOG.bt = 2.2; DOG.jump = 0.5; sfx('pop'); doEmote('❤️'); return; }
+  if (t.kind === 'dog') { const d = t.ref; d.bubble = '❤️'; d.bt = 2.2; floater(d.x, d.y - 30, '❤', '#ff8aa8'); sfx('pop'); doEmote('❤️'); return; }
   if (t.kind === 'npc') { doEmote('👋'); const n = t.ref; setTimeout(() => { n.bubble = '❤️'; n.bt = 2.4; }, 800); return; }
   if (bagFull()) { UI.toast('Bag full! Sell at the market stall', 'info'); sfx('no'); return; }
   if (t.kind === 'dig') {
@@ -355,7 +355,7 @@ function tick(dt) {
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { UI.setAct(ICON[target.kind], 0, false); UI.setHint(HINT[target.kind]); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
-  NPCS.forEach(n => updateNPC(n, dt)); if (DOG) updateDog(dt); NET.update(dt);
+  NPCS.forEach(n => updateNPC(n, dt)); for (const o of W.objs) if (o.k === 'fitobed' && o.bt > 0) { o.bt -= dt; if (o.bt <= 0) o.bubble = null; } if (DOG) updateDog(dt); NET.update(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
@@ -506,6 +506,10 @@ function render(now) {
       g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
     }
   }
+  for (const o of W.objs) if (o.k === 'fitobed' && o.x > cx - 40 && o.x < cx + VW + 40 && o.y > cy - 10 && o.y < cy + VH + 60) {   // Fito on his bed: name tag, and a heart when petted
+    const x = Math.round(o.x - cx), y = Math.round(o.y - 36 - cy); g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText('Fito', x, y); g.fillStyle = '#f0e0c0'; g.fillText('Fito', x, y);
+    if (o.bubble) { g.font = '9px "Pixelify Sans", monospace'; g.fillStyle = '#fff'; g.fillText(o.bubble, x, y - 8 - Math.round(Math.sin(performance.now() / 160) * 1.5)); g.font = '6px "Pixelify Sans", monospace'; }
+  }
   if (DOG) { // Fito's name tag (and a heart when petted)
     const x = Math.round(DOG.x - cx), y = Math.round(DOG.y - 24 - cy); g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText('Fito', x, y); g.fillStyle = '#f0e0c0'; g.fillText('Fito', x, y);
     if (DOG.bubble) { g.font = '9px "Pixelify Sans", monospace'; g.fillStyle = '#fff'; g.fillText(DOG.bubble, x, y - 8 - Math.round(Math.sin(performance.now() / 160) * 1.5)); g.font = '6px "Pixelify Sans", monospace'; }
@@ -580,12 +584,12 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); buildScenery(); heroInit(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
+  buildSprites(); if (ASSET.ok) { buildPropSprites(); buildFurniture(); buildScenery(); buildFitoBed(); heroInit(); } buildClouds(); if (!EDIT) UI.init(); if (qs.has('debug') && !EDIT) initTunePanel();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
     ME = { k: 'me', x: W.spawn.x, y: W.spawn.y, dir: 'd', t: 0, moving: false, bubble: null, bt: 0 };
-    DOG = { k: 'dog', name: 'Fito', x: W.spawn.x - 14, y: W.spawn.y + 6, t: 0, moving: false, flip: false, dir: 'd', bubble: null, bt: 0, jump: 0, chasing: false };
+    DOG = null;   // Fito no longer follows you: he lives on his bed (the Fito-on-his-bed object)
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
