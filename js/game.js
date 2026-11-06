@@ -117,7 +117,7 @@ function findTarget() {
     if (!best || sc < best.sc) best = { kind, ref, sc, dist, dir: dirOf(dx, dy) };
   };
   for (const o of W.objs) {
-    if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
+    if (o.k !== 'house' && (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60)) continue;
     if (o.k === 'house') { const d = ASSET.scn.house.door, dx = o.x + d[0], dy = o.y + d[1]; consider('portal', o, dx, dy, Math.hypot(dx - px, dy - py), 28, -14); }
     if (SHOPK.includes(o.k) && !o.auto) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
   }

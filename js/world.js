@@ -298,7 +298,6 @@ function blockedAt(x, y) {
   for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const w = intAt(Math.floor((x + o[0]) / TS), Math.floor((y + o[1]) / TS)); if (w >= 6) return true; }
   const x0 = x - 3, x1 = x + 3, y0 = y - 3, y1 = y;
   for (const o of W.solids) {
-    if (Math.abs(o.x - x) > 40 || Math.abs(o.y - y) > 30) continue;
     const bx = o.x + o.box[0], by = o.y + o.box[1];
     if (x1 > bx && x0 < bx + o.box[2] && y1 > by && y0 < by + o.box[3]) return true;
   }

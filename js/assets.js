@@ -137,8 +137,14 @@ function randLook() { return { b: Math.floor(rnd(0, 3)), hair: Math.random() < 0
 function buildFurniture() { // house furniture: sprites cut from furniture.png, anchored at the bottom centre
   SPR.furn = {}; for (const k in ASSET.furn) { const r = ASSET.furn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.furniture, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.furn[k] = c; }
 }
+const SCN_SCALE = 1.5;   // how much bigger the house and trees are drawn than in the sheet
 function buildScenery() { // house + two trees from scenery.png (bottom-centre anchored); the trees are appended to SPR.deco as v 6 and 7
-  SPR.scn = {}; for (const k in ASSET.scn) { const r = ASSET.scn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.scenery, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.scn[k] = c; }
+  const S = SCN_SCALE, sc = v => Math.round(v * S); SPR.scn = {};   // drawn bigger (nearest-neighbour); size, anchor, collision box and door scale together
+  for (const k in ASSET.scn) {
+    const r = ASSET.scn[k], w = sc(r.w), h = sc(r.h), c = mk(w, h); c.g.drawImage(ASSET.img.scenery, r.x, r.y, r.w, r.h, 0, 0, w, h);
+    if (!r.done) { r.ax = sc(r.ax); r.box = r.box.map(sc); if (r.door) r.door = r.door.map(sc); r.done = true; }
+    c.ax = r.ax; c.ay = h; SPR.scn[k] = c;
+  }
   if (SPR.scn.tree1 && SPR.deco) { SPR.deco[6] = SPR.scn.tree1; SPR.deco[7] = SPR.scn.tree2; }
 }
 function buildPropSprites() {
