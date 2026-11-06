@@ -44,7 +44,8 @@ UI.meDraw = function () {
 };
 UI.onClick2 = (function (prev) {
   return function (a, p1, p2, p3) {
-    if (a === 'meturn') { UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); }
+    if (a === 'balloon') BAL.set((BAL.n + 1) % 5);
+    else if (a === 'meturn') { UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); }
     else if (a === 'mereset') { HERO.tint = {}; heroApply(); try { localStorage.removeItem('angela.look'); } catch (e) { } UI.openMe(!!S.firstMe); }
     else if (a === 'medone') {
       const n = document.getElementById('mename').value.trim(), bad = badName(n);
@@ -53,3 +54,20 @@ UI.onClick2 = (function (prev) {
     } else if (prev) prev(a, p1, p2, p3);
   };
 })(UI.onClick2);
+
+// ---- balloon: tap the button to hold one (tap again for the next colour, then none) ------------------
+const BAL = { n: 0, cols: [null, ['#e84a4a', '#ff9a8a', '#a82a2a'], ['#4a8ae8', '#9ac4ff', '#2a4fa8'], ['#f0c93a', '#fff0a0', '#b8901a'], ['#4ac46a', '#a0f0b0', '#2a8a44']], cache: {} };
+try { BAL.n = Math.max(0, Math.min(4, +localStorage.getItem('angela.balloon') | 0)); } catch (e) { }
+function balloonSpr(i) { // 14x18 pixel balloon with a highlight and a knot; the string is drawn separately so it can reach the hand
+  if (BAL.cache[i]) return BAL.cache[i]; const [c, hi, lo] = BAL.cols[i], s = mk(14, 18), g = s.g;
+  const rows = [[5, 4], [3, 8], [2, 10], [1, 12], [1, 12], [0, 14], [0, 14], [0, 14], [1, 12], [1, 12], [2, 10], [3, 8], [4, 6], [5, 4]];
+  rows.forEach((r, y) => { g.fillStyle = c; g.fillRect(r[0], y + 1, r[1], 1); g.fillStyle = lo; g.fillRect(r[0] + r[1] - 2, y + 1, 2, 1); });
+  g.fillStyle = hi; g.fillRect(3, 3, 2, 3); g.fillRect(3, 3, 3, 1); g.fillStyle = lo; g.fillRect(6, 15, 2, 2); s.ax = 7; s.ay = 17; return BAL.cache[i] = s;
+}
+function drawBalloon(g, i, x, y, t) { // (x, y) = the hand; the balloon bobs above and a little to the side
+  if (!i || !BAL.cols[i]) return; const sw = Math.round(Math.sin(t * 2) * 1.5), bx = x + 15 + sw, by = y - 26 + Math.round(Math.sin(t * 2.6));
+  g.fillStyle = 'rgba(245,240,230,.9)'; for (let k = 0; k <= 10; k++) g.fillRect(Math.round(x + (bx - x) * k / 10), Math.round(y + (by - y) * k / 10), 1, 1);
+  g.drawImage(balloonSpr(i), bx - 7, by - 17);
+}
+BAL.set = function (n) { BAL.n = n; try { localStorage.setItem('angela.balloon', n); } catch (e) { } NET.profileSoon(); const b = document.getElementById('balbtn'); if (b) b.firstChild.src = BAL.icon(); };
+BAL.icon = () => { const c = mk(28, 28), i = BAL.n || 1; c.g.globalAlpha = BAL.n ? 1 : 0.55; c.g.drawImage(balloonSpr(i), 0, 0, 14, 18, 2, 0, 24, 28); return c.toDataURL(); };

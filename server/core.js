@@ -10,13 +10,14 @@ const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+v) ? +v : 
 export const cleanName = n => (typeof n === 'string' ? n.replace(NAME, '').trim().slice(0, 14) : '') || 'Player';
 export function cleanLook(l) { const out = {}; if (l && typeof l === 'object') for (const r of ROLES) if (typeof l[r] === 'string' && HEX.test(l[r])) out[r] = l[r].toLowerCase(); return out; }
 export const cleanText = s => (typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) : '');
+const cleanBal = b => { b = b | 0; return b >= 0 && b <= 4 ? b : 0; };   // 0 = no balloon, 1-4 = colour
 const cleanArea = a => (typeof a === 'string' && AREA.test(a) ? a : 'island');
 const cleanDir = d => (d === 'l' || d === 'r' || d === 'u' ? d : 'd');
 
 // io = { send(id, obj) }  — the host decides how an object reaches a connection
 export function createCore(io, now = () => Date.now()) {
   const players = new Map(), buckets = new Map();
-  const pub = p => ({ id: p.id, name: p.name, lv: p.lv, look: p.look, x: p.x, y: p.y, dir: p.dir, mv: p.mv });
+  const pub = p => ({ id: p.id, name: p.name, lv: p.lv, look: p.look, bal: p.bal | 0, x: p.x, y: p.y, dir: p.dir, mv: p.mv });
   const peers = p => [...players.values()].filter(q => q.id !== p.id && q.area === p.area);
   const tell = (list, msg) => { for (const q of list) io.send(q.id, msg); };
   const count = () => { for (const q of players.values()) io.send(q.id, { t: 'count', n: players.size }); };
@@ -32,12 +33,12 @@ export function createCore(io, now = () => Date.now()) {
       let p = players.get(id);
       if (m.t === 'hello') {
         if (!p && players.size >= MAX_PLAYERS) { io.send(id, { t: 'full' }); return; }
-        p = p || { id }; Object.assign(p, { name: cleanName(m.name), lv: num(m.lv, 1, 999) | 0, look: cleanLook(m.look), area: cleanArea(m.area), x: num(m.x, 0, 6400), y: num(m.y, 0, 6400), dir: cleanDir(m.dir), mv: 0 });
+        p = p || { id }; Object.assign(p, { name: cleanName(m.name), lv: num(m.lv, 1, 999) | 0, look: cleanLook(m.look), bal: cleanBal(m.bal), area: cleanArea(m.area), x: num(m.x, 0, 6400), y: num(m.y, 0, 6400), dir: cleanDir(m.dir), mv: 0 });
         players.set(id, p); io.send(id, { t: 'welcome', id, players: peers(p).map(pub), n: players.size }); tell(peers(p), { t: 'join', p: pub(p) }); count(); return;
       }
       if (!p) return;                                                                   // nothing else is accepted before a hello
       if (m.t === 'state') { Object.assign(p, { x: num(m.x, 0, 6400), y: num(m.y, 0, 6400), dir: cleanDir(m.dir), mv: m.mv ? 1 : 0 }); tell(peers(p), { t: 'state', id, x: p.x, y: p.y, dir: p.dir, mv: p.mv }); }
-      else if (m.t === 'profile') { Object.assign(p, { name: cleanName(m.name), lv: num(m.lv, 1, 999) | 0, look: cleanLook(m.look) }); tell(peers(p), { t: 'profile', id, name: p.name, lv: p.lv, look: p.look }); }
+      else if (m.t === 'profile') { Object.assign(p, { name: cleanName(m.name), lv: num(m.lv, 1, 999) | 0, look: cleanLook(m.look), bal: cleanBal(m.bal) }); tell(peers(p), { t: 'profile', id, name: p.name, lv: p.lv, look: p.look, bal: p.bal }); }
       else if (m.t === 'area') {
         tell(peers(p), { t: 'leave', id });                                             // the old area stops seeing you...
         Object.assign(p, { area: cleanArea(m.area), x: num(m.x, 0, 6400), y: num(m.y, 0, 6400), dir: cleanDir(m.dir), mv: 0 });

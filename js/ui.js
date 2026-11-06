@@ -6,7 +6,7 @@ const EMOTES = ['👋', '❤️', '😄', '❓', '⛏️', '✨'];
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
   $('#menu').innerHTML = [['me', 'You', 'wave'], ['chat', 'Chat', 'chat']].map(m =>
-    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
+    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('') + `<button id="balbtn" class="mbtn px" data-act="balloon" aria-label="Balloon"><img src="${BAL.icon()}" alt=""></button>`;
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
