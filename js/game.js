@@ -343,7 +343,7 @@ function updateNPC(n, dt) {
 let stairsCool = 0;
 function checkStairs() { // stairs take you to the other floor (another area) as soon as you walk onto them
   if (A || UI.isOpen || fading || timeNow < stairsCool) return;
-  for (const o of W.objs) if (o.k === 'portal' && o.auto && Math.abs(ME.x - o.x) < 13 && ME.y > o.y - 16 && ME.y < o.y + 3) { stairsCool = timeNow + 1.6; sfx('ui'); goArea(o.to, o.sx, o.sy); return; }
+  for (const o of W.objs) if (o.k === 'portal' && o.auto && Math.abs(ME.x - o.x) < (o.src.rot & 1 ? o.spr.width / 2 : 13) && ME.y > o.y - (o.src.rot & 1 ? o.spr.height : 16) && ME.y < o.y + 3) { stairsCool = timeNow + 1.6; sfx('ui'); goArea(o.to, o.sx, o.sy); return; }
 }
 function tick(dt) {
   timeNow = performance.now() / 1000;

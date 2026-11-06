@@ -221,7 +221,7 @@ function blankMap(cave) { // a plain starter map: a grass island in the sea (or 
 }
 const generateDefaultMap = () => blankMap(false), generateDefaultCave = () => blankMap(true);
 function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
-function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
+function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), int: serializeInt(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
 function validMap(m) {
   if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
   const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
@@ -229,6 +229,15 @@ function validMap(m) {
 }
 
 const SOLIDS = { tree: [[-4, -4, 8, 5], 22], bush: [[-6, -4, 12, 4], 16], rock: [[-7, -4, 14, 4]], lamp: [[-2, -3, 4, 3]], bench: [[-12, -6, 24, 6]], stall: [[-22, -9, 44, 9], 18], board: [[-9, -5, 18, 5], 14], fountain: [[-23, -14, 46, 14]], tackle: [[-22, -9, 44, 9], 18], gemshop: [[-22, -9, 44, 9], 18], outfitshop: [[-22, -9, 44, 9], 18], tank: [[-20, -5, 40, 5], 18], leaders: [[-12, -4, 24, 4], 16], portal: [[-20, -6, 40, 6], 22], stalagmite: [[-5, -4, 10, 4]], campfire: [[-6, -4, 12, 4]], tent: [[-16, -5, 32, 5]], logseat: [[-12, -4, 24, 4]], crate: [[-6, -5, 12, 5]], barrel: [[-5, -4, 10, 4]], signpost: [[-3, -3, 6, 3]], fence: [[-25, -3, 50, 3]] };
+const ROTC = {};
+function turnSpr(spr, rot, flip) { // quarter turns clockwise (0-3) and an optional mirror; the new sprite keeps a bottom-centre anchor
+  rot = ((rot | 0) % 4 + 4) % 4; if (!rot && !flip) return spr;
+  const key = (spr.rk || (spr.rk = Math.random().toString(36).slice(2))) + rot + (flip ? 'f' : ''); if (ROTC[key]) return ROTC[key];
+  const odd = rot % 2, w = odd ? spr.height : spr.width, h = odd ? spr.width : spr.height, c = mk(w, h), g = c.g;
+  g.translate(w / 2, h / 2); g.rotate(rot * Math.PI / 2); if (flip) g.scale(-1, 1); g.drawImage(spr, -spr.width / 2, -spr.height / 2);
+  c.ax = w / 2; c.ay = h; c.rk = key; return ROTC[key] = c;
+}
+function turnBox(b, rot) { return rot % 2 ? [-Math.round(b[3] / 2), -b[2], b[3], b[2]] : b; }   // a sideways piece is as deep as it was wide
 function instantiate(s) {
   let o;
   switch (s.k) {
@@ -256,8 +265,9 @@ function instantiate(s) {
     case 'patch': W.patches.push({ x: s.x, y: s.y, fl: [], src: s }); return;
     default: return;
   }
+  if ((s.k === 'furn' || (s.k === 'portal' && s.style && s.style.startsWith('stairs'))) && (s.rot || s.flip)) o.spr = turnSpr(o.spr, s.rot, s.flip);
   const fb = s.k === 'furn' ? ASSET.furn[s.f] && ASSET.furn[s.f].box : null, sd = s.k === 'house' ? [ASSET.scn.house.box] : s.k === 'deco' && (s.v | 0) >= 6 && ASSET.scn.tree1 ? [ASSET.scn['tree' + ((s.v | 0) - 5)].box] : s.k === 'furn' ? (fb ? [fb] : null) : s.k === 'portal' && (s.style === 'stairsUp' || s.style === 'stairsDown') ? null : s.k === 'portal' && s.style === 'door' ? [[-10, -3, 20, 3], 18] : SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
-  if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
+  if (sd) { o.box = s.k === 'furn' && s.rot ? turnBox(sd[0], ((s.rot | 0) % 4 + 4) % 4) : sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
 }
 function rebuildObjects() {

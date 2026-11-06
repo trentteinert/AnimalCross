@@ -197,6 +197,7 @@ function edClick(e) {
     case 'reset': if (confirm('Replace the whole map with the default island? (You can undo this.)')) { loadMap(defaultFor(AREA)); ED.sel = null; commit(); refreshInspector(); } break;
     case 'reloadfile': discardDraft(); break;
     case 'del': deleteSel(); break;
+    case 'rot': case 'flip': if (ED.sel) { const s = ED.sel.src; if (a === 'rot') s.rot = ((s.rot | 0) + 1) % 4; else s.flip = !s.flip; if (!s.rot) delete s.rot; if (!s.flip) delete s.flip; rebuildAndSelect(s); commit(); } break;
   }
   updateBar();
 }
@@ -334,7 +335,7 @@ function refreshInspector(quick) {
   if (k === 'bush') extra = `<label>Berries<select id="edKind">${['blueberry', 'raspberry', 'blackberry', 'elderberry'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'deco') extra = `<label>Style<select id="edVar">${DECO_NAMES.map((n, i) => `<option value="${i}" ${(src.v | 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label>`;
   if (k === 'patch') extra = '<p class="mut">Flowers are scattered on grass inside this circle.</p>';
-  el.innerHTML = `<b>${LABELS[k] || k}</b><div id="edCoords" class="mut">x ${s.x}  y ${s.y}</div>${extra}<button data-ed="del" class="danger">Delete</button>`;
+  el.innerHTML = `<b>${LABELS[k] || k}</b><div id="edCoords" class="mut">x ${s.x}  y ${s.y}</div>${extra}${(k === 'furn' || (k === 'portal' && /^stairs/.test(src.style || ''))) ? `<div class="edtools"><button data-ed="rot">Rotate 90°</button><button data-ed="flip">Flip</button></div>` : ''}<button data-ed="del" class="danger">Delete</button>`;
 }
 function injectEditorCSS() {
   const st = document.createElement('style');
