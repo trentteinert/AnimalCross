@@ -55,7 +55,7 @@ function renderTerrain() {
 }
 function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (3 cells tall) wherever a wall has floor to its south
   const img = ASSET.img.interior; if (!img) return; const g2 = c.g;
-  const isW = (x, y) => intAt(x, y) >= 6, isF = (x, y) => { const v = intAt(x, y); return v >= 1 && v <= 5; }, capLike = (x, y) => isW(x, y) && !isF(x, y + 1);
+  const isW = (x, y) => { const v = intAt(x, y); return v === 6 || v === 7; }, isF = (x, y) => { const v = intAt(x, y); return v >= 1 && v <= 5; }, capLike = (x, y) => isW(x, y) && !isF(x, y + 1);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
     const id = INT[ty * MW + tx]; if (id < 1 || id > 5) continue;
     g2.drawImage(img, (id - 1) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
@@ -96,9 +96,15 @@ function drawInterior(c) { // floors; thin wall trims beside them; wall fronts (
     if (!hs && !vs) g2.drawImage(img, 64, 16 + 32, 7, 7, ox + 5, oy + 5, 7, 7);
   }
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // wall fronts, drawn last so they hide what is behind them
-    const id = INT[ty * MW + tx]; if (id < 6 || !isF(tx, ty + 1)) continue;
+    const id = INT[ty * MW + tx]; if ((id !== 6 && id !== 7) || !isF(tx, ty + 1)) continue;
     g2.drawImage(img, (tx % 3) * 16, 16, 16, 48, tx * 16, (ty + 1) * 16 - 48, 16, 48);
     if (id === 7) g2.drawImage(img, 48, 16, 16, 48, tx * 16, (ty + 1) * 16 - 48, 16, 48);
+  }
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { // open doorways (id 8): a gap in a wall, floor underfoot; in a wall front it keeps a short header above the opening
+    if (INT[ty * MW + tx] !== 8) continue;
+    const fv = (x, y) => { const v = intAt(x, y); return v >= 1 && v <= 5 ? v : 0; }, f = fv(tx, ty + 1) || fv(tx - 1, ty) || fv(tx + 1, ty) || fv(tx, ty - 1) || 1;
+    g2.drawImage(img, (f - 1) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
+    if (isW(tx - 1, ty) && isW(tx + 1, ty) && isF(tx, ty + 1)) { g2.drawImage(img, (tx % 3) * 16, 16, 16, 10, tx * 16, (ty + 1) * 16 - 48, 16, 10); g2.fillStyle = 'rgba(30,20,20,0.22)'; g2.fillRect(tx * 16, (ty + 1) * 16 - 38, 16, 2); }
   }
 }
 function serializeInt() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += INT[ty * MW + tx]; rows.push(r); } return rows; }
@@ -296,7 +302,7 @@ function loadMap(map) {
   if (Array.isArray(map.deck) && map.deck.length === MH && map.deck.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) DECK[y * MW + x] = Math.min(6, Math.max(0, map.deck[y].charCodeAt(x) - 48));
   for (const q of map.structs) { const id = (q.style | 0) % 3 + 1 + (q.rails ? 3 : 0); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) DECK[y * MW + x] = id; } // old pier / bridge rectangles become deck tiles
   map.structs = [];
-  if (Array.isArray(map.int) && map.int.length === MH && map.int.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) INT[y * MW + x] = Math.min(7, Math.max(0, map.int[y].charCodeAt(x) - 48));
+  if (Array.isArray(map.int) && map.int.length === MH && map.int.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) INT[y * MW + x] = Math.min(8, Math.max(0, map.int[y].charCodeAt(x) - 48));
   if (Array.isArray(map.site) && map.site.length === MH && map.site.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) SITE[y * MW + x] = Math.min(4, Math.max(0, map.site[y].charCodeAt(x) - 48));
   W.spawn = { x: map.spawn.x, y: map.spawn.y };
   rebuildAll(); computeShore();
@@ -306,7 +312,7 @@ function initWorld(map) { loadMap(map); }
 // ---- collision --------------------------------------------------------------------------------------
 function blockedAt(x, y) {
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
-  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const w = intAt(Math.floor((x + o[0]) / TS), Math.floor((y + o[1]) / TS)); if (w >= 6) return true; }
+  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const w = intAt(Math.floor((x + o[0]) / TS), Math.floor((y + o[1]) / TS)); if (w === 6 || w === 7) return true; }
   const x0 = x - 3, x1 = x + 3, y0 = y - 3, y1 = y;
   for (const o of W.solids) {
     const bx = o.x + o.box[0], by = o.y + o.box[1];
