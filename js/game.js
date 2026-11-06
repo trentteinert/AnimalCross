@@ -12,7 +12,7 @@ if (qs.has('hour')) { const d = new Date(); tOff = parseFloat(qs.get('hour')) - 
 // ---- time, weather --------------------------------------------------------
 function hourNow() { const d = new Date(); return (((d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + tOff) % 24) + 24) % 24; }
 const isNight = () => { const h = hourNow(); return h >= 19.5 || h < 5.5; };
-function isRain() { if (qs.has('rain')) return qs.get('rain') === '1'; return hash2(Math.floor(Date.now() / 1200000), 77) < 0.2; }
+function isRain() { return qs.get('rain') === '1'; }   // always sunny (?rain=1 still forces rain for testing)
 const TINT = [[0, [52, 62, 124]], [5, [62, 72, 134]], [6.5, [250, 190, 150]], [8.5, [255, 248, 236]], [16.5, [255, 241, 218]], [18, [255, 205, 150]], [19.5, [204, 132, 142]], [21, [92, 92, 152]], [24, [52, 62, 124]]];
 function tintAt(h) {
   for (let i = 1; i < TINT.length; i++) if (h <= TINT[i][0]) { const a = TINT[i - 1], b = TINT[i], k = (h - a[0]) / (b[0] - a[0]); return a[1].map((v, j) => Math.round(v + (b[1][j] - v) * k)); }
