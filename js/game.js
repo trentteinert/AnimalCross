@@ -410,6 +410,26 @@ function drawChar(e, cx, cy, now) {
   const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawDig(e, f, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
+// ---- cast shadows: every standing thing throws a flattened, sheared copy of itself away from the sun (the sun crosses the sky with the clock; none at night or in rain)
+const SIL = new WeakMap(), NOSHADOW = new Set(['patch', 'campfire', 'portal', 'furn', 'lamp']);
+function silhouette(spr) {
+  let s = SIL.get(spr); if (s) return s; s = mk(spr.width, spr.height); s.g.drawImage(spr, 0, 0); s.g.globalCompositeOperation = 'source-in'; s.g.fillStyle = '#141a32'; s.g.fillRect(0, 0, s.width, s.height);
+  s.ax = spr.ax; s.ay = spr.ay; SIL.set(spr, s); return s;
+}
+function castShadows(L, cx, cy) {
+  const h = hourNow(); if (h < 6.3 || h > 19.7 || (qs.get('rain') === '1') || (!qs.has('rain') && isRain())) return;
+  const t = (h - 6.3) / 13.4, lean = (t - 0.5) * 2.4, len = 0.22 + 0.34 * Math.abs(t - 0.5) * 2, fade = clamp(Math.min(t, 1 - t) * 6, 0, 1);   // lean: px sideways per px of height; len: px down the screen per px of height
+  g.save(); g.globalAlpha = 0.26 * fade;
+  for (const o of L) {
+    if (NOSHADOW.has(o.k) || o === undefined) continue;
+    const spr = o.k === 'tree' ? SPR.tree[o.kind][0] : o.k === 'bush' ? SPR.bush[o.kind][0] : (o.k === 'me' || o.k === 'rp') ? heroSprite(o.dir, heroFrameOf(o), o.look) : o.k === 'dog' || o.k === 'npc' ? null : o.spr;
+    if (!spr || !spr.width) continue; const X = (o === ME ? o.x : Math.round(o.x)) - cx, Y = Math.round(o.y) - cy;
+    if (X < -140 || X > VW + 140 || Y < -60 || Y > VH + 220) continue;
+    const ax = spr.ax != null ? spr.ax : spr.width / 2, ay = spr.ay != null ? spr.ay : spr.height, sc = o.k === 'house' ? 0.8 : 1;   // a house's shadow is kept shorter
+    g.save(); g.transform(1, 0, -lean * sc, -len * sc, X - ax + lean * sc * ay, Y + len * sc * ay); g.drawImage(silhouette(spr), 0, 0); g.restore();
+  }
+  g.restore();
+}
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'rp': { // another player
@@ -472,7 +492,7 @@ function render(now) {
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   L.push(ME); if (DOG) L.push(DOG); for (const r of NET.remotes.values()) if (r.x > cx - 30 && r.x < cx + VW + 30 && r.y > cy - 10 && r.y < cy + VH + 70) L.push(r); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
-  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
+  L.sort((a, b) => a.y - b.y); if (!indoor && W.theme !== 'cave') castShadows(L, cx, cy); for (const o of L) drawEnt(o, cx, cy, now);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   // light
