@@ -137,7 +137,7 @@ function randLook() { return { b: Math.floor(rnd(0, 3)), hair: Math.random() < 0
 function buildFurniture() { // house furniture: sprites cut from furniture.png, anchored at the bottom centre
   SPR.furn = {}; for (const k in ASSET.furn) { const r = ASSET.furn[k], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.furniture, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); c.ax = r.ax; c.ay = r.h; SPR.furn[k] = c; }
 }
-const SCN_SCALE = 1.5;   // how much bigger the house and trees are drawn than in the sheet
+const SCN_SCALE = 1.1;   // how much bigger the house and trees are drawn than in the sheet
 function buildScenery() { // house + two trees from scenery.png (bottom-centre anchored); the trees are appended to SPR.deco as v 6 and 7
   const S = SCN_SCALE, sc = v => Math.round(v * S); SPR.scn = {};   // drawn bigger (nearest-neighbour); size, anchor, collision box and door scale together
   for (const k in ASSET.scn) {
