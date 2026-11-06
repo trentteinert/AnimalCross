@@ -313,7 +313,7 @@ function buildEditorUI() {
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
 }
-function areaOptions() { const list = ['island', 'cave']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
+function areaOptions() { const list = ['island', 'house', 'house2']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
 function updateBar() {
   const $$ = s => document.querySelectorAll(s); if (!$('#ed')) return;
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';
