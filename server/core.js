@@ -1,5 +1,5 @@
 // Room logic for Angela's multiplayer. One shared module, two hosts:
-//   party.js  -> PartyKit / Cloudflare (recommended, deploy with `npx partykit deploy`)
+//   worker.js -> Cloudflare Workers + a Durable Object (recommended, deploy with `npx wrangler deploy`)
 //   relay.js  -> plain Node + ws (local testing, or any Node host such as Fly.io, Railway or Render)
 // The server is a relay, not a referee: clients own their own movement, the server sanitises everything,
 // limits how fast a client can talk, and only tells players about others in the SAME AREA (island, house, house2...).

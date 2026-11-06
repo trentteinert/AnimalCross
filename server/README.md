@@ -17,21 +17,25 @@ python3 server.py 5173                           # the game, from the repo root
 ```
 Open `http://localhost:5173/?server=ws://localhost:8787` in two browser windows (use a private window for the second one, so it has its own saved name).
 
-## Put it online (PartyKit, recommended)
-Netlify can host the game page but not a WebSocket server, so the live part goes on PartyKit (Cloudflare):
+## Put it online (Cloudflare Workers, free)
+Netlify can host the game page but not a WebSocket server, so the live part runs on Cloudflare (the hosted PartyKit service has shut down).
+You need a free Cloudflare account.
 ```
 cd server
 npm install
-npx partykit login        # once, with a free account
-npx partykit deploy       # prints a host like angela-multiplayer.YOURNAME.partykit.dev
+npx wrangler login        # opens the browser; sign in or create the free account
+npx wrangler deploy       # prints https://angela-multiplayer.YOURSUBDOMAIN.workers.dev
 ```
-Then edit `js/config.js`:
+The first deploy may ask you to pick a free `workers.dev` subdomain: accept it. Then edit `js/config.js`:
 ```js
-const SERVER_URL = 'wss://angela-multiplayer.YOURNAME.partykit.dev/party/main';
+const SERVER_URL = 'wss://angela-multiplayer.YOURSUBDOMAIN.workers.dev/party/main';
 ```
 and deploy the game to Netlify as usual. Everyone who opens the page connects to the same server.
+Try it before the game is online: `npx wrangler dev` runs the same Worker on your PC at ws://127.0.0.1:8787/party/main.
+(The Worker answers on every path; `/party/main` is just a tidy address.)
 
-Any Node host works too (Fly.io, Railway, Render): run `npm start` there and use its `wss://` address.
+Any Node host also works (Fly.io, Railway, Render): run `npm start` there and use its `wss://` address.
+On the free Cloudflare plan the room stays awake while players are connected, which is fine for a small crowd. For a bigger one, switch `worker.js` to Durable Object WebSocket hibernation.
 
 ## Growing it
-`core.js` keeps everyone in one room and filters by area. For hundreds of players, give each area its own PartyKit room (`/party/island`, `/party/house`) by choosing the room name from `AREA` in `js/net.js`.
+`core.js` keeps everyone in one room and filters by area. For hundreds of players, give each area its own room: in `worker.js` use the area from the URL instead of `'main'`, and in `js/net.js` connect to a different address per area.

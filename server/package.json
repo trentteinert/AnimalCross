@@ -2,15 +2,7 @@
   "name": "angela-multiplayer-server",
   "private": true,
   "type": "module",
-  "scripts": {
-    "start": "node relay.js",
-    "dev": "partykit dev",
-    "deploy": "partykit deploy"
-  },
-  "dependencies": {
-    "ws": "^8.22.1"
-  },
-  "devDependencies": {
-    "partykit": "^0.0.111"
-  }
+  "scripts": { "start": "node relay.js", "dev": "wrangler dev", "deploy": "wrangler deploy" },
+  "dependencies": { "ws": "^8.18.0" },
+  "devDependencies": { "wrangler": "^4.0.0" }
 }
