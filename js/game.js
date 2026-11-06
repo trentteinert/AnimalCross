@@ -519,8 +519,7 @@ function render(now) {
     if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); }
     const nm = o === ME ? S.name : o.name, lv = o === ME ? S.lv : o.lv, x = Math.round(o.x - cx), y = Math.round(o.y - (o.k === 'npc' ? 38 : 54) - cy);
     if (o.k !== 'npc') drawBalloon(g, o === ME ? BAL.n : o.bal | 0, x, Math.round(o.y - 22 - cy), now);
-    g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; const txt = nm + ' lv' + lv, w = g.measureText(txt).width; g.strokeText(txt, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x - g.measureText(' lv' + lv).width / 2, y);
-    g.fillStyle = '#9fd0ff'; g.fillText(' lv' + lv, x + g.measureText(nm).width / 2, y);
+    g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText(nm, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x, y);
     if (o.bubble) drawBubble(g, o.bubble, x, y - 11);
     if (o === ME) g.restore();
   }
