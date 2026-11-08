@@ -117,8 +117,6 @@ const GEAR = {
 };
 const SKIN = ['#f6d3b3', '#e9b98f', '#d49a6a', '#b57a4a', '#8a5a36', '#5e3b24'];
 const HAIRC = ['#2b1d1a', '#5a3a22', '#8a5a2f', '#d8a24a', '#e8d27a', '#c2442f', '#6f5ad8', '#e86fa8'];
-const SHIRTC = ['#d8604a', '#e8a23a', '#8fbf4a', '#4aa8a0', '#4a7ad8', '#8a5ad8', '#e86fa8', '#e8e0d0'];
-const HAIRS = ['Messy', 'None'];
 
 const needXP = lv => 45 + (lv - 1) * 40;
 
@@ -127,7 +125,7 @@ const SAVE_KEY = 'littledig.proto.v1';
 function defaultState() {
   return {
     gold: 0, xp: 0, lv: 1, bag: [], book: {}, tools: { rod: 0, bag: 0 }, gear: { reel: 0, line: 0 },
-    look: { b: 1, hair: 0, hc: 1, skin: 1, shirt: 4, style: 0, hat: 0, pc: 0 },
+    look: {},
     name: 'digger#' + (1000 + Math.floor(Math.random() * 9000)), created: false,
     stats: { fish: 0, total: 0, earned: 0, big: null, rare: null }, sound: true, lefty: false, fx: true
   };

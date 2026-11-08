@@ -77,11 +77,11 @@ UI.onClick = function (e) {
     case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openBag(); break;
     case 'fx': S.fx = S.fx === false; UI.openBag(); break;
     case 'lefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); UI.openBag(); break;
-    case 'editlook': UI.openCreator(false); break;
-    case 'cr': UI.crSet(p1, p2); break;
-    case 'crrand': UI.cr.look = randLook(); UI.crDraw(); UI.crRefreshChips(); break;
-    case 'crdone': UI.crDone(); break;
-    case 'crturn': UI.crDir = (UI.crDir + 1) % 8; break;
+    case 'editlook': UI.openMe(false); break;
+    case 'meturn': UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); break;
+    case 'merand': Object.assign(HERO.tint, randLook()); heroApply(); UI.meSync(); break;
+    case 'mereset': for (const k in HERO.tint) delete HERO.tint[k]; heroApply(); UI.meSync(); break;
+    case 'medone': UI.meDone(); break;
     default: if (UI.onClick2) UI.onClick2(a, p1, p2, p3);
   }
 };
@@ -111,31 +111,24 @@ UI.bookDetail = function (id) {
     : `<img class="sil" src="${itemURL(id)}" alt=""><div><h3>???</h3><p class="mut">Hint: ${whereText(it)}</p></div>`;
 };
 
-function charURL(look) { return dataURL(charSprite(look, 0, 1), 'c' + JSON.stringify(look)); }
-
-// ---- character creator ----------------------------------------------------
-UI.openCreator = function (first) {
-  UI.cr = { look: Object.assign({}, S.look), name: first ? S.name : S.name, first: !!first }; UI.crDir = 0;
-  const L = UI.cr.look;
-  const sw = (key, arr) => arr.map((c, i) => `<button class="sw ${L[key] === i ? 'on' : ''}" data-key="${key}" data-i="${i}" data-act="cr:${key}:${i}" style="background:${c}"></button>`).join('');
-  const ch = (key, arr) => arr.map((n, i) => `<button class="chip ${L[key] === i ? 'on' : ''}" data-key="${key}" data-i="${i}" data-act="cr:${key}:${i}">${n}</button>`).join('');
-  UI.open('creator', `${head(first ? 'Make it yours' : 'Your look', !first)}${first ? '<p class="note">You are getting the hang of this! Pick a name and a look. You can change it later.</p>' : ''}
-  <div class="crtop"><canvas id="crprev" width="96" height="120" data-act="crturn"></canvas>
-  <div class="crform"><label>Name<input id="crname" maxlength="14" value="${esc(UI.cr.name)}" autocomplete="off" spellcheck="false"></label><div id="crerr" class="err"></div><button class="btn small" data-act="crrand">Randomize</button></div></div>
-  <div class="crrows"><div><small>Hair</small><div class="chips">${ch('hair', HAIRS)}</div></div>
-  <div><small>Hair color</small><div class="sws">${sw('hc', HAIRC)}</div></div><div><small>Skin</small><div class="sws">${sw('skin', SKIN)}</div></div><div><small>Top color</small><div class="sws">${sw('shirt', SHIRTC)}</div></div><div><small>Pants</small><div class="sws">${sw('pc', PANTSC)}</div></div></div>
-  <button class="btn big" data-act="crdone">${first ? 'Looks good!' : 'Save'}</button>`);
-  UI.crDraw(); clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.crDraw, 160);
+// ---- the player: name + clothes (colour pickers recolour the UV-skinned hero) -------------------------------
+UI.openMe = function (first) {
+  const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); UI.me = { dir: 0, first: !!first };
+  const picks = LOOK_ROLES.map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || hex(heroRoleColor(r))}"></label>`).join('');
+  UI.open('creator', `${head(first ? 'Make it yours' : 'Your look', !first)}${first ? '<p class="note">You are getting the hang of this! Pick a name and some clothes. You can change them later.</p>' : ''}
+  <div class="crtop"><canvas id="meprev" width="96" height="144" data-act="meturn"></canvas>
+  <div class="crform"><label>Name<input id="mename" maxlength="14" value="${esc(S.name)}" autocomplete="off" spellcheck="false"></label><div id="meerr" class="err"></div><div class="looks2">${picks}</div></div></div>
+  <div class="foot"><button class="btn small" data-act="merand">Randomize</button><button class="btn small" data-act="mereset">Reset clothes</button></div>
+  <button class="btn big" data-act="medone">${first ? 'Looks good!' : 'Save'}</button>`);
+  document.querySelectorAll('#modal input[data-role]').forEach(inp => inp.addEventListener('input', () => { HERO.tint[inp.dataset.role] = inp.value; heroApply(); }));
+  clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.meDraw, 160); UI.meDraw();
 };
-UI.crRefreshChips = function () { document.querySelectorAll('#modal [data-key]').forEach(el => el.classList.toggle('on', UI.cr.look[el.dataset.key] === +el.dataset.i)); };
-UI.crSet = function (key, i) { UI.cr.look[key] = +i; UI.crRefreshChips(); UI.crDraw(); };
-UI.crDraw = function () {
-  const cvp = $('#crprev'); if (!cvp) return; const g = cvp.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, cvp.width, cvp.height);
-  const walk = Math.floor(Date.now() / 150) % 4, s = charSprite(UI.cr.look, UI.crDir % 8, walk);
-  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(48, 114, 22, 6, 0, 0, 7); g.fill();
-  g.drawImage(s, 48 - s.ax * 3, 115 - s.ay * 3, s.width * 3, s.height * 3);
+UI.meDraw = function () {
+  const c = $('#meprev'); if (!c) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
+  const f = Math.floor(Date.now() / 220) % 4 + 1, spr = heroSprite(['d', 'l', 'u', 'r'][UI.me.dir], f); g.drawImage(spr, 0, 0, 96, 144);
 };
-UI.crDone = function () {
-  const n = $('#crname').value.trim(), err = badName(n); if (err) { $('#crerr').textContent = err; sfx('no'); return; }
-  S.name = n; S.look = Object.assign({}, UI.cr.look); S.created = true; UI.close(); sfx('level'); UI.toast('Welcome, ' + n + '!', 'gold'); UI.refresh();
+UI.meSync = function () { document.querySelectorAll('#modal input[data-role]').forEach(i => { i.value = HERO.tint[i.dataset.role] || '#' + heroRoleColor(i.dataset.role).map(v => v.toString(16).padStart(2, '0')).join(''); }); UI.meDraw(); };
+UI.meDone = function () {
+  const n = $('#mename').value.trim(), err = badName(n); if (err) { $('#meerr').textContent = err; sfx('no'); return; }
+  S.name = n; S.created = true; UI.close(); sfx('level'); UI.toast('Welcome, ' + n + '!', 'gold'); UI.refresh();
 };

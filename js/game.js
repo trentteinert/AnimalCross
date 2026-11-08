@@ -90,7 +90,7 @@ function inputVec() {
 function dirOf(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u'); }
 function stepToward(e, tx, ty, sp, dt) {
   const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy); if (d < 1) return false;
-  const s = Math.min(d, sp * dt); e.dir = dirOf(dx, dy); e.face = faceOf(dx, dy); e.faceDir = e.dir; return moveEnt(e, dx / d * s, dy / d * s);
+  const s = Math.min(d, sp * dt); e.dir = dirOf(dx, dy); return moveEnt(e, dx / d * s, dy / d * s);
 }
 function burst(x, y, col, n, sp, life, grav, sz) {
   for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = rnd(0.3, 1) * sp; PT.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.4, g: grav == null ? 60 : grav, life: rnd(0.5, 1) * life, max: life, col, sz: sz || 1 }); }
@@ -145,7 +145,7 @@ function addXP(n) {
   while (S.xp >= needXP(S.lv)) { S.xp -= needXP(S.lv); S.lv++; up = true; }
   if (up) {
     sfx('level'); UI.banner('Level ' + S.lv, S.created ? 'Nice work!' : 'You are getting the hang of this'); burst(ME.x, ME.y - 16, '#ffe08a', 24, 70, 1.1, 40, 2);
-    if (!S.created) setTimeout(() => { if (!S.created && !UI.isOpen) UI.openCreator(true); }, 1900);
+    if (!S.created) setTimeout(() => { if (!S.created && !UI.isOpen) UI.openMe(true); }, 1900);
   }
   UI.refresh();
 }
@@ -263,7 +263,7 @@ function updateMe(dt) {
     if (A) { endAct(); }
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
-    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt;
+    ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt;
   } else if (autoWalk && !A) {
     const a = autoWalk, tg = target;
     if (a.ref && tg && tg.ref === a.ref) { autoWalk = null; startAction(); return; }
@@ -353,21 +353,25 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   }
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
-function mePose(now) { // which painted action frame the player is in right now (null = normal walking sprite)
-  const D = AROW[ME.dir] || 0;
-  if (ME.hold) return ['gather', 4 + D, 7, true];
-  if (A) switch (A.k) {
-    case 'fish': return digPose(ME.dir, A, now, A.hit);
-  }
-  if (ME.wave) return ['emote', D, 1 + (Math.floor(ME.wave.t * 8) % 3)];
-  return null;
+const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * (e.dir === "l" || e.dir === "r" ? 4 : 8)) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
+function drawShovel(e, f, cx, cy, now) { // placeholder dig animation: the hero stands in the idle pose and swings a code-drawn shovel until proper dig frames exist
+  const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0);
+  let tx, ty;
+  const raised = [hx - dv[0] * 3, hy - 15];
+  if (f.ph === 'charge' || f.ph === 'pull') { tx = raised[0]; ty = raised[1] + (f.ph === 'pull' ? Math.sin(f.t * 12) * 1.5 : 0); }
+  else { const u = f.ph === 'cast' ? Math.min(1, f.t / 0.16) : 1, jig = f.ph === 'bite' ? Math.sin(now * 30) * 1.2 : f.ph === 'reel' ? Math.sin(now * 14) * 1.5 : 0; tx = raised[0] + (f.bx - 1 + jig - raised[0]) * u; ty = raised[1] + (f.by - 4 - raised[1]) * u; }
+  const x0 = Math.round(hx - cx), y0 = Math.round(hy - cy), x1 = Math.round(tx - cx), y1 = Math.round(ty - cy);
+  lineG(x0, y0, x1, y1, '#7a5230'); lineG(x0 + 1, y0, x1 + 1, y1, '#a8743a');
+  g.fillStyle = '#9aa3b0'; g.fillRect(x1 - 2, y1 - 1, 5, 4); g.fillStyle = '#d4dbe6'; g.fillRect(x1 - 2, y1 - 1, 5, 1); g.fillStyle = '#5a6270'; g.fillRect(x1 - 2, y1 + 2, 5, 1);
 }
 function drawChar(e, cx, cy, now) {
-  const look = e === ME ? S.look : e.look, fr = e.moving ? Math.floor(e.t * 8) % 4 : 1, holding = e === ME && ME.hold, pose = e === ME ? mePose(now) : (e.rod && !e.moving ? digPose(e.dir, e.rod, now, false) : null),
-    spr = pose ? actSprite(look, pose[0], pose[1], pose[2], pose[3]) : charSprite(look, faceIdx(e), fr);
+  const f = e === ME ? (A && A.k === 'fish' ? A : null) : (e.rod && !e.moving ? e.rod : null), holding = e === ME && ME.hold;
+  const crouch = f ? (f.ph === 'charge' ? 1 : f.ph === 'cast' ? 2 : 1) : 0, wave = e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
+  const spr = heroSprite(e.dir, f || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
   let off = 0; if (A && e === ME && false) off = Math.sin(now * 40) * 0.5;
-  g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy));
+  g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy + crouch + wave));
+  if (f) drawShovel(e, f, cx, cy, now);
   if (holding) {
     const h = ME.hold, m = h.groups[0], ic = itemIcon(m.id), u = Math.min(1, h.t / 0.24), k = 1.70158 + 1, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
     const fade = clamp((h.dur - h.t) / 0.35, 0, 1), sz = Math.round(ic.width * 2 * eb), bob = Math.round(Math.sin(now * 4) * 1), top = Math.round(e.y - 38 - sz + bob - cy);
@@ -377,7 +381,7 @@ function drawChar(e, cx, cy, now) {
     h.groups.slice(1, 3).forEach((gr, i) => { const ic2 = itemIcon(gr.id), sd = i === 0 ? -1 : 1; g.drawImage(ic2, Math.round(e.x + sd * (sz / 2 + 14) - ic2.width / 2 - cx), Math.round(e.y - 50 - cy + bob)); });
     g.globalAlpha = 1;
   }
-  const f = e === ME ? (A && A.k === 'fish' ? A : null) : e.rod; if (f) drawDig(e, f, cx, cy, now);
+  if (f) drawDig(e, f, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
@@ -524,7 +528,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) buildPropSprites(); buildClouds(); if (!EDIT) UI.init();
+  buildSprites(); if (ASSET.ok) { buildPropSprites(); heroInit(); } buildClouds(); if (!EDIT) UI.init();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
@@ -532,7 +536,7 @@ function boot() {
     for (let i = 0; i < 10; i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink);
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
-    if (S.lv >= 2 && !S.created) setTimeout(() => UI.openCreator(true), 600);
+    if (S.lv >= 2 && !S.created) setTimeout(() => UI.openMe(true), 600);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
     window.__game = { get ME() { return ME; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };
   })), 40);
