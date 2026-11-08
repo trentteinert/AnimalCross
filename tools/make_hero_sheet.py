@@ -64,8 +64,8 @@ def idle_cell(ci, row):
     m = idle[ya:yb, x0:x1, 3] > 0; ys = np.where(m.any(1))[0]; top, bot = ya + ys.min(), ya + ys.max()
     return cell(idle, center_x(idle, top, top + 26, x0, x1), bot, (x0, x1), (ya, yb))
 flip = lambda c: c[:, ::-1].copy()
-# direction rows: 0 d, 1 dl, 2 l, 3 ul, 4 u, 5 ur, 6 r, 7 dr   (walk columns: 0 dl, 1 r, 2 d, 3 u, 4 ur)
-WALK_SRC = {0: (2, False), 1: (0, False), 2: (1, True), 3: (4, True), 4: (3, False), 5: (4, False), 6: (1, False), 7: (0, True)}
+# direction rows: 0 d, 1 dl, 2 l, 3 ul, 4 u, 5 ur, 6 r, 7 dr   (walk columns: 0 dr, 1 r, 2 d, 3 u, 4 ur)
+WALK_SRC = {0: (2, False), 1: (0, True), 2: (1, True), 3: (4, True), 4: (3, False), 5: (4, False), 6: (1, False), 7: (0, False)}
 IDLE_SRC = {0: (2, 1), 1: (1, 1), 2: (0, 1), 3: (1, 0), 4: (2, 0), 5: (3, 0), 6: (4, 1), 7: (3, 1)}
 frames = {}
 for d in range(8):
