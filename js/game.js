@@ -90,7 +90,7 @@ function inputVec() {
 function dirOf(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u'); }
 function stepToward(e, tx, ty, sp, dt) {
   const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy); if (d < 1) return false;
-  const s = Math.min(d, sp * dt); e.dir = dirOf(dx, dy); return moveEnt(e, dx / d * s, dy / d * s);
+  const s = Math.min(d, sp * dt); e.dir = dirOf(dx, dy); e.face = faceOf(dx, dy); e.faceDir = e.dir; return moveEnt(e, dx / d * s, dy / d * s);
 }
 function burst(x, y, col, n, sp, life, grav, sz) {
   for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = rnd(0.3, 1) * sp; PT.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.4, g: grav == null ? 60 : grav, life: rnd(0.5, 1) * life, max: life, col, sz: sz || 1 }); }
@@ -263,7 +263,7 @@ function updateMe(dt) {
     if (A) { endAct(); }
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
-    ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt;
+    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt;
   } else if (autoWalk && !A) {
     const a = autoWalk, tg = target;
     if (a.ref && tg && tg.ref === a.ref) { autoWalk = null; startAction(); return; }
@@ -353,7 +353,8 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   }
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
-const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * (e.dir === "l" || e.dir === "r" ? 4 : 8)) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
+const WALK_FPS = 10;
+const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 8 : 0;   // 0 = idle, 1-8 = walk cycle
 function drawShovel(e, f, cx, cy, now) { // placeholder dig animation: the hero stands in the idle pose and swings a code-drawn shovel until proper dig frames exist
   const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0);
   let tx, ty;
@@ -367,7 +368,7 @@ function drawShovel(e, f, cx, cy, now) { // placeholder dig animation: the hero 
 function drawChar(e, cx, cy, now) {
   const f = e === ME ? (A && A.k === 'fish' ? A : null) : (e.rod && !e.moving ? e.rod : null), holding = e === ME && ME.hold;
   const crouch = f ? (f.ph === 'charge' ? 1 : f.ph === 'cast' ? 2 : 1) : 0, wave = e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
-  const spr = heroSprite(e.dir, f || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
+  const spr = heroSprite(faceIdx(e), f || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
   let off = 0; if (A && e === ME && false) off = Math.sin(now * 40) * 0.5;
   g.drawImage(spr, Math.round(e.x - spr.ax - cx + off), Math.round(e.y - spr.ay - cy + crouch + wave));

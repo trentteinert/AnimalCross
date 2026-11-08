@@ -17,23 +17,26 @@ function recolorCanvas(c, fn) {
   c.g.putImageData(id, 0, 0); return c;
 }
 const lumOf = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
-// ---- the hero : pixel-art "rigging" by UV lookup ----------------------------------------------------------------------
-// assets/chars/hero_uv.png holds the animation (4 directions x idle + 4 walk frames, cell 32x48, feet centre at (16, 47)), but not as colours:
-// every pixel stores a coordinate (R = x, G = y) into the skin texture assets/chars/hero_skin.png. Sprites are built by looking those
-// coordinates up, so editing the skin (or recolouring it live) changes every frame of every animation.
-const HERO_ROW = { d: 0, l: 1, r: 2, u: 3 }, HERO = { base: null, data: null, uv: null, roles: {}, tint: {}, cache: {}, skins: {} };
+// ---- the hero: pixel-art "rigging" by UV lookup ------------------------------------------------------------------------
+// assets/chars/hero_uv.png holds the animation: 8 directions (rows) x 9 frames (0 = idle, 1-8 = walk cycle), cell 32x58, feet end on row 52.
+// It is not stored as colours: every pixel holds a coordinate (R = x, G = y) into the skin texture assets/chars/hero_skin.png. Sprites are built by
+// looking those coordinates up, so recolouring the skin recolours every frame of every animation. Rebuild everything with tools/make_hero_sheet.py.
+const HC = { w: 32, h: 58, frames: 9, ax: 16, ay: 53 };
+const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };   // rows: 0 down, 1 down-left, 2 left, 3 up-left, 4 up, 5 up-right, 6 right, 7 down-right
+const faceOf = (dx, dy) => Math.round(((Math.atan2(dy, dx) * 180 / Math.PI - 90 + 360) % 360) / 45) % 8;
+const faceIdx = e => (e.face != null && e.faceDir === e.dir) ? e.face : (FACE_OF_DIR[e.dir] || 0);
+const HERO = { base: null, data: null, uv: null, uvW: 0, roles: {}, tint: {}, cache: {}, skins: {} };
 const heroLum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
 function heroInit() {
   const k = mk(64, 64); k.g.drawImage(ASSET.img.hero_skin, 0, 0); HERO.base = k.g.getImageData(0, 0, 64, 64).data;
-  const u = mk(160, 192); u.g.drawImage(ASSET.img.hero_uv, 0, 0); HERO.uv = u.g.getImageData(0, 0, 160, 192).data;
+  const im = ASSET.img.hero_uv, u = mk(im.width, im.height); u.g.drawImage(im, 0, 0); HERO.uv = u.g.getImageData(0, 0, im.width, im.height).data; HERO.uvW = im.width;
   HERO.roles = ASSET.heroRoles || {}; HERO.tint = S.look = cleanLook(S.look); heroApply();   // the player's look lives in the save (S.look)
 }
 const heroPix = (role, k) => { const q = HERO.roles[role][k]; return (q[1] * 64 + q[0]) * 4; };
-function heroRoleColor(role) { // the role's middle-brightness colour in the original skin (what the colour picker starts at)
-  const l = HERO.roles[role] || []; if (!l.length) return [128, 128, 128];
-  const cs = l.map((q, k) => { const i = heroPix(role, k); return [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; }).sort((a, b) => heroLum(a) - heroLum(b)); return cs[Math.floor(cs.length / 2)];
+function heroRoleColor(role) { // the role's main colour in the original skin (its first entry): what the colour picker starts at
+  const l = HERO.roles[role] || []; if (!l.length) return [128, 128, 128]; const i = heroPix(role, 0); return [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]];
 }
-function heroBuild(tint) { // a skin = the original skin with the chosen colour per role; each pixel keeps its brightness relation to the role's middle shade
+function heroBuild(tint) { // a skin = the original skin with the chosen colour per role; each shade keeps its brightness relation to the role's main colour
   const d = new Uint8ClampedArray(HERO.base);
   for (const role in tint) {
     const l = HERO.roles[role], hex = tint[role]; if (!l || !hex) continue;
@@ -43,20 +46,21 @@ function heroBuild(tint) { // a skin = the original skin with the chosen colour 
   return d;
 }
 function heroApply() { HERO.data = heroBuild(HERO.tint); HERO.cache = {}; saveState(); }   // the local player's skin
-function heroSprite(dir, frame, tint) { // frame 0 = idle, 1..4 = walk cycle. `tint` is another player's look (their skins are cached by look)
+function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-8 = walk cycle. `tint` is another character's look (their skins are cached by look)
+  if (typeof face === 'string') face = FACE_OF_DIR[face] || 0;
   let data = HERO.data, cache = HERO.cache;
   if (tint) {
     const key = JSON.stringify(tint); let sk = HERO.skins[key];
     if (!sk) { if (Object.keys(HERO.skins).length > 48) HERO.skins = {}; sk = HERO.skins[key] = { data: heroBuild(tint), cache: {} }; }
     data = sk.data; cache = sk.cache;
   }
-  const key = dir + frame; if (cache[key]) return cache[key];
-  const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, row = HERO_ROW[dir] || 0;
-  for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) {
-    const i = ((row * 48 + y) * 160 + frame * 32 + x) * 4; if (!HERO.uv[i + 3]) continue;
-    const j = (HERO.uv[i + 1] * 64 + HERO.uv[i]) * 4, k = (y * 32 + x) * 4; o[k] = data[j]; o[k + 1] = data[j + 1]; o[k + 2] = data[j + 2]; o[k + 3] = data[j + 3];
+  const key = face * 16 + frame; if (cache[key]) return cache[key];
+  const c = mk(HC.w, HC.h), id = c.g.createImageData(HC.w, HC.h), o = id.data;
+  for (let y = 0; y < HC.h; y++) for (let x = 0; x < HC.w; x++) {
+    const i = ((face * HC.h + y) * HERO.uvW + frame * HC.w + x) * 4; if (!HERO.uv[i + 3]) continue;
+    const j = (HERO.uv[i + 1] * 64 + HERO.uv[i]) * 4, k = (y * HC.w + x) * 4; o[k] = data[j]; o[k + 1] = data[j + 1]; o[k + 2] = data[j + 2]; o[k + 3] = data[j + 3];
   }
-  c.g.putImageData(id, 0, 0); c.ax = 16; c.ay = 49; return cache[key] = c;
+  c.g.putImageData(id, 0, 0); c.ax = HC.ax; c.ay = HC.ay; return cache[key] = c;
 }
 const LOOK_ROLES = [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']];
 function cleanLook(l) { const o = {}; if (l && typeof l === 'object') for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = l[r].toLowerCase(); return o; }

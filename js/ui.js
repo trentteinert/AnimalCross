@@ -116,16 +116,16 @@ UI.openMe = function (first) {
   const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); UI.me = { dir: 0, first: !!first };
   const picks = LOOK_ROLES.map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || hex(heroRoleColor(r))}"></label>`).join('');
   UI.open('creator', `${head(first ? 'Make it yours' : 'Your look', !first)}${first ? '<p class="note">You are getting the hang of this! Pick a name and some clothes. You can change them later.</p>' : ''}
-  <div class="crtop"><canvas id="meprev" width="96" height="144" data-act="meturn"></canvas>
+  <div class="crtop"><canvas id="meprev" width="96" height="174" data-act="meturn"></canvas>
   <div class="crform"><label>Name<input id="mename" maxlength="14" value="${esc(S.name)}" autocomplete="off" spellcheck="false"></label><div id="meerr" class="err"></div><div class="looks2">${picks}</div></div></div>
   <div class="foot"><button class="btn small" data-act="merand">Randomize</button><button class="btn small" data-act="mereset">Reset clothes</button></div>
   <button class="btn big" data-act="medone">${first ? 'Looks good!' : 'Save'}</button>`);
   document.querySelectorAll('#modal input[data-role]').forEach(inp => inp.addEventListener('input', () => { HERO.tint[inp.dataset.role] = inp.value; heroApply(); }));
-  clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.meDraw, 160); UI.meDraw();
+  clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.meDraw, 100); UI.meDraw();
 };
 UI.meDraw = function () {
   const c = $('#meprev'); if (!c) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
-  const f = Math.floor(Date.now() / 220) % 4 + 1, spr = heroSprite(['d', 'l', 'u', 'r'][UI.me.dir], f); g.drawImage(spr, 0, 0, 96, 144);
+  const f = Math.floor(Date.now() / 100) % 8 + 1, spr = heroSprite([0, 2, 4, 6][UI.me.dir], f); g.drawImage(spr, 0, 0, 96, 174);
 };
 UI.meSync = function () { document.querySelectorAll('#modal input[data-role]').forEach(i => { i.value = HERO.tint[i.dataset.role] || '#' + heroRoleColor(i.dataset.role).map(v => v.toString(16).padStart(2, '0')).join(''); }); UI.meDraw(); };
 UI.meDone = function () {
