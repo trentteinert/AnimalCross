@@ -387,23 +387,9 @@ const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional n
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'me': case 'npc': if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); drawChar(o, cx, cy, now); g.restore(); } else drawChar(o, cx, cy, now); break;
-    case 'tree': case 'bush': {
-      const spr = o.k === 'tree' ? SPR.tree[o.kind][o.fruit ? 0 : 1] : SPR.bush[o.kind][o.berry ? 0 : 1];
-      g.drawImage(shadowSpr(o.k === 'tree' ? 28 : 18, o.k === 'tree' ? 9 : 5), Math.round(o.x - (o.k === 'tree' ? 14 : 9) - cx), Math.round(o.y - 5 - cy));
-      const sh = o.shake > 0 ? Math.round(Math.sin(now * 45) * Math.min(1.6, o.shake * 3)) : 0, X = Math.round(o.x - spr.ax - cx + sh), Y = Math.round(o.y - spr.ay - cy);
-      if (o.k === 'tree' && sh === 0) drawSway(spr, X, Y, now, 1, Math.round(spr.height * 0.58)); else g.drawImage(spr, X, Y); break;
-    }
-    case 'fountain': {
-      const spr = o.spr; g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
-      g.fillStyle = 'rgba(190,235,250,0.9)'; for (let i = 0; i < 10; i++) { const ph = (now * 1.1 + i / 10) % 1, a = i * 0.628; g.fillRect(Math.round(o.x + Math.cos(a) * ph * 9 - cx), Math.round(o.y - 38 - Math.sin(ph * Math.PI) * 7 + ph * ph * 10 - cy), 1, 1); }
-      break;
-    }
-    case 'campfire': g.drawImage(shadowSpr(26, 8), Math.round(o.x - 13 - cx), Math.round(o.y - 5 - cy)); drawCampfire(o, cx, cy, now); break;
     default: {
       const spr = o.spr; if (!spr) return;
-      if (o.k === 'deco' || o.k === 'rock') g.drawImage(shadowSpr(o.k === 'rock' ? 16 : 26, o.k === 'rock' ? 5 : 8), Math.round(o.x - (o.k === 'rock' ? 8 : 13) - cx), Math.round(o.y - 4 - cy));
-      if (o.k === 'deco') drawSway(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), now, 1, Math.round(spr.height * (SPR.deco.indexOf(spr) >= 4 ? 0.7 : 0.58)));
-      else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
+      g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
     }
   }
 }
@@ -419,7 +405,7 @@ function render(now) {
   // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
   g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
-  if (fxOn()) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
+  if (fxOn()) fxWater(cx, cy, now);
   for (const r of W.sites) { // dig sites above your level are dimmed
     if (S.lv >= SITES[r.zone].lv || r.x1 < cx || r.x0 > cx + VW || r.y1 < cy || r.y0 > cy + VH) continue;
     g.fillStyle = 'rgba(30,14,14,0.42)'; for (const j of r.tiles) { const tx = j % MW, ty = (j / MW) | 0; g.fillRect(tx * TS - cx, ty * TS - cy, TS, TS); }
@@ -443,7 +429,7 @@ function render(now) {
   if (rain) { g.fillStyle = 'rgb(196,206,222)'; g.fillRect(-2, -2, VW + 4, VH + 4); }
   g.globalCompositeOperation = 'source-over';
   const fdt = Math.min(0.1, now - (FX.t || now)); FX.t = now;
-  if (fxOn() && !cave) { fxClouds(cx, cy, now, clamp(((tc[0] + tc[1] + tc[2]) / 3 - 110) / 140, 0, 1) * (rain ? 0.4 : 1)); fxLeaves(fdt, cx, cy, now); }
+  if (fxOn() && !cave) { fxClouds(cx, cy, now, clamp(((tc[0] + tc[1] + tc[2]) / 3 - 110) / 140, 0, 1) * (rain ? 0.4 : 1)); }
   const dark = clamp((255 - (tc[0] + tc[1] + tc[2]) / 3) / 100, 0, 1) + (rain ? 0.15 : 0);
   if (dark > 0.15) {
     g.globalCompositeOperation = 'lighter';
@@ -528,7 +514,7 @@ function boot() {
   loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) { buildPropSprites(); heroInit(); } buildClouds(); if (!EDIT) UI.init();
+  buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); if (!EDIT) UI.init();
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }

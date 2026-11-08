@@ -38,100 +38,6 @@ function shadowSpr(w, h) {
   const c = mk(w, h); EL(c, (w - 1) / 2, (h - 1) / 2, w / 2, h / 2, 'rgba(20,24,34,0.30)'); return shadowCache[k] = c;
 }
 
-// ---- trees, bushes and props ---------------------------------------------
-const CANOPY = { orange: ['#e07a2f', '#f4a94a', '#a8501f'], red: ['#c9442f', '#e8704f', '#8a2a22'], yellow: ['#e6b830', '#f6dc6a', '#a8801f'], green: ['#5f9a3a', '#8fc25a', '#3a6a2a'], dgreen: ['#4f8a38', '#78b04c', '#2f5a28'] };
-function makeTree(pal, fruitCol, seed, withFruit) {
-  const c = mk(46, 54), r = rng(seed);
-  RC(c, 20, 34, 6, 18, '#6b4423'); RC(c, 20, 34, 2, 18, '#85582f'); RC(c, 24, 34, 2, 18, '#523318'); RC(c, 18, 50, 10, 2, '#6b4423');
-  const blobs = [[23, 19, 13], [12, 25, 9], [34, 25, 9], [23, 9, 8], [16, 13, 8], [30, 13, 8]];
-  blobs.forEach(b => DC(c, b[0], b[1], b[2], pal[2]));
-  blobs.forEach(b => DC(c, b[0] - 1, b[1] - 2, b[2] - 2, pal[0]));
-  blobs.slice(0, 1).concat(blobs.slice(3)).forEach(b => DC(c, b[0] - 3, b[1] - 4, Math.max(3, b[2] - 6), pal[1]));
-  const inside = (x, y) => blobs.some(b => (x - b[0]) ** 2 + (y - b[1]) ** 2 <= b[2] * b[2] - 4);
-  for (let i = 0; i < 90; i++) { const x = 2 + Math.floor(r() * 42), y = 2 + Math.floor(r() * 36); if (inside(x, y)) PX(c, x, y, r() < 0.5 ? pal[1] : pal[2]); }
-  if (withFruit && fruitCol) {
-    [[14, 24], [26, 29], [34, 21], [20, 14], [29, 12], [9, 29], [36, 29], [23, 22]].forEach(p => { RC(c, p[0], p[1], 3, 3, fruitCol); PX(c, p[0], p[1], shade(fruitCol, 60)); });
-  }
-  return anchor(OL(c), 24, 53);
-}
-function makePine() {
-  const c = mk(30, 56);
-  RC(c, 13, 48, 4, 7, '#5a3a1f');
-  for (let t = 0; t < 4; t++) {
-    const top = 2 + t * 11;
-    for (let rw = 0; rw < 15; rw++) {
-      const hw = 2 + Math.floor(rw * 0.85) + t; const y = top + rw;
-      RC(c, 15 - hw, y, hw * 2, 1, rw < 5 ? '#3f7a45' : rw < 10 ? '#2f6338' : '#244f2e');
-      PX(c, 15 - hw, y, '#4f8f52');
-    }
-  }
-  return anchor(OL(c), 15, 55);
-}
-function makeBush(berryCol, withBerries) {
-  const c = mk(22, 16);
-  [[7, 10, 5], [14, 10, 5], [11, 7, 5]].forEach(b => DC(c, b[0], b[1], b[2], '#3a6a2a'));
-  [[7, 9, 5], [14, 9, 5], [11, 6, 5]].forEach(b => DC(c, b[0] - 1, b[1] - 1, b[2] - 2, '#5f9a3a'));
-  DC(c, 9, 5, 2, '#8fc25a');
-  if (withBerries) [[5, 9], [10, 11], [14, 8], [9, 6], [16, 11], [12, 4]].forEach(p => { RC(c, p[0], p[1], 2, 2, berryCol); PX(c, p[0], p[1], shade(berryCol, 70)); });
-  return anchor(OL(c), 11, 15);
-}
-function makeLamp() {
-  const c = mk(10, 30);
-  RC(c, 4, 10, 2, 18, '#2f3a4d'); RC(c, 2, 26, 6, 2, '#2f3a4d'); RC(c, 1, 2, 8, 2, '#2f3a4d'); RC(c, 3, 0, 4, 2, '#2f3a4d');
-  RC(c, 2, 4, 6, 7, '#ffe9a8'); RC(c, 2, 4, 1, 7, '#2f3a4d'); RC(c, 7, 4, 1, 7, '#2f3a4d'); RC(c, 3, 5, 2, 3, '#fff6d6'); RC(c, 2, 11, 6, 1, '#2f3a4d');
-  return anchor(OL(c), 5, 28);
-}
-function makeBench() {
-  const c = mk(26, 14);
-  RC(c, 1, 1, 24, 3, '#8a5a30'); RC(c, 1, 1, 24, 1, '#a8733f'); RC(c, 1, 5, 24, 4, '#a0693a'); RC(c, 1, 5, 24, 1, '#c28a52'); RC(c, 3, 9, 2, 4, '#5a3a1f'); RC(c, 21, 9, 2, 4, '#5a3a1f');
-  return anchor(OL(c), 13, 13);
-}
-function makeFountain() {
-  const c = mk(64, 54);
-  EL(c, 32, 42, 28, 10, '#b8a678'); EL(c, 32, 40, 28, 10, '#e0d3a8'); EL(c, 32, 40, 23, 7, '#c9b88a'); EL(c, 32, 39, 21, 6, '#5aa8c8'); EL(c, 28, 38, 9, 2, '#86c8e0');
-  RC(c, 29, 20, 6, 18, '#d8cba0'); RC(c, 29, 20, 2, 18, '#efe4bd'); RC(c, 33, 20, 2, 18, '#b8a678');
-  EL(c, 32, 22, 12, 4, '#e0d3a8'); EL(c, 32, 21, 9, 3, '#7ac4de');
-  RC(c, 30, 12, 4, 8, '#d8cba0'); DC(c, 32, 11, 3, '#f0e0c0'); PX(c, 31, 10, '#fff8e0');
-  return anchor(OL(c), 32, 50);
-}
-function makeRock() {
-  const c = mk(18, 12); EL(c, 9, 7, 8, 5, '#6c7380'); EL(c, 8, 5, 6, 3, '#8a919c'); EL(c, 6, 4, 2, 1, '#a8aeb8'); return anchor(OL(c), 9, 11);
-}
-function makeFlower(col) { const c = mk(7, 8); PX(c, 3, 5, '#5f9a3a'); RC(c, 3, 5, 1, 3, '#4f8a38'); PX(c, 2, 4, '#5f9a3a'); RC(c, 2, 2, 3, 3, col); PX(c, 3, 3, '#fff2a8'); PX(c, 3, 1, col); PX(c, 1, 3, col); PX(c, 5, 3, col); return c; }
-// ---- atmosphere props ------------------------------------------------------
-function makeCampfire() {
-  const c = mk(22, 14);
-  [[3, 7], [6, 10], [11, 11], [16, 10], [19, 7], [16, 4], [6, 4]].forEach(p => { DC(c, p[0], p[1], 2, '#7c8290'); PX(c, p[0] - 1, p[1] - 1, '#a8afbb'); });
-  EL(c, 11, 8, 6, 3, '#3a2f2a'); LN(c, 5, 10, 17, 5, '#6b4423'); LN(c, 5, 9, 17, 4, '#8a5a30'); LN(c, 5, 5, 17, 10, '#5a3a1f'); LN(c, 5, 4, 17, 9, '#7a4e2a');
-  return anchor(OL(c), 12, 13);
-}
-function makeTent(main, accent) {
-  const c = mk(42, 32);
-  EL(c, 21, 28, 19, 4, 'rgba(0,0,0,0.0)');
-  for (let r = 0; r < 24; r++) { const hw = 2 + Math.round(r * 0.82); RC(c, 21 - hw, 4 + r, hw * 2, 1, r % 6 < 1 ? accent : main); }
-  for (let r = 0; r < 24; r++) { const hw = 2 + Math.round(r * 0.82); PX(c, 21 - hw, 4 + r, accent); PX(c, 21 + hw - 1, 4 + r, accent); }
-  for (let r = 8; r < 24; r++) { const hw = Math.round((r - 6) * 0.38); RC(c, 21 - hw, 4 + r, hw * 2, 1, '#2f2a38'); }
-  RC(c, 20, 0, 2, 5, '#6b4423'); RC(c, 22, 1, 5, 3, '#e8483a');
-  RC(c, 3, 28, 36, 1, accent);
-  return anchor(OL(c), 21, 29);
-}
-function makeLogSeat() {
-  const c = mk(30, 12);
-  RC(c, 3, 3, 24, 6, '#8a5a30'); RC(c, 3, 3, 24, 2, '#a8743a'); RC(c, 3, 8, 24, 1, '#5a3a1f');
-  EL(c, 4, 6, 3, 3, '#c9a068'); EL(c, 4, 6, 1.5, 1.5, '#a8743a'); EL(c, 26, 6, 3, 3, '#c9a068'); EL(c, 26, 6, 1.5, 1.5, '#a8743a');
-  return anchor(OL(c), 15, 10);
-}
-function makeCrate() { const c = mk(16, 16); RC(c, 1, 2, 14, 13, '#a8743a'); RC(c, 1, 2, 14, 2, '#c9965a'); RC(c, 1, 2, 2, 13, '#7a5028'); RC(c, 13, 2, 2, 13, '#7a5028'); RC(c, 1, 12, 14, 3, '#7a5028'); LN(c, 3, 4, 12, 12, '#8a5a30'); LN(c, 12, 4, 3, 12, '#8a5a30'); return anchor(OL(c), 8, 15); }
-function makeBarrel() { const c = mk(14, 18); EL(c, 7, 9, 6, 8, '#8a5a30'); RC(c, 2, 4, 10, 1, '#4a3020'); RC(c, 1, 13, 12, 1, '#4a3020'); RC(c, 3, 2, 3, 14, '#a8743a'); EL(c, 7, 3, 5, 2, '#c9965a'); EL(c, 7, 3, 3, 1, '#7a5028'); return anchor(OL(c), 7, 17); }
-function makeSignpost() { const c = mk(16, 24); RC(c, 7, 6, 2, 17, '#6b4423'); RC(c, 1, 3, 12, 6, '#c9a068'); RC(c, 1, 3, 12, 1, '#e0bd88'); PX(c, 13, 5, '#c9a068'); PX(c, 14, 6, '#c9a068'); RC(c, 3, 5, 6, 1, '#6b4423'); RC(c, 3, 7, 4, 1, '#6b4423'); RC(c, 3, 11, 10, 4, '#b08a54'); RC(c, 4, 12, 6, 1, '#6b4423'); return anchor(OL(c), 8, 23); }
-function makeFence() { const c = mk(50, 16); RC(c, 0, 5, 50, 2, '#a8743a'); RC(c, 0, 10, 50, 2, '#a8743a'); RC(c, 0, 5, 50, 1, '#c9965a'); RC(c, 0, 10, 50, 1, '#c9965a'); [2, 16, 30, 44].forEach(x => { RC(c, x, 2, 4, 13, '#8a5a30'); RC(c, x, 2, 4, 2, '#c9965a'); }); return anchor(OL(c), 25, 15); }
-function makeLily(k) {
-  const c = mk(10, 7), r = [3, 4, 3][k];
-  EL(c, 5, 3.5, r + 1, r - 0.4, '#4e9a52'); EL(c, 5, 3, r, r - 1, '#6cbc6a'); PX(c, 5 + r, 3, '#3f7f9a'); PX(c, 5 + r, 4, '#3f7f9a'); PX(c, 4, 2, '#8ad88a');
-  if (k === 1) { PX(c, 4, 3, '#f5a0c0'); PX(c, 5, 3, '#fff0f4'); PX(c, 5, 2, '#f5a0c0'); PX(c, 6, 3, '#f5a0c0'); }
-  return anchor(c, 5, 3);
-}
-
 // ---- characters -----------------------------------------------------------
 // ---- icons ----------------------------------------------------------------
 const iconCache = {};
@@ -230,9 +136,6 @@ function makePortal(kind) {
   for (let i = 0; i < 5; i++) { RC(c, 12 + i * 5, 36, 4, 2, '#8a919c'); } PX(c, 8, 20, '#5f9a3a'); PX(c, 40, 22, '#5f9a3a'); PX(c, 9, 19, '#5f9a3a'); RC(c, 6, 28, 6, 3, '#4f8a38'); RC(c, 36, 26, 7, 3, '#4f8a38');
   return anchor(OL(c), 24, 38);
 }
-function makeCrystal(a, b) { const c = mk(18, 24); [[8, 22, 3, 18, a], [4, 22, 2, 11, b], [13, 22, 2, 13, b]].forEach(s => { for (let y = 0; y < s[3]; y++) { const w = Math.max(1, Math.round(s[2] * (1 - Math.abs(y - s[3] * 0.62) / (s[3] * 0.62 + 1) * 0.9))); RC(c, s[0] - w, s[1] - y, w * 2, 1, y % 5 < 2 ? shade(s[4], 40) : s[4]); } }); EL(c, 9, 22, 6, 1.5, '#3a3548'); PX(c, 7, 8, '#ffffff'); PX(c, 7, 9, '#ffffff'); return anchor(OL(c), 9, 22); }
-function makeMushroom(col) { const c = mk(16, 14); [[4, 11, 3], [9, 9, 4], [13, 11, 2]].forEach(m => { RC(c, m[0] - 1, m[1], 2, 3, '#e8e0d0'); EL(c, m[0], m[1], m[2] + 1, m[2] - 1, col); PX(c, m[0] - 1, m[1] - 1, shade(col, 70)); PX(c, m[0] + 1, m[1], shade(col, 70)); }); return anchor(OL(c), 8, 13); }
-function makeStalagmite() { const c = mk(16, 24); for (let y = 0; y < 22; y++) { const w = 1 + Math.round(y * 0.33); RC(c, 8 - w, 22 - y > 0 ? y + 1 : 0, w * 2, 1, y < 8 ? '#8a8fa0' : '#6a6f80'); } RC(c, 7, 4, 1, 14, '#a8aebb'); EL(c, 8, 22, 7, 2, '#4a4e5c'); return anchor(OL(c), 8, 22); }
 const shopIconCache = {};
 function shopIcon(kind, col) {
   const key = kind + (col || ''); if (shopIconCache[key]) return shopIconCache[key]; col = col || '#c8d0d8';
@@ -265,21 +168,6 @@ function shopIcon(kind, col) {
 const shopIconURL = (k, col) => dataURL(shopIcon(k, col), 's' + k + (col || ''));
 
 // ---- build ---------------------------------------------------------------
-function buildSprites() {
-  SPR.tree = {
-    apple: [makeTree(CANOPY.green, '#d8402f', 11, true), makeTree(CANOPY.green, null, 11, false)],
-    orange: [makeTree(CANOPY.dgreen, '#f08a2a', 22, true), makeTree(CANOPY.dgreen, null, 22, false)],
-    pear: [makeTree(CANOPY.yellow, '#b8c84a', 33, true), makeTree(CANOPY.yellow, null, 33, false)],
-    plum: [makeTree(CANOPY.red, '#7a3f8a', 44, true), makeTree(CANOPY.red, null, 44, false)]
-  };
-  SPR.deco = [makeTree(CANOPY.orange, null, 5, false), makeTree(CANOPY.red, null, 6, false), makeTree(CANOPY.yellow, null, 7, false), makeTree(CANOPY.green, null, 8, false), makePine(), makePine()];
-  const bc = { blueberry: '#4a5fc0', raspberry: '#d8305f', blackberry: '#3a2a4a', elderberry: '#5a3a7a' };
-  SPR.bush = {}; for (const k in bc) SPR.bush[k] = [makeBush(bc[k], true), makeBush(bc[k], false)];
-  SPR.lamp = makeLamp(); SPR.bench = makeBench(); SPR.fountain = makeFountain(); SPR.rock = makeRock();
-  SPR.flower = ['#f06a8a', '#f5e9cf', '#f2b84b', '#a98af0', '#ff9a5a'].map(makeFlower);
- 
-  SPR.portalCave = makePortal('cave'); SPR.portalExit = makePortal('exit'); SPR.crystalB = makeCrystal('#5fa8ff', '#a8d4ff'); SPR.crystalP = makeCrystal('#b070f0', '#d8b0ff'); SPR.mushroom = makeMushroom('#5fd8d0'); SPR.mushroomP = makeMushroom('#e86fa8'); SPR.stalagmite = makeStalagmite();
-  SPR.tackle = makeTackleShop();
-  SPR.campfire = makeCampfire(); SPR.tentRed = makeTent('#d8604a', '#f5e9cf'); SPR.tentGreen = makeTent('#5f9a5a', '#e8d8a0'); SPR.logseat = makeLogSeat(); SPR.crate = makeCrate();
-  SPR.barrel = makeBarrel(); SPR.signpost = makeSignpost(); SPR.fence = makeFence(); SPR.lily = [makeLily(0), makeLily(1), makeLily(2)];
+function buildSprites() { // the nature and decoration sprites were removed (being remade); only the dealer shop and the portals are still drawn here
+  SPR.portalCave = makePortal('cave'); SPR.portalExit = makePortal('exit'); SPR.tackle = makeTackleShop();
 }

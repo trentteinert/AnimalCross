@@ -8,32 +8,21 @@ const ED = {
 };
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#7b9b45', '#b88652', '#c9b790', '#54a0b8'];
-const DECO_NAMES = ['Orange tree', 'Red tree', 'Yellow tree', 'Green tree', 'Pine', 'Pine (b)'];
 const PAL = [
-  { k: 'tree', kind: 'apple', n: 'Apple tree (fruit)' }, { k: 'tree', kind: 'orange', n: 'Orange tree (fruit)' }, { k: 'tree', kind: 'pear', n: 'Pear tree (fruit)' }, { k: 'tree', kind: 'plum', n: 'Plum tree (fruit)' },
-  { k: 'bush', kind: 'blueberry', n: 'Blueberry bush' }, { k: 'bush', kind: 'raspberry', n: 'Raspberry bush' }, { k: 'bush', kind: 'blackberry', n: 'Blackberry bush' }, { k: 'bush', kind: 'elderberry', n: 'Elderberry bush' },
-  { k: 'deco', v: 0, n: 'Orange tree' }, { k: 'deco', v: 1, n: 'Red tree' }, { k: 'deco', v: 2, n: 'Yellow tree' }, { k: 'deco', v: 3, n: 'Green tree' }, { k: 'deco', v: 4, n: 'Pine' },
-  { k: 'rock', n: 'Rock' }, { k: 'lamp', n: 'Lamp post' }, { k: 'bench', n: 'Bench' }, { k: 'fountain', n: 'Fountain' },
-  { k: 'patch', n: 'Flower patch' },
   { k: 'tackle', n: 'Antiquities dealer' },
-  { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }, { k: 'crystal', kind: 'blue', n: 'Crystal (blue)' }, { k: 'crystal', kind: 'purple', n: 'Crystal (purple)' },
-  { k: 'mushroom', kind: 'cyan', n: 'Glow mushrooms' }, { k: 'mushroom', kind: 'pink', n: 'Glow mushrooms (pink)' }, { k: 'stalagmite', n: 'Stalagmite' },
-  { k: 'campfire', n: 'Campfire (lights up at night)' }, { k: 'tent', kind: 'red', n: 'Tent (red)' }, { k: 'tent', kind: 'green', n: 'Tent (green)' }, { k: 'logseat', n: 'Log seat' },
-  { k: 'crate', n: 'Crate' }, { k: 'barrel', n: 'Barrel' }, { k: 'signpost', n: 'Signpost' }, { k: 'fence', n: 'Fence' }
+  { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }
+  // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
-const LABELS = { tree: 'Fruit tree (scenery)', bush: 'Berry bush (scenery)', deco: 'Decorative tree', rock: 'Rock', lamp: 'Lamp post', bench: 'Bench', fountain: 'Fountain', patch: 'Flower patch', tackle: 'Antiquities dealer', portal: 'Portal', crystal: 'Crystal', mushroom: 'Glow mushrooms', stalagmite: 'Stalagmite', campfire: 'Campfire', tent: 'Tent', logseat: 'Log seat', crate: 'Crate', barrel: 'Barrel', signpost: 'Signpost', fence: 'Fence' };
+const LABELS = { tackle: 'Antiquities dealer', portal: 'Portal' };
 
 function entrySpr(e) {
   switch (e.k) {
-    case 'tree': return SPR.tree[e.kind][0]; case 'bush': return SPR.bush[e.kind][0]; case 'deco': return SPR.deco[e.v]; case 'rock': return SPR.rock; case 'lamp': return SPR.lamp;
-    case 'bench': return SPR.bench; case 'fountain': return SPR.fountain; case 'patch': return SPR.flower[0];
     case 'tackle': return SPR.tackle;
-    case 'portal': return e.style === 'exit' ? SPR.portalExit : SPR.portalCave; case 'crystal': return e.kind === 'purple' ? SPR.crystalP : SPR.crystalB; case 'mushroom': return e.kind === 'pink' ? SPR.mushroomP : SPR.mushroom; case 'stalagmite': return SPR.stalagmite;
-    case 'campfire': return SPR.campfire; case 'tent': return e.kind === 'green' ? SPR.tentGreen : SPR.tentRed; case 'logseat': return SPR.logseat; case 'crate': return SPR.crate; case 'barrel': return SPR.barrel; case 'signpost': return SPR.signpost; case 'fence': return SPR.fence;
+    case 'portal': return e.style === 'exit' ? SPR.portalExit : SPR.portalCave;
   }
 }
 function runtimeSpr(o) {
-  if (o.k === 'tree') return SPR.tree[o.kind][0]; if (o.k === 'bush') return SPR.bush[o.kind][0]; return o.spr;
+  return o.spr;
 }
 const anc = s => ({ ax: s.ax != null ? s.ax : s.width / 2, ay: s.ay != null ? s.ay : s.height });
 const iconCache2 = {};
@@ -81,7 +70,7 @@ function undo() { if (!ED.undo.length) return; ED.redo.push(ED.cur); applySnap(E
 function redo() { if (!ED.redo.length) return; ED.undo.push(ED.cur); applySnap(ED.redo.pop()); }
 
 // ---- editing actions ----------------------------------------------------------------------
-const findRuntime = src => W.objs.find(o => o.src === src) || W.patches.find(p => p.src === src) || null;
+const findRuntime = src => W.objs.find(o => o.src === src) || null;
 function rebuildAndSelect(src) { rebuildAll(); computeShore(); ED.sel = src ? findRuntime(src) : null; refreshInspector(); }
 function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
@@ -105,7 +94,6 @@ function placeAt(wx, wy) {
 function hitTest(wx, wy) {
   const objs = W.objs.slice().sort((a, b) => b.y - a.y);
   for (const o of objs) { const s = runtimeSpr(o); if (!s) continue; const x0 = o.x - s.ax, y0 = o.y - s.ay; if (wx >= x0 && wx < x0 + s.width && wy >= y0 && wy < y0 + s.height) return o; }
-  for (const p of W.patches) if (Math.hypot(p.x - wx, p.y - wy) < 22) return p;
   return null;
 }
 function deleteSel() {
@@ -206,8 +194,6 @@ function edChange(e) {
   else if (t.id === 'edTheme') { MAPDATA.theme = t.value; W.theme = t.value; rebuildAll(); commit(); }
   else if (ED.sel && t.id === 'edPTo') { ED.sel.src.to = t.value.trim().toLowerCase(); ED.sel.to = ED.sel.src.to; commit(); }
   else if (ED.sel && (t.id === 'edPSx' || t.id === 'edPSy')) { const k = t.id === 'edPSx' ? 'sx' : 'sy'; ED.sel.src[k] = Math.round(+t.value) || 0; ED.sel[k] = ED.sel.src[k]; commit(); }
-  else if (t.id === 'edKind' && ED.sel) { const s = ED.sel.src; s.kind = t.value; rebuildAndSelect(s); commit(); }
-  else if (t.id === 'edVar' && ED.sel) { const s = ED.sel.src; s.v = +t.value; rebuildAndSelect(s); commit(); }
   else if (t.id === 'edFile' && t.files[0]) {
     const r = new FileReader(); r.onload = () => { try { const m = JSON.parse(r.result); if (!validMap(m)) throw 0; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Imported the map.'); } catch (_) { msg('That file is not a valid map.'); } t.value = ''; }; r.readAsText(t.files[0]);
   }
@@ -237,7 +223,7 @@ function edLoop(ts) {
 function edUpdate(dt) {
   const k = ED.keys, sp = 460 / ED.zoom * dt;
   if (k.KeyA || k.ArrowLeft) ED.cam.x -= sp; if (k.KeyD || k.ArrowRight) ED.cam.x += sp; if (k.KeyW || k.ArrowUp) ED.cam.y -= sp; if (k.KeyS || k.ArrowDown) ED.cam.y += sp;
-  if (ED.dirty) { buildDist(); W.terrain = renderTerrain(); paintFlowers(W.terrain); ED.dirty = false; }
+  if (ED.dirty) { buildDist(); W.terrain = renderTerrain(); ED.dirty = false; }
   ED.cam.x = clamp(ED.cam.x, -200 / ED.zoom, PW - innerWidth / ED.zoom + 60 / ED.zoom); ED.cam.y = clamp(ED.cam.y, -80 / ED.zoom, PH - innerHeight / ED.zoom + 80 / ED.zoom);
   $('#inp').style.cursor = ED.pan ? 'grabbing' : ED.keys.Space ? 'grab' : ED.tool === 'paint' ? 'crosshair' : ED.tool === 'place' ? 'copy' : ED.tool === 'select' ? 'default' : 'crosshair';
 }
@@ -246,7 +232,7 @@ function edRender(now) {
   Z = ED.zoom; VW = innerWidth / Z; VH = innerHeight / Z; g.setTransform(DPR * Z, 0, 0, DPR * Z, 0, 0); g.imageSmoothingEnabled = false;
   const cx = Math.round(ED.cam.x), cy = Math.round(ED.cam.y);
   g.fillStyle = '#121a27'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy);
-  if (fxOn()) { fxWater(cx, cy, now); fxLilies(cx, cy, now); }
+  if (fxOn()) fxWater(cx, cy, now);
   const L = W.objs.filter(o => o.x > cx - 80 && o.x < cx + VW + 80 && o.y > cy - 10 && o.y < cy + VH + 100).sort((a, b) => a.y - b.y);
   for (const o of L) drawEnt(o, cx, cy, now);
   if (ED.grid) {
@@ -255,7 +241,6 @@ function edRender(now) {
     for (let y = Math.max(0, Math.floor(cy / TS)) * TS; y <= Math.min(PH, cy + VH); y += TS) g.fillRect(Math.max(0, -cx), y - cy, Math.min(PW - cx, VW), lw);
   }
   outline(-cx, -cy, PW, PH, 'rgba(242,184,75,0.6)');
-  for (const p of W.patches) { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(p.x + Math.cos(a) * 24 - cx), Math.round(p.y + Math.sin(a) * 19 - cy), 1, 1); } g.fillRect(Math.round(p.x - cx) - 1, Math.round(p.y - cy) - 1, 3, 3); }
   { const sx = Math.round(W.spawn.x - cx), sy = Math.round(W.spawn.y - cy); g.fillStyle = 'rgba(20,24,34,0.4)'; g.fillRect(sx - 5, sy - 1, 10, 2); g.fillStyle = '#f5e9cf'; g.fillRect(sx, sy - 16, 1, 16); g.fillStyle = '#e8483a'; g.fillRect(sx + 1, sy - 16, 8, 5); g.fillStyle = '#fff'; g.fillRect(sx + 1, sy - 16, 8, 1); }
   if (ED.sel) {
     const s = ED.sel; if (s.fl) { g.fillStyle = '#f2b84b'; for (let i = 0; i < 32; i++) { const a = i * 0.196; g.fillRect(Math.round(s.x + Math.cos(a) * 26 - cx), Math.round(s.y + Math.sin(a) * 21 - cy), 2, 2); } }
@@ -320,13 +305,7 @@ function refreshInspector(quick) {
   if (!s) { el.innerHTML = '<p class="mut">Nothing selected. Use Select / move and click an object.</p>'; return; }
   if (quick) { const c = $('#edCoords'); if (c) c.textContent = 'x ' + s.x + '  y ' + s.y; return; }
   const src = s.src, k = src.k; let extra = '';
-  if (k === 'crystal') extra = `<label>Colour<select id="edKind">${['blue', 'purple'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-  if (k === 'mushroom') extra = `<label>Colour<select id="edKind">${['cyan', 'pink'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   if (k === 'portal') extra = `<label>Goes to area<input id="edPTo" type="text" value="${esc2(src.to || '')}"></label><div class="ednums"><label>Lands at x<input id="edPSx" type="number" value="${src.sx || 0}"></label><label>Lands at y<input id="edPSy" type="number" value="${src.sy || 0}"></label></div><p class="mut">Where the player appears in that area, in pixels. Open that area in the editor and read the pixel position from the status bar.</p>`;
-  if (k === 'tent') extra = `<label>Colour<select id="edKind">${['red', 'green'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-  if (k === 'tree') extra = `<label>Fruit<select id="edKind">${['apple', 'orange', 'pear', 'plum'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-  if (k === 'bush') extra = `<label>Berries<select id="edKind">${['blueberry', 'raspberry', 'blackberry', 'elderberry'].map(v => `<option ${src.kind === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-  if (k === 'deco') extra = `<label>Style<select id="edVar">${DECO_NAMES.map((n, i) => `<option value="${i}" ${(src.v | 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label>`;
   if (k === 'patch') extra = '<p class="mut">Flowers are scattered on grass inside this circle.</p>';
   el.innerHTML = `<b>${LABELS[k] || k}</b><div id="edCoords" class="mut">x ${s.x}  y ${s.y}</div>${extra}<button data-ed="del" class="danger">Delete</button>`;
 }

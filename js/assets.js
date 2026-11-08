@@ -5,16 +5,11 @@
 const ASSET = { img: {}, props: null, ok: false };
 
 function loadAssets(cb) {
-  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', props: 'assets/props/props.png' };
-  let left = Object.keys(list).length + 2; const failed = [];
+  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png' };
+  let left = Object.keys(list).length + 1; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
   fetch('assets/chars/hero_roles.json').then(r => r.json()).then(j => { ASSET.heroRoles = j; done(); }).catch(() => { ASSET.heroRoles = {}; done(); });
-  fetch('assets/props/props.json').then(r => r.json()).then(j => { ASSET.props = j; done(); }).catch(() => { failed.push('props.json'); done(); });
-}
-function prop(name, anchorMid) {
-  const r = ASSET.props[name], c = mk(r.w, r.h); c.g.drawImage(ASSET.img.props, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
-  c.ax = Math.round(r.w / 2); c.ay = anchorMid ? Math.round(r.h / 2) : r.h; return c;
 }
 function recolorCanvas(c, fn) {
   const id = c.g.getImageData(0, 0, c.width, c.height), d = id.data;
@@ -67,26 +62,3 @@ const LOOK_ROLES = [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shir
 function cleanLook(l) { const o = {}; if (l && typeof l === 'object') for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = l[r].toLowerCase(); return o; }
 const SHIRTS = ['#7a9a4a', '#c9503f', '#3f6fb0', '#e0b43a', '#8a5aa8', '#e8e0d0', '#2f8a7a', '#d9738a'], JEANS = ['#4f6f9a', '#34455f', '#6b5a4a', '#3a3a44', '#7a8a6a'], BOOTS = ['#a8641e', '#4a3326', '#2a2a30', '#7a2f2a'];
 function randLook() { return { hair: pick(HAIRC), eyes: pick(['#4a3326', '#2f5a8a', '#3a7a4a', '#2a2a30']), skin: pick(SKIN), shirt: pick(SHIRTS), jeans: pick(JEANS), boots: pick(BOOTS) }; }   // wandering diggers get a random outfit
-
-// ---- props from the new tileset ---------------------------------------------------------------------
-function buildPropSprites() {
-  const P = n => prop(n), tint = (c, fn) => { const t = mk(c.width, c.height); t.g.drawImage(c, 0, 0); t.ax = c.ax; t.ay = c.ay; return recolorCanvas(t, fn); };
-  const green = tint(P('tree_red'), (r, g, b) => (g < 0.45 * r && r > 120) ? [g + 14, r * 0.88, b * 0.9] : [r, g, b]);
-  const withFruit = (base, col, seed) => {
-    const c = mk(base.width, base.height); c.g.drawImage(base, 0, 0); c.ax = base.ax; c.ay = base.ay; const rr = rng(seed), d = base.g.getImageData(0, 0, base.width, base.height).data;
-    for (let n = 0, t = 0; n < 9 && t < 300; t++) { const x = 3 + Math.floor(rr() * (base.width - 7)), y = 3 + Math.floor(rr() * base.height * 0.5); if (d[(y * base.width + x) * 4 + 3] && d[((y + 1) * base.width + x + 1) * 4 + 3]) { RC(c, x, y, 2, 2, col); PX(c, x, y, shade(col, 70)); n++; } }
-    return c;
-  };
-  SPR.tree = {
-    apple: [withFruit(green, '#e8402f', 11), green], orange: [withFruit(green, '#f59a2a', 22), green],
-    pear: [withFruit(P('tree_yellow'), '#8ad060', 33), P('tree_yellow')], plum: [withFruit(P('tree_red'), '#8a4fb0', 44), P('tree_red')]
-  };
-  SPR.deco = [P('tree_orange'), P('tree_red'), P('tree_yellow'), green, P('pine_a'), P('pine_b')];
-  const bare = c => tint(c, (r, g, b) => { const l = lumOf(r, g, b) * 255; return [l + (r - l) * 0.3 - 8, l + (g - l) * 0.55, l + (b - l) * 0.3 - 8]; });
-  const bushOf = n => { const f = P(n); return [f, bare(f)]; };
-  SPR.bush = { blueberry: bushOf('bush_lavender'), raspberry: bushOf('bush_red'), blackberry: bushOf('bush_redflower'), elderberry: bushOf('bush_yellow') };
-  SPR.rocks = [P('rock_s'), P('rock_m'), P('rock_l'), P('rock_moss')]; SPR.rock = SPR.rocks[1];
-  SPR.lamp = P('lamp'); SPR.bench = P('bench'); SPR.logseat = P('log');
-  SPR.lily = [prop('lily_1', true), prop('lily_flower', true), prop('lily_2', true)];
-  SPR.flower = ['fl_white', 'fl_white2', 'fl_yellow', 'fl_pink', 'fl_pink2', 'fl_purple', 'fl_blue', 'fl_blue2', 'flower_a', 'flower_b'].map(P);
-}

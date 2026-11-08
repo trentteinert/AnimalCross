@@ -144,15 +144,6 @@ function buildSiteRegions() { // one record per painted dig site (connected tile
 }
 function serializeSite() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += SITE[ty * MW + tx]; rows.push(r); } return rows; }
 function serializeDeck() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += DECK[ty * MW + tx]; rows.push(r); } return rows; }
-function paintFlowers(c) {
-  for (const p of W.patches) {
-    p.fl = []; const r = rng(((p.x * 73856093) ^ (p.y * 19349663)) >>> 0);
-    for (let i = 0; i < 16; i++) {
-      const a = r() * 6.28, rr = 4 + r() * 22, fx = Math.round(p.x + Math.cos(a) * rr), fy = Math.round(p.y + Math.sin(a) * rr * 0.8), f = Math.floor(r() * SPR.flower.length);
-      if (typeAt(fx, fy) !== 3) continue; p.fl.push({ x: fx, y: fy }); const fs = SPR.flower[f]; c.g.drawImage(fs, fx - (fs.ax != null ? fs.ax : 3), fy - (fs.ay != null ? fs.ay : 6) + 2);
-    }
-  }
-}
 
 // ---- placement helpers (used when authoring the default map) ---------------------
 const okGrass = (x, y, rad) => [[0, 0], [rad, 0], [-rad, 0], [0, rad], [0, -rad]].every(o => typeAt(x + o[0], y + o[1]) === 3);
@@ -176,30 +167,12 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { tree: [[-4, -4, 8, 5], 22], bush: [[-6, -4, 12, 4], 16], rock: [[-7, -4, 14, 4]], lamp: [[-2, -3, 4, 3]], bench: [[-12, -6, 24, 6]], stall: [[-22, -9, 44, 9], 18], board: [[-9, -5, 18, 5], 14], fountain: [[-23, -14, 46, 14]], tackle: [[-22, -9, 44, 9], 18], gemshop: [[-22, -9, 44, 9], 18], outfitshop: [[-22, -9, 44, 9], 18], tank: [[-20, -5, 40, 5], 18], leaders: [[-12, -4, 24, 4], 16], portal: [[-20, -6, 40, 6], 22], stalagmite: [[-5, -4, 10, 4]], campfire: [[-6, -4, 12, 4]], tent: [[-16, -5, 32, 5]], logseat: [[-12, -4, 24, 4]], crate: [[-6, -5, 12, 5]], barrel: [[-5, -4, 10, 4]], signpost: [[-3, -3, 6, 3]], fence: [[-25, -3, 50, 3]] };
+const SOLIDS = { tackle: [[-22, -9, 44, 9], 18], portal: [[-20, -6, 40, 6], 22] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
-    case 'tree': if (!SPR.tree[s.kind]) return; o = { k: 'tree', kind: s.kind, fruit: true, shake: 0 }; W.trees.push(o); break;
-    case 'bush': if (!SPR.bush[s.kind]) return; o = { k: 'bush', kind: s.kind, berry: true, shake: 0 }; W.bushes.push(o); break;
-    case 'deco': o = { k: 'deco', spr: SPR.deco[(s.v | 0) % SPR.deco.length] }; break;
-    case 'rock': o = { k: 'rock', spr: SPR.rocks ? SPR.rocks[Math.floor(hash2(s.x, s.y, 5) * SPR.rocks.length)] : SPR.rock }; break;
-    case 'lamp': o = { k: 'lamp', spr: SPR.lamp }; W.lamps.push(o); break;
-    case 'bench': o = { k: 'bench', spr: SPR.bench }; break;
-    case 'fountain': o = { k: 'fountain', spr: SPR.fountain }; break;
     case 'tackle': o = { k: 'tackle', spr: SPR.tackle }; break;
     case 'portal': o = { k: 'portal', to: s.to || 'island', sx: s.sx || 0, sy: s.sy || 0, style: s.style, spr: s.style === 'exit' ? SPR.portalExit : SPR.portalCave }; break;
-    case 'crystal': o = { k: 'crystal', spr: s.kind === 'purple' ? SPR.crystalP : SPR.crystalB }; W.glows.push(o); o.gc = s.kind === 'purple' ? '176,112,240' : '95,168,255'; break;
-    case 'mushroom': o = { k: 'mushroom', spr: s.kind === 'pink' ? SPR.mushroomP : SPR.mushroom }; W.glows.push(o); o.gc = s.kind === 'pink' ? '232,111,168' : '95,216,208'; break;
-    case 'stalagmite': o = { k: 'stalagmite', spr: SPR.stalagmite }; break;
-    case 'campfire': o = { k: 'campfire', spr: SPR.campfire }; W.fires.push(o); break;
-    case 'tent': o = { k: 'tent', spr: s.kind === 'green' ? SPR.tentGreen : SPR.tentRed }; break;
-    case 'logseat': o = { k: 'logseat', spr: SPR.logseat }; break;
-    case 'crate': o = { k: 'crate', spr: SPR.crate }; break;
-    case 'barrel': o = { k: 'barrel', spr: SPR.barrel }; break;
-    case 'signpost': o = { k: 'signpost', spr: SPR.signpost }; break;
-    case 'fence': o = { k: 'fence', spr: SPR.fence }; break;
-    case 'patch': W.patches.push({ x: s.x, y: s.y, fl: [], src: s }); return;
     default: return;
   }
   const sd = SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
@@ -211,7 +184,7 @@ function rebuildObjects() {
   MAPDATA.objects.forEach(instantiate);
 }
 function rebuildAll() {
-  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); paintFlowers(W.terrain); buildLilies(); buildSiteRegions();
+  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); buildSiteRegions();
   let sx = 0, sy = 0, n = 0; for (let i = 0; i < GRID.length; i++) if (GRID[i] === 5) { sx += (i % MW) * TS + 8; sy += ((i / MW) | 0) * TS + 8; n++; }
   W.hub = n ? { x: sx / n, y: sy / n } : { x: W.spawn.x, y: W.spawn.y };
 }
