@@ -73,6 +73,42 @@ for d in range(8):
     ci, fl = WALK_SRC[d]
     for r in range(8): frames[d, r + 1] = flip(walk_cells[ci, r]) if fl else walk_cells[ci, r]
 
+# ---- detail transfer: the walk frames are rougher than the standing poses, so each walk frame's head (hair texture, face, eyes) is replaced by the
+# standing pose's head of the same direction. The head is whatever lies above the first shirt pixel; it is aligned by its top row and its centre.
+SHIRT = {c for c, r in ROLE.items() if r == 'shirt'}
+def hx(px): return '%02x%02x%02x' % tuple(px[:3])
+def head_rows(c):  # (first opaque row, first shirt row)
+    rows = [y for y in range(CH) if c[y, :, 3].any()]; top = rows[0]
+    sh = next(y for y in range(CH) if any(c[y, x, 3] and hx(c[y, x]) in SHIRT for x in range(CW)))
+    return top, sh
+def head_cx(c, top, sh):
+    xs = [x for y in range(top, sh) for x in range(CW) if c[y, x, 3]]; return (min(xs) + max(xs) + 1) / 2
+for d in range(8):
+    src = frames[d, 0]; st, ss = head_rows(src); scx = head_cx(src, st, ss)
+    for f in range(1, 9):
+        c = frames[d, f]; wt, ws = head_rows(c); wcx = head_cx(c, wt, ws); dx = int(round(wcx - scx))
+        c[wt:ws, :, :] = 0                                         # clear the old head (the arms start below the first shirt row)
+        for y in range(st, ss):
+            for x in range(CW):
+                if src[y, x, 3]:
+                    ty, tx = wt + (y - st), x + dx
+                    if 0 <= ty < ws + (ss - st - (ws - wt)) and 0 <= tx < CW and ty < CH: c[ty, tx] = src[y, x]
+        # if the standing head is taller than the room above the shirt the extra rows were written onto the shoulders; that only happens when the heads differ in height by a pixel or two
+
+# the shirt's fabric texture (the light flecks and folds of the standing pose) is overlaid on the main shirt colour of the walk frames, aligned by shirt top and centre
+def shirt_box(c, sh):
+    xs = [x for y in range(sh, min(CH, sh + 14)) for x in range(CW) if c[y, x, 3] and hx(c[y, x]) in SHIRT]; return (min(xs) + max(xs) + 1) / 2
+for d in range(8):
+    src = frames[d, 0]; _, ss = head_rows(src); scx = shirt_box(src, ss)
+    for f in range(1, 9):
+        c = frames[d, f]; _, ws = head_rows(c); dx = int(round(shirt_box(c, ws) - scx))
+        for y in range(14):
+            for x in range(CW):
+                sy, sx = ss + y, x
+                if sy < CH and src[sy, sx, 3] and hx(src[sy, sx]) in ('ddceba', 'e7e5e2'):
+                    ty, tx = ws + y, sx + dx
+                    if ty < CH and 0 <= tx < CW and c[ty, tx, 3] and hx(c[ty, tx]) == 'ebdfcc': c[ty, tx] = src[sy, sx]
+
 # ---- palette entries (role, colour); the shared eye/boot colour becomes two entries
 entries, index = [], {}
 cnt = collections.Counter()
