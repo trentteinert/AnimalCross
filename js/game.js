@@ -353,8 +353,8 @@ function drawDig(e, f, cx, cy, now) { // power bar while charging, then the hole
   }
   if (f.ph === 'pull' && f.item) { const u = Math.min(1, f.t / 0.5), ic = itemIcon(f.item.id); g.drawImage(ic, Math.round(hx - 8), Math.round(hy - 8 - Math.sin(u * Math.PI) * 14 - u * 8)); }
 }
-const WALK_FPS = 10;
-const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 8 : 0;   // 0 = idle, 1-8 = walk cycle
+const WALK_FPS = 6;   // walk frames per second (the walk is 4 frames per direction)
+const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
 function drawShovel(e, f, cx, cy, now) { // placeholder dig animation: the hero stands in the idle pose and swings a code-drawn shovel until proper dig frames exist
   const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0);
   let tx, ty;

@@ -18,10 +18,10 @@ function recolorCanvas(c, fn) {
 }
 const lumOf = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
 // ---- the hero: pixel-art "rigging" by UV lookup ------------------------------------------------------------------------
-// assets/chars/hero_uv.png holds the animation: 8 directions (rows) x 9 frames (0 = idle, 1-8 = walk cycle), cell 32x58, feet end on row 52.
+// assets/chars/hero_uv.png holds the animation: 8 directions (rows) x 5 frames (0 = idle, 1-4 = walk cycle), cell 32x48, feet end on row 47.
 // It is not stored as colours: every pixel holds a coordinate (R = x, G = y) into the skin texture assets/chars/hero_skin.png. Sprites are built by
 // looking those coordinates up, so recolouring the skin recolours every frame of every animation. Rebuild everything with tools/make_hero_sheet.py.
-const HC = { w: 32, h: 58, frames: 9, ax: 16, ay: 53 };
+const HC = { w: 32, h: 48, frames: 5, ax: 16, ay: 48 };
 const FACE_OF_DIR = { d: 0, l: 2, u: 4, r: 6 };   // rows: 0 down, 1 down-left, 2 left, 3 up-left, 4 up, 5 up-right, 6 right, 7 down-right
 const faceOf = (dx, dy) => Math.round(((Math.atan2(dy, dx) * 180 / Math.PI - 90 + 360) % 360) / 45) % 8;
 const faceIdx = e => (e.face != null && e.faceDir === e.dir) ? e.face : (FACE_OF_DIR[e.dir] || 0);
@@ -46,7 +46,7 @@ function heroBuild(tint) { // a skin = the original skin with the chosen colour 
   return d;
 }
 function heroApply() { HERO.data = heroBuild(HERO.tint); HERO.cache = {}; saveState(); }   // the local player's skin
-function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-8 = walk cycle. `tint` is another character's look (their skins are cached by look)
+function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-4 = walk cycle. `tint` is another character's look (their skins are cached by look)
   if (typeof face === 'string') face = FACE_OF_DIR[face] || 0;
   let data = HERO.data, cache = HERO.cache;
   if (tint) {
@@ -65,4 +65,4 @@ function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-8
 const LOOK_ROLES = [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']];
 function cleanLook(l) { const o = {}; if (l && typeof l === 'object') for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = l[r].toLowerCase(); return o; }
 const SHIRTS = ['#7a9a4a', '#c9503f', '#3f6fb0', '#e0b43a', '#8a5aa8', '#e8e0d0', '#2f8a7a', '#d9738a'], JEANS = ['#4f6f9a', '#34455f', '#6b5a4a', '#3a3a44', '#7a8a6a'], BOOTS = ['#a8641e', '#4a3326', '#2a2a30', '#7a2f2a'];
-function randLook() { return { hair: pick(HAIRC), eyes: pick(['#4a3326', '#2f5a8a', '#3a7a4a', '#2a2a30']), skin: pick(SKIN), shirt: pick(SHIRTS), jeans: pick(JEANS), boots: pick(BOOTS) }; }   // wandering diggers get a random outfit
+function randLook() { const o = { hair: pick(HAIRC), eyes: pick(['#4a3326', '#2f5a8a', '#3a7a4a', '#2a2a30']), skin: pick(SKIN), shirt: pick(SHIRTS), jeans: pick(JEANS), boots: pick(BOOTS) }; for (const k in o) if (!(HERO.roles[k] || []).length) delete o[k]; return o; }   // only the parts this character has   // wandering diggers get a random outfit

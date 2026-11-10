@@ -147,7 +147,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .taplab{display:none}
 #mcv{width:150px;height:180px;image-rendering:pixelated;background:#000;touch-action:none;cursor:pointer}
 
-#meprev{width:96px;height:174px;image-rendering:pixelated;background:linear-gradient(#5d8a4a,#43703a);cursor:pointer;flex:none}
+#meprev{width:96px;height:144px;image-rendering:pixelated;background:linear-gradient(#5d8a4a,#43703a);cursor:pointer;flex:none}
 .looks2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
 .looks2 .lk{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
 .looks2 input[type=color]{width:42px;height:30px;padding:0;border:0;background:none}
