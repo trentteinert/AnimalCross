@@ -9,8 +9,7 @@ const ED = {
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#7b9b45', '#b88652', '#c9b790', '#54a0b8'];
 const PAL = [
-  { k: 'tackle', n: 'Antiquities dealer' },
-  { k: 'portal', style: 'cave', n: 'Cave entrance (portal)' }, { k: 'portal', style: 'exit', n: 'Cave exit (portal)' }
+  { k: 'tackle', n: 'Antiquities dealer' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
 const LABELS = { tackle: 'Antiquities dealer', portal: 'Portal' };
@@ -292,7 +291,7 @@ function buildEditorUI() {
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
 }
-function areaOptions() { const list = ['island', 'cave']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
+function areaOptions() { const list = ['island']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
 function updateBar() {
   const $$ = s => document.querySelectorAll(s); if (!$('#ed')) return;
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';

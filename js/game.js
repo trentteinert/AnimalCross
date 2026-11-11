@@ -498,8 +498,8 @@ function goArea(to, sx, sy) { // fade out, load the other map, drop the player a
   setTimeout(() => {
     const done = map => {
       AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
-      NPCS = []; for (let i = 0; i < (to === 'cave' ? 3 : 10); i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink); FX.leaves = [];
-      setTimeout(() => { f.classList.remove('on'); fading = false; if (to === 'cave') UI.toast('A quiet cave. The pools here hold their own fish.', 'info'); }, 140);
+      NPCS = []; if (FEATURES.npcs) { for (let i = 0; i < 10; i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink); } FX.leaves = [];
+      setTimeout(() => { f.classList.remove('on'); fading = false; }, 140);
     };
     fetch('maps/' + to + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => done(validMap(m) ? m : defaultFor(to))).catch(() => done(defaultFor(to)));
   }, 330);
@@ -520,7 +520,7 @@ function boot() {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
     ME = { k: 'me', x: W.spawn.x, y: W.spawn.y, dir: 'd', t: 0, moving: false, bubble: null, bt: 0 };
-    for (let i = 0; i < 10; i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink);
+    if (FEATURES.npcs) { for (let i = 0; i < 10; i++) NPCS.push(makeNPC(i)); NPCS.forEach(npcThink); }
     updateClock(); setInterval(updateClock, 5000);
     $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
     if (S.lv >= 2 && !S.created) setTimeout(() => UI.openMe(true), 600);

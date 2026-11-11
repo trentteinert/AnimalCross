@@ -2,6 +2,8 @@
 // ---- shared helpers -------------------------------------------------------
 const $ = s => document.querySelector(s);
 const EDIT = /[?&]edit(&|$)/.test(location.search);
+// features switched off for now (their code and map data are kept; the editor still shows dig sites): flip to true to bring them back
+const FEATURES = { npcs: false, sites: false };
 const MAP_DRAFT_KEY = 'littleisland.map.draft';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
