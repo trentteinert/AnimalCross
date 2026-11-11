@@ -78,6 +78,7 @@ UI.onClick = function (e) {
     case 'fx': S.fx = S.fx === false; UI.openBag(); break;
     case 'lefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); UI.openBag(); break;
     case 'editlook': UI.openMe(false); break;
+    case 'mehair': { const n = $('#mename').value; HERO.tint.hairStyle = p1; heroApply(); UI.openMe(UI.me.first); $('#mename').value = n; break; }
     case 'meturn': UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); break;
     case 'merand': Object.assign(HERO.tint, randLook()); heroApply(); UI.meSync(); break;
     case 'mereset': for (const k in HERO.tint) delete HERO.tint[k]; heroApply(); UI.meSync(); break;
@@ -114,10 +115,11 @@ UI.bookDetail = function (id) {
 // ---- the player: name + clothes (colour pickers recolour the UV-skinned hero) -------------------------------
 UI.openMe = function (first) {
   const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); UI.me = { dir: 0, first: !!first };
-  const picks = LOOK_ROLES.filter(r => (HERO.roles[r[0]] || []).length).map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || hex(heroRoleColor(r))}"></label>`).join('');
+  const hs = HERO.tint.hairStyle || HAIR_STYLES[0], hh = HERO.hair[hs], picks = LOOK_ROLES.filter(r => r[0] === 'hair' ? hs !== 'none' && hh : (HERO.roles[r[0]] || []).length).map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || (r === 'hair' ? hex(hh.main) : hex(heroRoleColor(r)))}"></label>`).join('');
   UI.open('creator', `${head(first ? 'Make it yours' : 'Your look', !first)}${first ? '<p class="note">You are getting the hang of this! Pick a name and some clothes. You can change them later.</p>' : ''}
   <div class="crtop"><canvas id="meprev" width="96" height="144" data-act="meturn"></canvas>
   <div class="crform"><label>Name<input id="mename" maxlength="14" value="${esc(S.name)}" autocomplete="off" spellcheck="false"></label><div id="meerr" class="err"></div><div class="looks2">${picks}</div></div></div>
+  <div class="chips" style="margin:6px 0"><small style="color:var(--muted);align-self:center">Hair</small>${["none", ...HAIR_STYLES].map(id => `<button class="chip ${hs === id ? "on" : ""}" data-act="mehair:${id}">${id === "none" ? "Bald" : id[0].toUpperCase() + id.slice(1)}</button>`).join("")}</div>
   <div class="foot"><button class="btn small" data-act="merand">Randomize</button><button class="btn small" data-act="mereset">Reset clothes</button></div>
   <button class="btn big" data-act="medone">${first ? 'Looks good!' : 'Save'}</button>`);
   document.querySelectorAll('#modal input[data-role]').forEach(inp => inp.addEventListener('input', () => { HERO.tint[inp.dataset.role] = inp.value; heroApply(); }));
@@ -127,7 +129,7 @@ UI.meDraw = function () {
   const c = $('#meprev'); if (!c) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
   const f = Math.floor(Date.now() / 160) % 4 + 1, spr = heroSprite([0, 2, 4, 6][UI.me.dir], f); g.drawImage(spr, 0, 0, 96, 144);
 };
-UI.meSync = function () { document.querySelectorAll('#modal input[data-role]').forEach(i => { i.value = HERO.tint[i.dataset.role] || '#' + heroRoleColor(i.dataset.role).map(v => v.toString(16).padStart(2, '0')).join(''); }); UI.meDraw(); };
+UI.meSync = function () { const n = $('#mename').value; UI.openMe(UI.me.first); $('#mename').value = n; };
 UI.meDone = function () {
   const n = $('#mename').value.trim(), err = badName(n); if (err) { $('#meerr').textContent = err; sfx('no'); return; }
   S.name = n; S.created = true; UI.close(); sfx('level'); UI.toast('Welcome, ' + n + '!', 'gold'); UI.refresh();

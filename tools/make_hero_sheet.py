@@ -11,7 +11,9 @@ Output (assets/chars/):
   hero_roles.json  which skin pixels can be recoloured: eyes / skin / shirt / jeans / boots (the first entry is the role's main colour).
                    Colours with no role (belt, collar, cheeks) stay as painted.
   hero_preview.png  colour contact sheet rebuilt from the lookup (for checking)
-Direction rows in the output: down, down-left, left, up-left, up, up-right, right, down-right.
+  hero_hairmap.json which hair cell to draw for every (direction row, frame). Hair styles are tools/src/hair_<name>.png (copied to assets/chars/):
+                   33 cells of 32x48, one per frame of hero_sheet.png, painted on the same canvas as the character (hide the body layer when exporting).
+                   Make them in Aseprite and flatten with tools/ase_to_png.py.
 """
 import json, os
 from PIL import Image
@@ -68,3 +70,13 @@ for y in range(uv.shape[0]):
         if uv[y, x, 3]: prev[y, x] = skin[uv[y, x, 1], uv[y, x, 0]]
 bg = Image.new('RGBA', (uv.shape[1], uv.shape[0]), (120, 160, 120, 255)); bg.alpha_composite(Image.fromarray(prev)); bg.save(os.path.join(OUT, 'hero_preview.png'))
 print('roles', {r: len(v) for r, v in roles.items()}, 'sheet', uv.shape[1], 'x', uv.shape[0], 'idle frames', {d: (SRC_FRAMES[d][0] if d == 0 else min(SRC_FRAMES[d], key=legs_together)) for d in SRC_FRAMES})
+
+# ---- hair: every output frame draws the hair cell that sits on the same source frame of the character sheet
+import glob, shutil
+if glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png')):
+    hairmap = [[(SRC_FRAMES[d][f - 1] if f else (0 if d == 0 else min(SRC_FRAMES[d], key=legs_together))) for f in range(5)] for d in range(8)]
+    json.dump({'cell': hairmap}, open(os.path.join(OUT, 'hero_hairmap.json'), 'w'))
+    for f in glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png')):
+        if Image.open(f).size != (33 * CW, CH): raise SystemExit('%s must be %dx%d (33 cells)' % (f, 33 * CW, CH))
+        shutil.copy(f, os.path.join(OUT, os.path.basename(f)))
+    print('hair styles:', [os.path.basename(f) for f in glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png'))])
