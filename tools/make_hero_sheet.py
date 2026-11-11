@@ -25,7 +25,7 @@ CW, CH = 32, 48
 sheet = np.array(Image.open(SRC).convert('RGBA'))
 
 def role_of(h, y):  # (role or None, key) for a colour at row y of the cell
-    if h == '6f768d' or h == '585f74': return 'jeans'
+    if h in ('6f768d', '585f74', '696e81'): return 'jeans'
     if h in ('e1c6b4', 'd6b299'): return 'skin'
     if h in ('c49a61', 'b38d5b', 'd5ac73'): return 'shirt'
     if h == '513b30': return 'eyes' if y < 30 else 'boots'
