@@ -171,6 +171,27 @@ function drawHoldText(cx, cy) {   // name, how intact it is, and tags
   } else sw('+' + r.n + ' ' + it.name, by, '#d8c8a8', 'bold 7px "Pixelify Sans", monospace');
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
+// ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
+const GHOST = { sil: null, mask: null, checker: null };
+function drawGhost(L, cx, cy) {
+  const e = ME, spr = heroSprite(faceIdx(e), (A && A.k === 'dig') || ME.hold ? 0 : heroFrameOf(e), null), w = spr.width, h = spr.height;
+  const bob = A && A.k === 'dig' ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0, z = pitZ(e.x, e.y);
+  const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U);
+  const front = L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && o.x - cx + 40 > sx && o.x - cx - 40 < sx + w && o.y - cy + 4 > sy && o.y - o.spr.ay - cy < sy + h);   // things drawn after you that overlap you
+  const ry = z > 0.01 ? rimY(e.x, e.y) : null;
+  if (!front.length && ry == null) return;
+  if (!GHOST.mask) { GHOST.mask = mk(48, 56); GHOST.sil = mk(48, 56); GHOST.checker = mk(48, 56); for (let y = 0; y < 56; y++) for (let x = 0; x < 48; x++) if ((x + y) & 1) GHOST.checker.g.fillRect(x, y, 1, 1); }
+  const M = GHOST.mask, Sil = GHOST.sil, ox = 8, oy = 4;   // work area: your sprite sits at (ox, oy) inside it
+  M.g.clearRect(0, 0, 48, 56); Sil.g.clearRect(0, 0, 48, 56);
+  M.g.globalCompositeOperation = 'source-over'; M.g.fillStyle = '#fff';
+  if (ry != null) M.g.fillRect(0, Math.round(ry - cy - sy) + oy, 48, 56);
+  for (const o of front) M.g.drawImage(o.spr, Math.round(o.x - o.spr.ax - cx) - sx + ox, Math.round(o.y - o.spr.ay - cy) - sy + oy);   // where something solid is drawn over you
+  Sil.g.drawImage(spr, ox, oy);
+  Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(GHOST.checker, 0, 0);          // dither: every other pixel
+  Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(190,225,255,0.28)'; Sil.g.fillRect(0, 0, 48, 56);   // a faint cool tint so it reads as a ghost
+  Sil.g.globalCompositeOperation = 'destination-in'; Sil.g.drawImage(M, 0, 0); Sil.g.globalCompositeOperation = 'source-over';
+  g.save(); g.translate(snapDev(e.x - Math.round(e.x)), snapDev(e.y - Math.round(e.y))); g.globalAlpha = 0.9; g.drawImage(Sil, sx - ox, sy - oy); g.restore();
+}
 function drawMattock(e, cx, cy, now) {   // placeholder dig animation: the character stands in the idle pose and swings the mattock down into the spot
   const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0), raised = [hx - dv[0] * 3, hy - 15];
   const cyc = (A.t * 2.4) % 1, u = cyc < 0.62 ? 1 - cyc / 0.62 : (cyc - 0.62) / 0.38, ease = cyc < 0.62 ? u : u * u;   // lift slowly, strike fast

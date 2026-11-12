@@ -190,7 +190,7 @@ function render(now) {
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
-  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
+  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
