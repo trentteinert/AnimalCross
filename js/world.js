@@ -280,12 +280,12 @@ function loadMap(map) {
 function initWorld(map) { loadMap(map); }
 
 // ---- collision --------------------------------------------------------------------------------------
-function blockedAt(x, y) {
+function blockedAt(x, y, hw = 3, hh = 3) {   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
   let zmin = 99, zmax = -1;
-  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
+  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
-  const x0 = x - 3, x1 = x + 3, y0 = y - 3, y1 = y;
+  const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
     if (Math.abs(o.x - x) > 40 || Math.abs(o.y - y) > 30) continue;
     const bx = o.x + o.box[0], by = o.y + o.box[1];

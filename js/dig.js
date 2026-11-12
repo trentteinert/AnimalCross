@@ -182,14 +182,14 @@ function tickTrees(dt) {
     }
     if (o.k === 'decor' && ROLL[o.src.d]) {   // pebbles and small rocks get kicked and roll; the bigger the stone, the less it rolls
       const f = ROLL[o.src.d]; o.vx = o.vx || 0; o.vy = o.vy || 0; o.ang = o.ang || 0;
-      const dx = o.x - ME.x, dy = o.y - ME.y, d = Math.hypot(dx, dy * 1.3);
-      if (ME.moving && d < 9 && d > 0.1) { const k = 62 * f / d; o.vx = dx * k; o.vy = dy * k; }
+      const R = STONE_R[o.src.d], cyo = o.spr.height / 2, dx = o.x - ME.x, dy = o.y - cyo - (ME.y - 2), d = Math.hypot(dx, dy * 1.3);   // distance from you to the middle of the stone
+      if (ME.moving && d < R + 5 && d > 0.1) { const k = 62 * f / d; o.vx = dx * k; o.vy = dy * k; }
       const sp = Math.hypot(o.vx, o.vy);
       if (sp > 2.5) {
         const nx = o.x + o.vx * dt, ny = o.y + o.vy * dt;
-        if (!blockedAt(nx, o.y)) o.x = nx; else o.vx *= -0.35;
-        if (!blockedAt(o.x, ny)) o.y = ny; else o.vy *= -0.35;
-        o.ang += (o.vx >= 0 ? 1 : -1) * sp * dt / (o.spr.width * 0.5);
+        if (!blockedAt(nx, o.y, R, R * 1.4)) o.x = nx; else o.vx *= -0.35;
+        if (!blockedAt(o.x, ny, R, R * 1.4)) o.y = ny; else o.vy *= -0.35;
+        o.ang += (o.vx >= 0 ? 1 : -1) * sp * dt / R;
         const fr = Math.exp(-3.2 * dt); o.vx *= fr; o.vy *= fr;
       } else o.vx = o.vy = 0;
       continue;
@@ -206,7 +206,8 @@ function tickTrees(dt) {
     else { l.lt += dt; if (l.lt > 3.5) LEAVES.splice(i, 1); }
   }
 }
-const ROLL = { pebble0: 1, pebble1: 0.85, pebble2: 0.75, rock0: 0.3 };   // how far each stone rolls when kicked; rock1 is too big to move
+const ROLL = { pebble0: 1, pebble1: 0.85, pebble2: 0.75, rock0: 0.3 };
+const STONE_R = { pebble0: 1.5, pebble1: 2, pebble2: 2.5, rock0: 3.5 };   // each stone's collider radius: a tight circle around the middle of its sprite, which is also what it spins around   // how far each stone rolls when kicked; rock1 is too big to move
 function spawnLeaf(o) {
   if (o.k === 'decor') { const w = o.spr.width; LEAVES.push({ x: o.x + rnd(-w / 3, w / 3), y: o.y - rnd(4, o.spr.height * 0.7), vy: rnd(14, 24), vx: rnd(-8, 8), ph: rnd(0, 6.28), t: 0, k: Math.floor(rnd(0, 3)), gy: o.y + rnd(-2, 6), land: false, lt: 0 }); return; }
   const c = o.crown, x = o.x - c.ax + rnd(0.15, 0.85) * c.width, y = o.y - c.ay + rnd(0.4, 0.95) * c.height;
