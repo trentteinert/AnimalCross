@@ -6,7 +6,7 @@
 //
 // Atlas layout (16px tiles), 36 columns x 7 rows:
 //   row 0           deep water fills                       cols 0-3
-//   rows 1..6       SHALLOW, SAND, GRASS, DIRT, COBBLE, POND (drawn in that order, each over the last)
+//   rows 1..6       SHALLOW, SAND, DIRT, GRASS, COBBLE, POND (drawn in that order, each over the last)
 //     cols 0-15     edge mask variant A   mask = TL*1 + TR*2 + BL*4 + BR*8 (which of the 4 corners are "this terrain")
 //     cols 16-31    edge mask variant B
 //     cols 32-35    full interior fills (mask 15)
@@ -61,8 +61,8 @@ function generateAtlas() {
   const c = mk(ATL_COLS * 16, ATL_ROWS * 16);
   for (let v = 0; v < 4; v++) c.g.drawImage(paintTile(0, 15, v), v * 16, 0);
   for (let L = 1; L <= 6; L++) {
-    for (let set = 0; set < 2; set++) for (let m = 1; m < 16; m++) c.g.drawImage(paintTile(L, m, set), (m + 16 * set) * 16, L * 16);
-    for (let v = 0; v < 4; v++) c.g.drawImage(paintTile(L, 15, 10 + v), (32 + v) * 16, L * 16);
+    for (let set = 0; set < 2; set++) for (let m = 1; m < 16; m++) c.g.drawImage(paintTile(L === 3 ? 4 : L === 4 ? 3 : L, m, set), (m + 16 * set) * 16, L * 16);   // (rows 3 and 4 swapped: dirt is drawn under grass)
+    for (let v = 0; v < 4; v++) c.g.drawImage(paintTile(L === 3 ? 4 : L === 4 ? 3 : L, 15, 10 + v), (32 + v) * 16, L * 16);
   }
   return c;
 }
@@ -73,7 +73,7 @@ function applyFills(c) {
   put(3, 0, 0, 'rgba(0,24,34,0.32)'); put(3, 1, 32, 'rgba(120,210,190,0.12)'); put(3, 6, 32);
   // painted terrain sets (assets/tiles/<name>.png: one tile per corner mask, built by tools/make_tiles.py). They have no outer lip, only their own edge,
   // and replace both the generated edges and the interior fills of their rows; a missing set falls back to the old generated art.
-  const SETS = [[2, 'sand_tiles', 2], [3, 'grass_tiles', 0], [4, 'dirt_tiles', 1]];   // [atlas row, image, fills.png row for the fallback]
+  const SETS = [[2, 'sand_tiles', 2], [4, 'grass_tiles', 0], [3, 'dirt_tiles', 1]];   // [atlas row, image, fills.png row for the fallback]
   for (const [row, key, fillRow] of SETS) {
     const im = ASSET.img[key]; if (!im) { put(fillRow, row, 32); continue; }
     c.g.clearRect(0, row * 16, ATL_COLS * 16, 16);
@@ -81,7 +81,7 @@ function applyFills(c) {
     for (let k = 0; k < 4; k++) c.g.drawImage(im, 15 * 16, 0, 16, 16, (32 + k) * 16, row * 16, 16, 16);
   }
   // interior variety (assets/tiles/<name>_variants.png, 4x2 tiles): col 32 is the plain tile, 33-36 the bottom row, 37-40 the top row (grass: the top row has the big tufts)
-  for (const [row, key, setKey] of [[2, 'sand_variants', 'sand_tiles'], [3, 'grass_variants', 'grass_tiles'], [4, 'dirt_variants', 'dirt_tiles']]) {
+  for (const [row, key, setKey] of [[2, 'sand_variants', 'sand_tiles'], [4, 'grass_variants', 'grass_tiles'], [3, 'dirt_variants', 'dirt_tiles']]) {
     const gv = ASSET.img[key]; if (gv && ASSET.img[setKey]) for (let k = 0; k < 8; k++) c.g.drawImage(gv, (k % 4) * 16, 16 * (k < 4 ? 1 : 0), 16, 16, (33 + k) * 16, row * 16, 16, 16);
   }
   return c;
