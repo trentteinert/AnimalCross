@@ -39,13 +39,16 @@ const W = { terrain: null, sites: [], objs: [], solids: [], trees: [], bushes: [
 // ---- terrain rendering (dual-grid autotiling, see tiles.js) -------------------
 const LVL = [0, 1, 2, 3, 4, 5, 2];
 const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 0 : GRID[ty * MW + tx];
+function grassVariantCol(h) { // half the meadow is the plain tile, the speckled variants are common, the tufty ones rare
+  if (h < 0.5) return 32; if (h < 0.9) return 33 + Math.floor((h - 0.5) / 0.4 * 4); return 37 + Math.min(3, Math.floor((h - 0.9) / 0.1 * 4));
+}
 function renderTerrain() {
   const A = atlasFor(W.theme), c = mk(PW, PH);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) c.g.drawImage(A, Math.floor(hash2(tx, ty, 21) * 3) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
     for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L) m |= 1 << k;
-    if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3)) : m + 16 * (hv > 0.5 ? 1 : 0);
+    if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? (L === 3 && ASSET.img.grass_variants ? grassVariantCol(hash2(i, j, 77)) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
     c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
   if (FEATURES.groundDetail) decorate(c); drawSites(c); drawDeck(c); return c;

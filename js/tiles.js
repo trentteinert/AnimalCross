@@ -11,7 +11,7 @@
 //     cols 16-31    edge mask variant B
 //     cols 32-35    full interior fills (mask 15)
 // To use your own art: paint an atlas.png with the same layout, save it as tiles/atlas.png, open the game with ?customtiles
-const ATL_COLS = 36, ATL_ROWS = 7;
+const ATL_COLS = 41, ATL_ROWS = 7;   // (grass uses cols 32-40 for its interior variants, the other terrains 32-35)
 let ATLAS = null;
 
 function tilePixel(L, x, y, gg, n, n2, full, s, dfdv) {
@@ -80,6 +80,8 @@ function applyFills(c) {
     for (let m = 1; m < 16; m++) for (let set = 0; set < 2; set++) c.g.drawImage(im, m * 16, 0, 16, 16, (m + 16 * set) * 16, row * 16, 16, 16);
     for (let k = 0; k < 4; k++) c.g.drawImage(im, 15 * 16, 0, 16, 16, (32 + k) * 16, row * 16, 16, 16);
   }
+  const gv = ASSET.img.grass_variants;   // grass interior variety (assets/tiles/grass_variants.png, 4x2 tiles): col 32 plain, 33-36 the speckled bottom row, 37-40 the tufty top row
+  if (gv && ASSET.img.grass_tiles) for (let k = 0; k < 8; k++) c.g.drawImage(gv, (k % 4) * 16, 16 * (k < 4 ? 1 : 0), 16, 16, (k < 4 ? 33 + k : 33 + k) * 16, 3 * 16, 16, 16);
   return c;
 }
 function showAtlas(a) {
