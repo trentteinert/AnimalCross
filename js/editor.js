@@ -7,7 +7,7 @@ const ED = {
   pan: null, mv: null, msg: '', msgT: 0, last: 0, lastWheel: 0, unsaved: false
 };
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
-const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#abb488', '#b88652', '#c9b790', '#54a0b8'];
+const TILE_COL = ['#2e6294', '#5fa8c0', '#f1d8a6', '#abb488', '#c89676', '#c9b790', '#54a0b8'];
 const PAL = [
   { k: 'tackle', n: 'Antiquities dealer' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
@@ -261,7 +261,7 @@ function edRender(now) {
 // ---- UI ----------------------------------------------------------------------------------------------------
 function buildEditorUI() {
   const el = document.createElement('div'); el.id = 'ed';
-  const tiles = TILE_NAMES.map((n, i) => `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('')
+  const tiles = TILE_NAMES.map((n, i) => i === 5 ? '' : `<button class="edt" data-ed="tile:${i}" data-t="${i}"><span style="background:${TILE_COL[i]}"></span>${n}<kbd>${i + 1}</kbd></button>`).join('')
     + `<h4>Decking (piers, bridges, boardwalks)</h4>` + ['Driftwood', 'Dark oak', 'Pale stone', 'Driftwood + rails', 'Dark oak + rails', 'Pale stone + rails'].map((n, i) => `<button class="edt" data-ed="tile:${101 + i}" data-t="${101 + i}"><span style="background:${STRUCT_STYLES[i % 3].a}"></span>${n}</button>`).join('')
     + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`
     + `<h4>Dig sites (fixed spots, unlock by level)</h4>` + [1, 2, 3, 4].map(z => `<button class="edt" data-ed="tile:${200 + z}" data-t="${200 + z}"><span style="background:${SITES[z].col}"></span>${SITES[z].n} (Lv ${SITES[z].lv})</button>`).join('')
