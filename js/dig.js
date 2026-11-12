@@ -165,7 +165,7 @@ function drawHoldText(cx, cy) {   // name, how intact it is, and tags
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
-const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'fade';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
+const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
 function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
   if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me') return 1;
@@ -189,14 +189,14 @@ function drawGhost(L, cx, cy) {
     const T = GHOST.tmp; T.g.clearRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over'; T.g.drawImage(spr, ox, oy); T.g.globalCompositeOperation = 'source-in'; T.g.fillStyle = '#fff'; T.g.fillRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over';
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Sil.g.drawImage(T, dx, dy);
     Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(T, 0, 0);
-    Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(255,238,200,0.95)'; Sil.g.fillRect(0, 0, 48, 56);
+    Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(255,238,200,0.7)'; Sil.g.fillRect(0, 0, 48, 56);
   } else {
     Sil.g.drawImage(spr, ox, oy);
     Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(GHOST.checker, 0, 0); Sil.g.drawImage(GHOST.checker, 1, 0); Sil.g.drawImage(GHOST.checker, 0, 1);   // dither: only one pixel in four is kept
     Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(190,225,255,0.12)'; Sil.g.fillRect(0, 0, 48, 56);
   }
   Sil.g.globalCompositeOperation = 'destination-in'; Sil.g.drawImage(M, 0, 0); Sil.g.globalCompositeOperation = 'source-over';
-  g.save(); g.translate(snapDev(e.x - Math.round(e.x)), snapDev(e.y - Math.round(e.y))); g.globalAlpha = GHOST_MODE === 'outline' ? 0.9 : 0.55; g.drawImage(Sil, sx - ox, sy - oy); g.restore();
+  g.save(); g.translate(snapDev(e.x - Math.round(e.x)), snapDev(e.y - Math.round(e.y))); g.globalAlpha = GHOST_MODE === 'outline' ? 0.55 : 0.55; g.drawImage(Sil, sx - ox, sy - oy); g.restore();
 }
 function drawMattock(e, cx, cy, now) {   // placeholder dig animation: the character stands in the idle pose and swings the mattock down into the spot
   const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0), raised = [hx - dv[0] * 3, hy - 15];
