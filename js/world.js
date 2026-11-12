@@ -55,7 +55,7 @@ function variantCol(L, h, i, j) {   // grass: a third plain, most of the rest th
     for (let k = 0; k < W.length; k++) { acc += W[k]; if (h < acc) return 32 + k; } return 40;
   }
   if (L !== 4) return h < 0.4 ? 32 : 33 + Math.min(7, Math.floor((h - 0.4) / 0.6 * 8));
-  if (!grassVariant(i, j)) return 32; if (h < 0.94) return 33 + Math.min(3, Math.floor(h / 0.94 * 4)); return 37 + Math.min(3, Math.floor((h - 0.94) / 0.06 * 4));
+  if (!grassVariant(i, j)) return 32; if (h < 0.98) return 33 + Math.min(3, Math.floor(h / 0.98 * 4)); return 37 + Math.min(3, Math.floor((h - 0.98) / 0.02 * 4));
 }
 function renderTerrain() {
   const A = atlasFor(W.theme), c = mk(PW, PH);

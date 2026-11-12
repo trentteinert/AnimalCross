@@ -79,6 +79,11 @@ function applyFills(c) {
     c.g.clearRect(0, row * 16, ATL_COLS * 16, 16);
     for (let m = 1; m < 16; m++) for (let set = 0; set < 2; set++) c.g.drawImage(im, m * 16, 0, 16, 16, (m + 16 * set) * 16, row * 16, 16, 16);
     for (let k = 0; k < 4; k++) c.g.drawImage(im, 15 * 16, 0, 16, 16, (32 + k) * 16, row * 16, 16, 16);
+    if (row === 4) {   // grass: the plain tile (col 32) is one flat colour, with no speckles; only the tuft tiles carry texture
+      const d = c.g.getImageData(32 * 16, row * 16, 16, 16).data, n = {}; let best = '', bc = 0;
+      for (let q = 0; q < d.length; q += 4) { const kk = d[q] + ',' + d[q + 1] + ',' + d[q + 2]; n[kk] = (n[kk] || 0) + 1; if (n[kk] > bc) { bc = n[kk]; best = kk; } }
+      c.g.fillStyle = 'rgb(' + best + ')'; c.g.fillRect(32 * 16, row * 16, 16, 16);
+    }
   }
   // interior variety (assets/tiles/<name>_variants.png, 4x2 tiles): col 32 is the plain tile, 33-36 the bottom row, 37-40 the top row (grass: the top row has the big tufts)
   for (const [row, key, setKey] of [[2, 'sand_variants', 'sand_tiles'], [4, 'grass_variants', 'grass_tiles'], [3, 'dirt_variants', 'dirt_tiles']]) {
