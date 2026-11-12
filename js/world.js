@@ -43,7 +43,9 @@ const W = { terrain: null, sites: [], objs: [], solids: [], trees: [], bushes: [
 // ---- terrain rendering (dual-grid autotiling, see tiles.js) -------------------
 const LVL = [0, 1, 2, 3, 4, 5, 2];
 const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 0 : GRID[ty * MW + tx];
-function grassVariantCol(h) { // about a third of the meadow is the plain tile, most of the rest is the small tuft/speckle variants (bottom row of the sheet), the big tufts (top row) are rare
+const VARIETY = { 2: 'sand_variants', 3: 'grass_variants', 4: 'dirt_variants' };   // layers with painted interior variety
+function variantCol(L, h) {   // grass: a third plain, most of the rest the small tufts (bottom row), the big tufts (top row) rare. sand and dirt: 40% plain, the rest shared evenly
+  if (L !== 3) return h < 0.4 ? 32 : 33 + Math.min(7, Math.floor((h - 0.4) / 0.6 * 8));
   if (h < 0.35) return 32; if (h < 0.96) return 33 + Math.min(3, Math.floor((h - 0.35) / 0.61 * 4)); return 37 + Math.min(3, Math.floor((h - 0.96) / 0.04 * 4));
 }
 function renderTerrain() {
@@ -52,8 +54,8 @@ function renderTerrain() {
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
     for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L) m |= 1 << k;
-    if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? (L === 3 && ASSET.img.grass_variants ? grassVariantCol(hash2(i, j, 77)) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
-    if (m === 15 && L === 3 && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the grass interiors are mirrored (edges never are)
+    if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? (VARIETY[L] && ASSET.img[VARIETY[L]] ? variantCol(L, hash2(i, j, 77)) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
+    if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
   if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;

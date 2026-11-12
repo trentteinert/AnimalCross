@@ -80,8 +80,10 @@ function applyFills(c) {
     for (let m = 1; m < 16; m++) for (let set = 0; set < 2; set++) c.g.drawImage(im, m * 16, 0, 16, 16, (m + 16 * set) * 16, row * 16, 16, 16);
     for (let k = 0; k < 4; k++) c.g.drawImage(im, 15 * 16, 0, 16, 16, (32 + k) * 16, row * 16, 16, 16);
   }
-  const gv = ASSET.img.grass_variants;   // grass interior variety (assets/tiles/grass_variants.png, 4x2 tiles): col 32 plain, 33-36 the speckled bottom row, 37-40 the tufty top row
-  if (gv && ASSET.img.grass_tiles) for (let k = 0; k < 8; k++) c.g.drawImage(gv, (k % 4) * 16, 16 * (k < 4 ? 1 : 0), 16, 16, (k < 4 ? 33 + k : 33 + k) * 16, 3 * 16, 16, 16);
+  // interior variety (assets/tiles/<name>_variants.png, 4x2 tiles): col 32 is the plain tile, 33-36 the bottom row, 37-40 the top row (grass: the top row has the big tufts)
+  for (const [row, key, setKey] of [[2, 'sand_variants', 'sand_tiles'], [3, 'grass_variants', 'grass_tiles'], [4, 'dirt_variants', 'dirt_tiles']]) {
+    const gv = ASSET.img[key]; if (gv && ASSET.img[setKey]) for (let k = 0; k < 8; k++) c.g.drawImage(gv, (k % 4) * 16, 16 * (k < 4 ? 1 : 0), 16, 16, (33 + k) * 16, row * 16, 16, 16);
+  }
   return c;
 }
 function showAtlas(a) {
