@@ -70,13 +70,6 @@ function findTarget() {
   if (sb && (!best || sb.sc < best.sc + 2)) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z, tx: sb.tx, ty: sb.ty };
   return best;
 }
-function tapWorld(sx, sy) {
-  if (UI.isOpen || A) return; const wx = sx / Z + cam.x, wy = sy / Z + cam.y; let best = null, bd = 1e9;
-  for (const o of W.objs.filter(o => SHOPK.includes(o.k))) { const d = Math.hypot(wx - o.x, wy - (o.y - 16)); if (d < 28 && d < bd) { best = o; bd = d; } }
-  if (best) autoWalk = { ref: best, x: best.x, y: best.y, stuck: 0 };
-  else if (siteAt(wx, wy)) autoWalk = { dig: true, x: wx, y: wy, stuck: 0 };
-  else autoWalk = { x: wx, y: wy, stuck: 0 };
-}
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 function startAction() {

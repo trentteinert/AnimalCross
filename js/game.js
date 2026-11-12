@@ -48,30 +48,18 @@ function resize() {
 const joy = { id: null, sx: 0, sy: 0, moved: false, t0: 0, vx: 0, vy: 0, mag: 0 };
 const keys = {};
 const inp = $('#inp'), joyEl = $('#joy'), knob = $('#knob');
-// the direction wheel (touch devices only): a fixed stick in the corner opposite the action button
-const TOUCH = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window; if (TOUCH) document.body.classList.add('touch');
-const wheel = { id: null, vx: 0, vy: 0, mag: 0 }, wheelEl = $('#wheel'), wknob = $('#wknob');
-function wheelMove(e) {
-  const r = wheelEl.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), d = Math.hypot(dx, dy), R = r.width / 2 - 8;
-  wheel.vx = dx / (d || 1); wheel.vy = dy / (d || 1); wheel.mag = d < 10 ? 0 : Math.min(1, (d - 8) / (R - 8)); const k = Math.min(d, R - 14); wknob.style.transform = `translate(${wheel.vx * k}px,${wheel.vy * k}px)`;
-}
-wheelEl.addEventListener('pointerdown', e => { if (EDIT || wheel.id !== null) return; e.preventDefault(); e.stopPropagation(); audioInit(); wheel.id = e.pointerId; try { wheelEl.setPointerCapture(e.pointerId); } catch (_) { } wheelMove(e); });
-wheelEl.addEventListener('pointermove', e => { if (e.pointerId === wheel.id) wheelMove(e); });
-function wheelEnd(e) { if (e.pointerId !== wheel.id) return; wheel.id = null; wheel.mag = 0; wknob.style.transform = ''; }
-wheelEl.addEventListener('pointerup', wheelEnd); wheelEl.addEventListener('pointercancel', wheelEnd);
 inp.addEventListener('pointerdown', e => {
   if (EDIT || joy.id !== null || UI.isOpen) return; audioInit();
   joy.id = e.pointerId; joy.sx = e.clientX; joy.sy = e.clientY; joy.moved = false; joy.t0 = performance.now(); joy.vx = joy.vy = joy.mag = 0;
   try { inp.setPointerCapture(e.pointerId); } catch (_) { }
 });
 inp.addEventListener('pointermove', e => {
-  if (EDIT || TOUCH || e.pointerId !== joy.id) return; const dx = e.clientX - joy.sx, dy = e.clientY - joy.sy, d = Math.hypot(dx, dy), R = 46;
+  if (EDIT || e.pointerId !== joy.id) return; const dx = e.clientX - joy.sx, dy = e.clientY - joy.sy, d = Math.hypot(dx, dy), R = 46;
   if (d > 12 && !joy.moved) { joy.moved = true; joyEl.style.left = joy.sx + 'px'; joyEl.style.top = joy.sy + 'px'; joyEl.classList.add('on'); }
   if (joy.moved) { joy.vx = dx / (d || 1); joy.vy = dy / (d || 1); joy.mag = d < 8 ? 0 : Math.min(1, (d - 6) / (R - 6)); const k = Math.min(d, R); knob.style.transform = `translate(${joy.vx * k}px,${joy.vy * k}px)`; }
 });
 function joyEnd(e) {
   if (EDIT || e.pointerId !== joy.id) return;
-  if (!joy.moved && performance.now() - joy.t0 < 400 && e.type === 'pointerup') tapWorld(e.clientX, e.clientY);
   joy.id = null; joy.mag = 0; joyEl.classList.remove('on'); knob.style.transform = '';
 }
 inp.addEventListener('pointerup', joyEnd); inp.addEventListener('pointercancel', joyEnd);
@@ -87,7 +75,6 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (['Space', 'KeyE', 'Enter'].includes(e.code)) actUp(); });
 function inputVec() {
-  if (wheel.mag > 0) return [wheel.vx * wheel.mag, wheel.vy * wheel.mag];
   if (joy.mag > 0) return [joy.vx * joy.mag, joy.vy * joy.mag];
   let x = 0, y = 0;
   if (keys.KeyA || keys.ArrowLeft) x -= 1; if (keys.KeyD || keys.ArrowRight) x += 1; if (keys.KeyW || keys.ArrowUp) y -= 1; if (keys.KeyS || keys.ArrowDown) y += 1;
@@ -123,13 +110,8 @@ function updateMe(dt) {
   if (mag > 0.05) {
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
-    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt;
-  } else if (autoWalk && !A) {
-    const a = autoWalk, tg = target;
-    if (a.ref && tg && tg.ref === a.ref) { autoWalk = null; startAction(); return; }
-    if (a.dig && tg && tg.kind === 'dig') { autoWalk = null; startAction(); return; }
-    const d = Math.hypot(a.x - ME.x, a.y - ME.y); if (d < 3) { autoWalk = null; return; }
-    const m = stepToward(ME, a.x, a.y, walkSp(), dt); ME.moving = m; ME.t += dt; a.stuck = m ? 0 : a.stuck + 1; if (a.stuck > 14) autoWalk = null;
+    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt * Math.max(0.25, Math.min(1, mag));   // the walk animation runs at the pace you move
+
   }
 }
 
