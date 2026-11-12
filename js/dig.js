@@ -165,25 +165,38 @@ function drawHoldText(cx, cy) {   // name, how intact it is, and tags
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
-const GHOST = { sil: null, mask: null, checker: null };
+const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'fade';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
+const GHOST = { sil: null, mask: null, checker: null, tmp: null };
+function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
+  if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me') return 1;
+  const s = o.spr, over = o.y > ME.y && ME.x + 9 > o.x - s.ax && ME.x - 9 < o.x - s.ax + s.width && ME.y > o.y - s.ay && ME.y - 46 < o.y;
+  o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; return o.fa;
+}
 function drawGhost(L, cx, cy) {
   const e = ME, spr = heroSprite(faceIdx(e), (A && A.k === 'dig') || ME.hold ? 0 : heroFrameOf(e), null), w = spr.width, h = spr.height;
   const bob = A && A.k === 'dig' ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0, z = pitZ(e.x, e.y);
   const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U);
-  const front = L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && o.x - cx + 40 > sx && o.x - cx - 40 < sx + w && o.y - cy + 4 > sy && o.y - o.spr.ay - cy < sy + h);   // things drawn after you that overlap you
+  const front = GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && o.x - cx + 40 > sx && o.x - cx - 40 < sx + w && o.y - cy + 4 > sy && o.y - o.spr.ay - cy < sy + h);   // things drawn after you that overlap you
   const ry = z > 0.01 ? rimY(e.x, e.y) : null;
   if (!front.length && ry == null) return;
-  if (!GHOST.mask) { GHOST.mask = mk(48, 56); GHOST.sil = mk(48, 56); GHOST.checker = mk(48, 56); for (let y = 0; y < 56; y++) for (let x = 0; x < 48; x++) if ((x & 1) && (y & 1)) GHOST.checker.g.fillRect(x, y, 1, 1); }
+  if (!GHOST.mask) { GHOST.tmp = mk(48, 56); GHOST.mask = mk(48, 56); GHOST.sil = mk(48, 56); GHOST.checker = mk(48, 56); for (let y = 0; y < 56; y++) for (let x = 0; x < 48; x++) if ((x & 1) && (y & 1)) GHOST.checker.g.fillRect(x, y, 1, 1); }
   const M = GHOST.mask, Sil = GHOST.sil, ox = 8, oy = 4;   // work area: your sprite sits at (ox, oy) inside it
   M.g.clearRect(0, 0, 48, 56); Sil.g.clearRect(0, 0, 48, 56);
   M.g.globalCompositeOperation = 'source-over'; M.g.fillStyle = '#fff';
   if (ry != null) M.g.fillRect(0, Math.round(ry - cy - sy) + oy, 48, 56);
   for (const o of front) M.g.drawImage(o.spr, Math.round(o.x - o.spr.ax - cx) - sx + ox, Math.round(o.y - o.spr.ay - cy) - sy + oy);   // where something solid is drawn over you
-  Sil.g.drawImage(spr, ox, oy);
-  Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(GHOST.checker, 0, 0); Sil.g.drawImage(GHOST.checker, 1, 0); Sil.g.drawImage(GHOST.checker, 0, 1);          // dither: only one pixel in four is kept
-  Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(190,225,255,0.12)'; Sil.g.fillRect(0, 0, 48, 56);   // a faint cool tint so it reads as a ghost
+  if (GHOST_MODE === 'outline') {   // a one pixel outline of you, only where something hides you
+    const T = GHOST.tmp; T.g.clearRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over'; T.g.drawImage(spr, ox, oy); T.g.globalCompositeOperation = 'source-in'; T.g.fillStyle = '#fff'; T.g.fillRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over';
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Sil.g.drawImage(T, dx, dy);
+    Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(T, 0, 0);
+    Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(255,238,200,0.95)'; Sil.g.fillRect(0, 0, 48, 56);
+  } else {
+    Sil.g.drawImage(spr, ox, oy);
+    Sil.g.globalCompositeOperation = 'destination-out'; Sil.g.drawImage(GHOST.checker, 0, 0); Sil.g.drawImage(GHOST.checker, 1, 0); Sil.g.drawImage(GHOST.checker, 0, 1);   // dither: only one pixel in four is kept
+    Sil.g.globalCompositeOperation = 'source-atop'; Sil.g.fillStyle = 'rgba(190,225,255,0.12)'; Sil.g.fillRect(0, 0, 48, 56);
+  }
   Sil.g.globalCompositeOperation = 'destination-in'; Sil.g.drawImage(M, 0, 0); Sil.g.globalCompositeOperation = 'source-over';
-  g.save(); g.translate(snapDev(e.x - Math.round(e.x)), snapDev(e.y - Math.round(e.y))); g.globalAlpha = 0.55; g.drawImage(Sil, sx - ox, sy - oy); g.restore();
+  g.save(); g.translate(snapDev(e.x - Math.round(e.x)), snapDev(e.y - Math.round(e.y))); g.globalAlpha = GHOST_MODE === 'outline' ? 0.9 : 0.55; g.drawImage(Sil, sx - ox, sy - oy); g.restore();
 }
 function drawMattock(e, cx, cy, now) {   // placeholder dig animation: the character stands in the idle pose and swings the mattock down into the spot
   const dv = DV[e.dir] || [0, 1], hx = e.x + dv[0] * 6, hy = e.y - 17 + (dv[1] < 0 ? -2 : 0), raised = [hx - dv[0] * 3, hy - 15];

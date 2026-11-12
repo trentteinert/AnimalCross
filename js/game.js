@@ -164,7 +164,8 @@ function drawEnt(o, cx, cy, now) {
     default: {
       const spr = o.spr; if (!spr) return;
       if (o.k === 'tree') g.drawImage(shadowSpr(28, 9), Math.round(o.x - 14 - cx), Math.round(o.y - 5 - cy));
-      g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
+      const fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
+      g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
     }
   }
 }
