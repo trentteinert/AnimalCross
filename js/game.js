@@ -165,7 +165,7 @@ function drawEnt(o, cx, cy, now) {
       const spr = o.spr; if (!spr) return;
       if (o.k === 'tree') { g.globalAlpha = 0.3; g.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx), Math.round(o.y - o.shadow.ay - cy)); g.globalAlpha = 1; }   // the crown's shadow on the ground
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
-      g.drawImage(spr, Math.round(o.x - spr.ax - cx + (o.k === 'decor' ? o.sx || 0 : 0)), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
+      if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
     }
   }
 }

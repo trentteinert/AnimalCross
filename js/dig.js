@@ -169,11 +169,10 @@ const LEAVES = [];
 function tickTrees(dt) {
   if (!W.objs) return; const t = performance.now() / 1000;
   for (const o of W.objs) {
-    if (o.k === 'decor' && /^bush/.test(o.src.d)) {   // walk through a bush and it rustles and puffs out leaves
-      o.sx = 0; if (o.shake > 0) o.shake = Math.max(0, o.shake - dt);
-      if (ME.moving && Math.abs(ME.x - o.x) < o.spr.width / 2 && ME.y > o.y - 6 && ME.y < o.y + 4 && (!o.rt || t - o.rt > 1.2)) { o.rt = t; o.shake = 0.45; for (let i = 0; i < 5; i++) spawnLeaf(o); }
-      if (o.shake > 0) o.sx = Math.round(Math.sin(t * 42) * o.shake * 2.4);
-      continue;
+    if (o.k === 'decor' && /^bush/.test(o.src.d)) {   // walk onto a bush and it squashes down; step off and it springs back
+      const on = Math.abs(ME.x - o.x) < o.spr.width / 2 && ME.y > o.y - 8 && ME.y < o.y + 5;
+      if (on && !o.on && ME.moving) for (let i = 0; i < 5; i++) spawnLeaf(o);
+      o.on = on; o.sq = (o.sq || 0) + ((on ? 1 : 0) - (o.sq || 0)) * Math.min(1, dt * (on ? 14 : 7)); continue;
     }
     if (o.k !== 'tree') continue; o.sx = 0;
     if (Math.abs(o.x - ME.x) > 220 || Math.abs(o.y - ME.y) > 260) continue;   // only trees near you are alive
