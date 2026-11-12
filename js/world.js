@@ -45,7 +45,10 @@ const LVL = [0, 1, 2, 3, 4, 5, 2];
 const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 0 : GRID[ty * MW + tx];
 const VARIETY = { 2: 'sand_variants', 3: 'grass_variants', 4: 'dirt_variants' };   // layers with painted interior variety
 function variantCol(L, h) {   // grass: a third plain, most of the rest the small tufts (bottom row), the big tufts (top row) rare. sand and dirt: 40% plain, the rest shared evenly
-  if (L === 4) { if (h < 0.45) return 32; if (h < 0.96) return 33 + Math.min(3, Math.floor((h - 0.45) / 0.51 * 4)); return 37 + Math.min(3, Math.floor((h - 0.96) / 0.04 * 4)); }   // dirt: just under half plain, the sparse variants (bottom row), the dense ones (top row) only ~4%
+  if (L === 4) {   // dirt: mostly the sparsest variants (the plain tile and the dense ones are busier than the rest), the dense top row only ~5%
+    const W = [0.09, 0.34, 0.30, 0.16, 0.06, 0.0125, 0.0125, 0.0125, 0.0125]; let acc = 0;
+    for (let k = 0; k < W.length; k++) { acc += W[k]; if (h < acc) return 32 + k; } return 40;
+  }
   if (L !== 3) return h < 0.4 ? 32 : 33 + Math.min(7, Math.floor((h - 0.4) / 0.6 * 8));
   if (h < 0.35) return 32; if (h < 0.96) return 33 + Math.min(3, Math.floor((h - 0.35) / 0.61 * 4)); return 37 + Math.min(3, Math.floor((h - 0.96) / 0.04 * 4));
 }
