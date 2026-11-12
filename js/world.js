@@ -186,11 +186,12 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], tree: [[-4, -5, 8, 5]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
+    case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree }; break;
     default: return;
   }
   const sd = SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;

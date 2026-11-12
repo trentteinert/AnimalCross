@@ -80,4 +80,7 @@ function makeCamp() {
   RC(c, 40, 26, 14, 12, '#a8743a'); RC(c, 40, 26, 14, 2, '#c9965a'); RC(c, 46, 26, 2, 12, '#7a5028'); RC(c, 29, 0, 2, 6, '#6b4423'); RC(c, 31, 0, 6, 3, '#f2b84b');
   return anchor(OL(c), 31, 40);
 }
-function buildSprites() { SPR.camp = makeCamp(); }
+function buildSprites() {
+  SPR.camp = makeCamp();
+  const t = ASSET.img.tree; if (t) { const c = mk(t.width, t.height); c.g.drawImage(t, 0, 0); SPR.tree = anchor(c, 34, 100); }   // painted tree, anchored at the foot of its trunk
+}

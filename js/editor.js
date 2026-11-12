@@ -9,14 +9,15 @@ const ED = {
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#f1d8a6', '#abb488', '#c89676', '#c9b790', '#54a0b8'];
 const PAL = [
-  { k: 'camp', n: 'Camp (process and craft)' }
+  { k: 'camp', n: 'Camp (process and craft)' }, { k: 'tree', n: 'Tree' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
-const LABELS = { camp: 'Camp' };
+const LABELS = { camp: 'Camp', tree: 'Tree' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'camp': return SPR.camp;
+    case 'tree': return SPR.tree;
   }
 }
 function runtimeSpr(o) {
