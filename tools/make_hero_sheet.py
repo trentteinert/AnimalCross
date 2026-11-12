@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Builds the game's hero data from the painted sheet tools/src/hero_sheet.png:
-  1056x48 = 33 frames of 32x48: frame 0 = standing (facing down), then 4 walk frames for each direction in this order:
-  down (1-4), down-right (5-8), right (9-12), up-right (13-16), up (17-20), up-left (21-24), left (25-28), down-left (29-32).
-The other directions have no standing pose of their own, so each uses its most 'legs together' walk frame.
+"""Builds the game's hero data from the painted sheets in tools/src (tools/src/hero_with_hair.png is the original: body on the top row, hair below):
+  hero_sheet.png   1312x48 = 41 cells of 32x48. Cell 0 is unused; cells 1-32 are 4 walk frames for each direction in this order:
+                   down (1-4), down-right (5-8), right (9-12), up-right (13-16), up (17-20), up-left (21-24), left (25-28), down-left (29-32).
+                   Cells 33-40 are the standing poses for the same 8 directions in the same order.
+  hair_<name>.png  1312x48, painted on the same cells as hero_sheet.png (one hair frame per body frame, standing poses included)
 
 Output (assets/chars/):
   hero_uv.png    animation as coordinates: 5 frames (0 idle, 1-4 walk) x 8 directions, cell 32x48, feet end on row 47.
@@ -11,9 +12,8 @@ Output (assets/chars/):
   hero_roles.json  which skin pixels can be recoloured: eyes / skin / shirt / jeans / boots (the first entry is the role's main colour).
                    Colours with no role (belt, collar, cheeks) stay as painted.
   hero_preview.png  colour contact sheet rebuilt from the lookup (for checking)
-  hero_hairmap.json which hair cell to draw for every (direction row, frame). Hair styles are tools/src/hair_<name>.png (copied to assets/chars/):
-                   33 cells of 32x48, one per frame of hero_sheet.png, painted on the same canvas as the character (hide the body layer when exporting).
-                   Make them in Aseprite and flatten with tools/ase_to_png.py.
+  hero_hairmap.json which hair cell to draw for every (direction row, frame); hair_<name>.png is copied here from tools/src
+Direction rows in the output: down, down-left, left, up-left, up, up-right, right, down-right.
 """
 import json, os
 from PIL import Image
@@ -27,7 +27,7 @@ sheet = np.array(Image.open(SRC).convert('RGBA'))
 def role_of(h, y):  # (role or None, key) for a colour at row y of the cell
     if h in ('6f768d', '585f74', '696e81'): return 'jeans'
     if h in ('e1c6b4', 'd6b299'): return 'skin'
-    if h in ('c49a61', 'b38d5b', 'd5ac73'): return 'shirt'
+    if h in ('c49a61', 'b38d5b', 'd5ac73', '88604b'): return 'shirt'      # (88604b: collar trim in the standing poses)
     if h == '513b30': return 'eyes' if y < 30 else 'boots'
     if h == '77543c': return 'shirt' if y < 28 else (None if y < 40 else 'boots')   # collar trim / belt / shoes
     if h == '9e7548': return 'boots'
@@ -35,12 +35,12 @@ def role_of(h, y):  # (role or None, key) for a colour at row y of the cell
     raise SystemExit('colour #%s has no role' % h)
 hx = lambda p: '%02x%02x%02x' % tuple(p[:3])
 frame = lambda i: sheet[:, i * CW:(i + 1) * CW].copy()
-SRC_FRAMES = {0: [1, 2, 3, 4], 7: [5, 6, 7, 8], 6: [9, 10, 11, 12], 5: [13, 14, 15, 16], 4: [17, 18, 19, 20], 3: [21, 22, 23, 24], 2: [25, 26, 27, 28], 1: [29, 30, 31, 32]}
-def legs_together(i):  # width of the legs (rows 38+): smaller = more of a standing pose
-    m = sheet[38:, i * CW:(i + 1) * CW, 3] > 0; xs = np.where(m.any(0))[0]; return xs.max() - xs.min() if len(xs) else 99
+SRC_FRAMES = {0: [1, 2, 3, 4], 7: [5, 6, 7, 8], 6: [9, 10, 11, 12], 5: [13, 14, 15, 16], 4: [17, 18, 19, 20], 3: [21, 22, 23, 24], 2: [25, 26, 27, 28], 1: [29, 30, 31, 32]}   # game row -> sheet cells of its 4 walk frames
+IDLE_CELL = {0: 33, 7: 34, 6: 35, 5: 36, 4: 37, 3: 38, 2: 39, 1: 40}                                                                                                                  # game row -> sheet cell of its standing pose
+NCELLS = 41
 frames = {}
 for d, fs in SRC_FRAMES.items():
-    frames[d, 0] = frame(0) if d == 0 else frame(min(fs, key=legs_together))
+    frames[d, 0] = frame(IDLE_CELL[d])
     for k, f in enumerate(fs): frames[d, k + 1] = frame(f)
 
 # palette entries (role, colour)
@@ -69,14 +69,14 @@ for y in range(uv.shape[0]):
     for x in range(uv.shape[1]):
         if uv[y, x, 3]: prev[y, x] = skin[uv[y, x, 1], uv[y, x, 0]]
 bg = Image.new('RGBA', (uv.shape[1], uv.shape[0]), (120, 160, 120, 255)); bg.alpha_composite(Image.fromarray(prev)); bg.save(os.path.join(OUT, 'hero_preview.png'))
-print('roles', {r: len(v) for r, v in roles.items()}, 'sheet', uv.shape[1], 'x', uv.shape[0], 'idle frames', {d: (SRC_FRAMES[d][0] if d == 0 else min(SRC_FRAMES[d], key=legs_together)) for d in SRC_FRAMES})
+print('roles', {r: len(v) for r, v in roles.items()}, 'sheet', uv.shape[1], 'x', uv.shape[0])
 
 # ---- hair: every output frame draws the hair cell that sits on the same source frame of the character sheet
 import glob, shutil
 if glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png')):
-    hairmap = [[(SRC_FRAMES[d][f - 1] if f else (0 if d == 0 else min(SRC_FRAMES[d], key=legs_together))) for f in range(5)] for d in range(8)]
+    hairmap = [[(SRC_FRAMES[d][f - 1] if f else IDLE_CELL[d]) for f in range(5)] for d in range(8)]
     json.dump({'cell': hairmap}, open(os.path.join(OUT, 'hero_hairmap.json'), 'w'))
     for f in glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png')):
-        if Image.open(f).size != (33 * CW, CH): raise SystemExit('%s must be %dx%d (33 cells)' % (f, 33 * CW, CH))
+        if Image.open(f).size != (NCELLS * CW, CH): raise SystemExit('%s must be %dx%d (%d cells)' % (f, NCELLS * CW, CH, NCELLS))
         shutil.copy(f, os.path.join(OUT, os.path.basename(f)))
     print('hair styles:', [os.path.basename(f) for f in glob.glob(os.path.join(ROOT, 'tools', 'src', 'hair_*.png'))])
