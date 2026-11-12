@@ -165,7 +165,7 @@ function drawEnt(o, cx, cy, now) {
       const spr = o.spr; if (!spr) return;
       if (o.k === 'tree') { g.globalAlpha = 0.3; g.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx), Math.round(o.y - o.shadow.ay - cy)); g.globalAlpha = 1; }   // the crown's shadow on the ground
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
-      if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
+      if (Math.abs(o.lean) > 0.04) { const px = Math.round(o.x - spr.ax - cx), py = Math.round(o.y - spr.ay - cy), H = spr.height; for (let r = 0; r < H; r += 2) g.drawImage(spr, 0, r, spr.width, Math.min(2, H - r), px + Math.round(o.lean * Math.pow(1 - (r + 1) / H, 1.5) * 3), py + r, spr.width, Math.min(2, H - r)); } else if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
     }
   }
 }

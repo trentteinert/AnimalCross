@@ -174,6 +174,12 @@ function tickTrees(dt) {
       if (on && !o.on && ME.moving) for (let i = 0; i < 5; i++) spawnLeaf(o);
       o.on = on; o.sq = (o.sq || 0) + ((on ? 1 : 0) - (o.sq || 0)) * Math.min(1, dt * (on ? 14 : 7)); continue;
     }
+    if (o.k === 'decor' && /^flower/.test(o.src.d)) {   // flowers bend away as you brush through, then wobble back upright
+      const near = Math.abs(ME.x - o.x) < 11 && Math.abs(ME.y - o.y) < 9;
+      if (near && ME.moving && (!o.rt || t - o.rt > 0.5)) { o.rt = t; o.lv = (o.x >= ME.x ? 1 : -1) * 9; }
+      o.lv = o.lv || 0; o.lp = o.lp || 0; o.lv += (-o.lp * 90 - o.lv * 7) * dt; o.lp += o.lv * dt;
+      o.lean = o.lp; continue;
+    }
     if (o.k !== 'tree') continue; o.sx = 0;
     if (Math.abs(o.x - ME.x) > 220 || Math.abs(o.y - ME.y) > 260) continue;   // only trees near you are alive
     o.shake = Math.max(0, o.shake - dt); const sw = o.bare ? 0 : Math.round(Math.sin(t * 0.8 + o.ph) * 1.2 + Math.sin(t * 1.9 + o.ph * 2) * 0.5); o.sx = sw + Math.round(Math.sin(t * 42) * o.shake * 2.4);
