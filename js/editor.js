@@ -53,6 +53,7 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   (m.structs || []).forEach(q => { q.x0 += ox; q.x1 += ox; q.y0 += oy; q.y1 += oy; }); m.structs = (m.structs || []).filter(q => q.x1 > 0 && q.y1 > 0 && q.x0 < nw && q.y0 < nh);
   m.spawn = { x: clamp(m.spawn.x + ox * TS, 8, nw * TS - 8), y: clamp(m.spawn.y + oy * TS, 8, nh * TS - 8) };
   const od = m.deck || []; m.deck = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && od[sy] ? od[sy][sx] : '0'; } m.deck.push(r); }
+  const op = m.pit || []; m.pit = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && op[sy] ? op[sy][sx] : '0'; } m.pit.push(r); }
   const os = m.site || []; m.site = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && os[sy] ? os[sy][sx] : '0'; } m.site.push(r); }
   m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
 }
@@ -74,6 +75,7 @@ function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
+    if (ED.tile >= 400) { const id = ED.tile - 400; if (PIT[y * MW + x] !== id) { PIT[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 200) { const id = ED.tile - 200; if (SITE[y * MW + x] !== id) { SITE[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 100) { const id = ED.tile - 100; if (DECK[y * MW + x] !== id) { DECK[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (GRID[y * MW + x] !== ED.tile) { GRID[y * MW + x] = ED.tile; ED.dirty = true; ED.strokeChanged = true; }
@@ -264,7 +266,9 @@ function buildEditorUI() {
     + `<h4>Decking (piers, bridges, boardwalks)</h4>` + ['Driftwood', 'Dark oak', 'Pale stone', 'Driftwood + rails', 'Dark oak + rails', 'Pale stone + rails'].map((n, i) => `<button class="edt" data-ed="tile:${101 + i}" data-t="${101 + i}"><span style="background:${STRUCT_STYLES[i % 3].a}"></span>${n}</button>`).join('')
     + `<button class="edt" data-ed="tile:100" data-t="100"><span style="background:#1c4a6e"></span>Remove decking</button>`
     + `<h4>Dig sites (a better mattock opens each tier)</h4>` + [1, 2, 3].map(z => `<button class="edt" data-ed="tile:${200 + z}" data-t="${200 + z}"><span style="background:${SITES[z].col}"></span>${SITES[z].n} (tier ${SITES[z].tier})</button>`).join('')
-    + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`;
+    + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`
+    + `<h4>Depth (pits and walkways going down)</h4>` + [[2, 'Pit floor, 1 down', '#6a4b2e'], [4, 'Pit floor, 2 down', '#4e3622'], [1, 'Ramp 0 to 1', '#8a6a40'], [3, 'Ramp 1 to 2', '#8a6a40'], [5, 'Ramp 2 to 3', '#8a6a40'], [6, 'Pit floor, 3 down', '#3e2c1c']].map(t => `<button class="edt" data-ed="tile:${400 + t[0]}" data-t="${400 + t[0]}"><span style="background:${t[2]}"></span>${t[1]}</button>`).join('')
+    + `<button class="edt" data-ed="tile:400" data-t="400"><span style="background:#4a6a3a"></span>Remove depth (ground level)</button>`;
   const pal = PAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
   el.innerHTML = `
   <div class="edbar">

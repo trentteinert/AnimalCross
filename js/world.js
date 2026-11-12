@@ -1,9 +1,13 @@
 'use strict';
 const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 32, MAP_MAX = 200;
 let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels; maps can be any size from MAP_MIN to MAP_MAX
-function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); SITE = new Uint8Array(w * h); }
+function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); SITE = new Uint8Array(w * h); PIT = new Uint8Array(w * h); }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
 let SITE = new Uint8Array(MW * MH); // dig sites: 0 = none, 1-4 = zone (see SITES in data.js)
+// Z dimension: PIT holds the depth of the ground in half-units (0 = ground level, 2 = one unit down, 4 = two down, ...). An odd value is a RAMP: a walkway
+// that slopes between its two neighbours (v-1 on its high side, v+1 on its low side). A step of more than half a unit is a wall.
+let PIT = new Uint8Array(MW * MH);
+const PIT_U = 8;   // pixels of screen height per unit of depth
 let DECK = new Uint8Array(MW * MH); // wooden / stone decking laid over the tiles (piers, bridges, boardwalks): 0 = none, 1-3 = plank styles, 4-6 = the same with rails
 let LASTD = 0, MAPDATA = null;
 
@@ -52,7 +56,7 @@ function renderTerrain() {
     if (m === 15 && L === 3 && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the grass interiors are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  if (FEATURES.groundDetail) decorate(c); drawSites(c); drawDeck(c); return c;
+  if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
   const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#5e8438'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#6a9040'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#5e8438'); PX(t, 3, k & 1, '#8fb853'); return t; });
@@ -164,11 +168,11 @@ function nearAny(x, y, min, list) { for (const o of list) if (distSq(x, y, o.x, 
 function blankMap(cave) { // a plain starter map: a grass island in the sea (or a rock chamber for caves); nothing is placed yet
   setMapSize(64, 64); GRID = new Uint8Array(MW * MH);
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const d = Math.hypot((x - 32) / 22, (y - 32) / 20); GRID[y * MW + x] = cave ? (d < 0.7 ? 3 : 0) : d < 0.55 ? 3 : d < 0.72 ? 2 : d < 0.9 ? 1 : 0; }
-  return { v: 1, w: 64, h: 64, theme: cave ? 'cave' : 'day', tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pier: null, structs: [], spawn: { x: 32 * TS, y: 32 * TS }, objects: [] };
+  return { v: 1, w: 64, h: 64, theme: cave ? 'cave' : 'day', tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pit: serializePit(), pier: null, structs: [], spawn: { x: 32 * TS, y: 32 * TS }, objects: [] };
 }
 const generateDefaultMap = () => blankMap(false), generateDefaultCave = () => blankMap(true);
 function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
-function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
+function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pit: serializePit(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
 function validMap(m) {
   if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
   const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
@@ -202,6 +206,53 @@ function computeShore() { // standing points at the dig sites (used by wandering
     for (const d of D) if (siteAtT(tx + d[0], ty + d[1]) === z) { W.shore.push({ x: tx * TS + 8, y: ty * TS + 8, dir: d[2], zone: z }); break; }
   }
 }
+const pitV = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 0 : PIT[ty * MW + tx];
+function rampDir(tx, ty) {   // which way a ramp tile slopes down: [dx, dy] pointing from its high side to its low side
+  const v = pitV(tx, ty); let hi = null, lo = null;
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { const nv = pitV(tx + dx, ty + dy); if (nv === v - 1 && !hi) hi = [dx, dy]; if (nv === v + 1 && !lo) lo = [dx, dy]; }
+  if (lo) return lo; if (hi) return [-hi[0], -hi[1]]; return null;
+}
+function pitZ(x, y) {   // how far below ground level a point is, in units (smooth along ramps)
+  const tx = Math.floor(x / TS), ty = Math.floor(y / TS), v = pitV(tx, ty); if (!(v & 1)) return v / 2;
+  const r = rampDir(tx, ty); if (!r) return v / 2; const fx = (x - tx * TS) / TS, fy = (y - ty * TS) / TS;
+  return (v - 1) / 2 + clamp(r[0] === 1 ? fx : r[0] === -1 ? 1 - fx : r[1] === 1 ? fy : 1 - fy, 0, 1);
+}
+function rimY(x, y) {   // world y below which something standing in a pit is hidden behind the higher ground in front of it
+  const z = pitZ(x, y); if (z < 0.01) return null;
+  for (let ty = Math.floor(y / TS) + 1; ty < MH; ty++) { const zz = pitZ(x, ty * TS + 1); if (zz < z - 0.01) return ty * TS + zz * PIT_U; }
+  return null;
+}
+function serializePit() { const rows = []; for (let ty = 0; ty < MH; ty++) { let r = ''; for (let tx = 0; tx < MW; tx++) r += PIT[ty * MW + tx]; rows.push(r); } return rows; }
+function drawPits(c) {   // sunken ground: floors drawn lower on screen, north walls showing strata, ramps as plank slopes (placeholder art)
+  let any = false; for (let i = 0; i < PIT.length; i++) if (PIT[i]) { any = true; break; } if (!any) return;
+  const snap = mk(c.width, c.height); snap.g.drawImage(c, 0, 0); const U = PIT_U;
+  const floorCol = d => d >= 2 ? '#4e3622' : d >= 1 ? '#5f4329' : '#6a4b2e', STRATA = ['#8f6439', '#a77d4b', '#7d532e', '#9a7040'];
+  const face = (x, y0, y1, w) => { for (let y = Math.round(y0); y < Math.round(y1); y++) { c.g.fillStyle = STRATA[(y >> 1) & 3]; c.g.fillRect(x, y, w, 1); } c.g.fillStyle = 'rgba(0,0,0,0.22)'; c.g.fillRect(x, Math.round(y1) - 1, w, 1); };
+  const floorTex = (tx, ty, x, y, w, h, d) => { c.g.fillStyle = floorCol(d); c.g.fillRect(x, y, w, h); c.g.fillStyle = 'rgba(0,0,0,0.14)'; for (let i = 0; i < 4; i++) c.g.fillRect(x + Math.floor(hash2(tx, ty, 800 + i) * (w - 2)), y + Math.floor(hash2(tx, ty, 810 + i) * (h - 1)), 2, 1); c.g.fillStyle = 'rgba(255,225,180,0.10)'; for (let i = 0; i < 3; i++) c.g.fillRect(x + Math.floor(hash2(tx, ty, 820 + i) * (w - 2)), y + Math.floor(hash2(tx, ty, 830 + i) * (h - 1)), 2, 1); };
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
+    const v = PIT[ty * MW + tx]; if (!v) continue; const ox = tx * TS, oy = ty * TS;
+    if (!(v & 1)) {
+      const d = v / 2, off = Math.round(d * U), dn = pitZ(ox + 8, oy - 0.5);
+      floorTex(tx, ty, ox, oy + off, TS, TS, d);
+      if (dn < d) { face(ox, oy + dn * U, oy + off, TS); c.g.fillStyle = 'rgba(255,235,200,0.35)'; c.g.fillRect(ox, Math.round(oy + dn * U), TS, 1); }   // the north wall, with a lit lip
+      if (pitV(tx - 1, ty) < v - 1) { c.g.fillStyle = 'rgba(0,0,0,0.3)'; c.g.fillRect(ox, oy + off, 2, TS); }       // the side walls seen edge-on
+      if (pitV(tx + 1, ty) < v - 1) { c.g.fillStyle = 'rgba(0,0,0,0.3)'; c.g.fillRect(ox + TS - 2, oy + off, 2, TS); }
+      if (pitZ(ox + 8, oy + TS + 0.5) === 0) c.g.drawImage(snap, ox, oy + TS, TS, off, ox, oy + TS, TS, off);        // the ground to the south hides the bottom of the pit
+    } else {
+      const r = rampDir(tx, ty) || [1, 0];
+      if (r[0]) for (let k = 0; k < TS; k++) {   // a ramp along x: one column at a time
+        const t = r[0] === 1 ? (k + 0.5) / TS : 1 - (k + 0.5) / TS, z = (v - 1) / 2 + t, off = Math.round(z * U), dn = pitZ(ox + k + 0.5, oy - 0.5);
+        c.g.fillStyle = ((k >> 2) & 1) ? '#8a6a40' : '#7a5a34'; c.g.fillRect(ox + k, oy + off, 1, TS); c.g.fillStyle = 'rgba(0,0,0,0.2)'; c.g.fillRect(ox + k, oy + off + TS - 2, 1, 2);
+        if (dn < z) face(ox + k, oy + dn * U, oy + off, 1);
+        if (pitZ(ox + k + 0.5, oy + TS + 0.5) === 0) c.g.drawImage(snap, ox + k, oy + TS, 1, off, ox + k, oy + TS, 1, off);
+      } else for (let k = 0; k < TS; k++) {      // a ramp along y: one row at a time
+        const t = r[1] === 1 ? (k + 0.5) / TS : 1 - (k + 0.5) / TS, z = (v - 1) / 2 + t, ys = oy + k + Math.round(z * U);
+        c.g.fillStyle = ((k >> 2) & 1) ? '#8a6a40' : '#7a5a34'; c.g.fillRect(ox, ys, TS, 2);
+        c.g.fillStyle = 'rgba(0,0,0,0.25)'; c.g.fillRect(ox, ys, 1, 2); c.g.fillRect(ox + TS - 1, ys, 1, 2);
+      }
+    }
+  }
+}
 function loadMap(map) {
   setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) GRID[ty * MW + tx] = Math.min(6, Math.max(0, map.tiles[ty].charCodeAt(tx) - 48));
@@ -212,6 +263,7 @@ function loadMap(map) {
   for (const q of map.structs) { const id = (q.style | 0) % 3 + 1 + (q.rails ? 3 : 0); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) DECK[y * MW + x] = id; } // old pier / bridge rectangles become deck tiles
   map.structs = [];
   if (Array.isArray(map.site) && map.site.length === MH && map.site.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) SITE[y * MW + x] = FEATURES.sites || EDIT ? Math.min(4, Math.max(0, map.site[y].charCodeAt(x) - 48)) : 0;
+  if (Array.isArray(map.pit) && map.pit.length === MH && map.pit.every(r => typeof r === 'string' && r.length === MW)) for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) PIT[y * MW + x] = Math.min(8, Math.max(0, map.pit[y].charCodeAt(x) - 48));
   W.spawn = { x: map.spawn.x, y: map.spawn.y };
   rebuildAll(); computeShore();
 }
@@ -220,7 +272,9 @@ function initWorld(map) { loadMap(map); }
 // ---- collision --------------------------------------------------------------------------------------
 function blockedAt(x, y) {
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
-  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; }
+  let zmin = 99, zmax = -1;
+  for (const o of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
+  if (zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   const x0 = x - 3, x1 = x + 3, y0 = y - 3, y1 = y;
   for (const o of W.solids) {
     if (Math.abs(o.x - x) > 40 || Math.abs(o.y - y) > 30) continue;

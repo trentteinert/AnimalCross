@@ -15,13 +15,15 @@ const pctCol = p => p >= 70 ? '#8fe09a' : p >= 40 ? '#ffd877' : '#ff9a8a';
 const DIG_FINDS = { artifact: 0.45, salvage: 0.40 };   // the rest is dirt and pebbles
 const ART_W = { 1: [60, 28, 12], 2: [42, 36, 22], 3: [28, 40, 32] };   // common / uncommon / rare, by dig site tier
 const SALV_IDS = ['nails', 'fabric', 'boot'], SALV_W = [45, 30, 25];
-function rollDig(tier) {
+function rollDig(tier, depth) {   // depth: how far down the dug spot is (units): deeper strata give rarer finds that are better preserved
+  depth = depth || 0;
   const st = S.stats; let kind;
   if (st.digs === 0 || st.dry >= 3) kind = 'artifact';   // the very first dig, and every fourth dry one, always turns up an artifact
   else { const r = Math.random(); kind = r < DIG_FINDS.artifact ? 'artifact' : r < DIG_FINDS.artifact + DIG_FINDS.salvage ? 'salvage' : 'dirt'; }
   if (kind === 'artifact') {
-    const a = st.digs === 0 ? ARTIFACTS[0] : ARTIFACTS[pickW(ART_W[tier] || ART_W[1])];
-    return { kind, id: a.id, pct: clamp(Math.round(rnd(40, 88) - a.r * 4 + brush().pres), 5, 100) };   // rarer things are a little more fragile; brushes help
+    const w = (ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
+    const a = st.digs === 0 ? ARTIFACTS[0] : ARTIFACTS[pickW(w)];
+    return { kind, id: a.id, pct: clamp(Math.round(rnd(40, 88) - a.r * 4 + brush().pres + depth * 6), 5, 100) };   // rarer things are a little more fragile; brushes help
   }
   if (kind === 'salvage') return { kind, id: SALV_IDS[pickW(SALV_W)], n: 1 + (Math.random() < 0.4 ? 1 : 0) };
   return { kind };
@@ -62,7 +64,7 @@ function findTarget() {
     const v = DV[dn];
     for (let dd = 4; dd <= 22; dd += 2) {
       const sx = px + v[0] * dd, sy = py - 2 + v[1] * dd, z = siteAt(sx, sy);
-      if (z) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z, tx: Math.floor(sx / TS), ty: Math.floor(sy / TS) }; break; }
+      if (z && !(pitV(Math.floor(sx / TS), Math.floor(sy / TS)) & 1) && Math.abs(pitZ(sx, sy) - pitZ(px, py)) < 0.6) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z, tx: Math.floor(sx / TS), ty: Math.floor(sy / TS) }; break; }
     }
   }
   if (sb && (!best || sb.sc < best.sc + 2)) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z, tx: sb.tx, ty: sb.ty };
@@ -84,7 +86,7 @@ function startAction() {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
     const v = DV[t.dir];
-    A = { k: 'dig', t: 0, dur: 1.5 / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0 };
+    A = { k: 'dig', t: 0, dur: 1.5 / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
   }
 }
 function updateAct(dt) {
@@ -92,7 +94,7 @@ function updateAct(dt) {
   if (A.k === 'dig') {
     A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); }
     if (A.t >= A.dur) {
-      const res = rollDig(SITES[A.zone].tier); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; endAct();
+      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; endAct();
       showFind(res, hx, hy);
     }
   }
@@ -115,7 +117,7 @@ function tickHoles(dt) { for (let i = HOLES.length - 1; i >= 0; i--) { HOLES[i].
 // ---- drawing: dug spots, site signs, the find above your head, the mattock -----------------------------------------------------------------------
 function drawHoles(cx, cy) {
   for (const h of HOLES) {
-    const x = h.tx * TS - cx, y = h.ty * TS - cy; if (x < -20 || x > VW || y < -20 || y > VH) continue;
+    const x = h.tx * TS - cx, y = h.ty * TS - cy + Math.round(pitZ((h.tx + 0.5) * TS, (h.ty + 0.5) * TS) * PIT_U); if (x < -20 || x > VW || y < -20 || y > VH) continue;
     g.globalAlpha = clamp((HOLE_LIFE - h.t) / 8, 0, 1);
     g.fillStyle = '#2e1c10'; g.fillRect(x + 3, y + 5, 10, 7); g.fillRect(x + 4, y + 4, 8, 1); g.fillRect(x + 4, y + 12, 8, 1);
     g.fillStyle = '#4a3220'; g.fillRect(x + 4, y + 6, 8, 4);
@@ -123,7 +125,7 @@ function drawHoles(cx, cy) {
     g.globalAlpha = 1;
   }
   if (A && A.k === 'dig') {   // the hole opening up while you dig
-    const x = Math.round(A.x - cx), y = Math.round(A.y - cy), u = clamp(A.t / A.dur, 0, 1), w = 2 + Math.round(u * 8);
+    const x = Math.round(A.x - cx), y = Math.round(A.y - cy + A.depth * PIT_U), u = clamp(A.t / A.dur, 0, 1), w = 2 + Math.round(u * 8);
     g.fillStyle = '#2e1c10'; g.fillRect(x - w / 2, y - 2, w, 4 + Math.round(u * 3));
   }
 }
@@ -145,7 +147,7 @@ function drawSiteBoards(cx, cy) {   // a sign on every dig site: its name and wh
 function drawMarker(cx, cy, now) {
   if (!target) return;
   if (target.kind === 'dig') {   // outline the tile you would dig
-    const x = target.tx * TS - cx, y = target.ty * TS - cy, ok = siteOpen(target.zone) && !holeAt(target.tx, target.ty); g.fillStyle = ok ? `rgba(255,255,255,${0.55 + 0.35 * Math.sin(now * 6)})` : 'rgba(255,120,110,0.7)';
+    const x = target.tx * TS - cx, y = target.ty * TS - cy + Math.round(pitZ((target.tx + 0.5) * TS, (target.ty + 0.5) * TS) * PIT_U), ok = siteOpen(target.zone) && !holeAt(target.tx, target.ty); g.fillStyle = ok ? `rgba(255,255,255,${0.55 + 0.35 * Math.sin(now * 6)})` : 'rgba(255,120,110,0.7)';
     g.fillRect(x, y, TS, 1); g.fillRect(x, y + TS - 1, TS, 1); g.fillRect(x, y, 1, TS); g.fillRect(x + TS - 1, y, 1, TS); return;
   }
   const o = target.ref, bob = Math.round(Math.sin(now * 6) * 1.5), px = Math.round(o.x - cx), py = Math.round(o.y - 44 - cy + bob);
@@ -160,7 +162,7 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
   g.drawImage(ic, Math.round(e.x - sz / 2 - cx), top, sz, sz); g.globalAlpha = 1;
 }
 function drawHoldText(cx, cy) {   // name, how intact it is, and tags
-  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', sz = 16 * (big ? 3 : 2), x = Math.round(ME.x - cx), by = Math.round(ME.y - 44 - sz - cy) - 4;
+  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', sz = 16 * (big ? 3 : 2), x = Math.round(ME.x - cx), by = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - 44 - sz - cy) - 4;
   g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center';
   const sw = (s, y, col, f) => { g.font = f; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y); };
   if (big) {

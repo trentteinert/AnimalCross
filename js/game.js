@@ -136,7 +136,7 @@ function tick(dt) {
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
   // the camera eases toward the player instead of being locked to them (snaps on teleports / first frame)
-  const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y - VH / 2 - 10, 0, Math.max(0, PH - VH));
+  const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y + pitZ(ME.x, ME.y) * PIT_U - VH / 2 - 10, 0, Math.max(0, PH - VH));
   if (Math.hypot(ctx_ - cam.x, cty_ - cam.y) > 120) { cam.x = ctx_; cam.y = cty_; }
   else { const k = 1 - Math.exp(-dt * 3.5); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
 }
@@ -161,7 +161,12 @@ function drawChar(e, cx, cy, now) {
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
-    case 'me': case 'npc': if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); drawChar(o, cx, cy, now); g.restore(); } else drawChar(o, cx, cy, now); break;
+    case 'me': case 'npc': {
+      const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U); g.save();
+      if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
+      if (o === ME) g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)));
+      g.translate(0, zo); drawChar(o, cx, cy, now); g.restore(); break;
+    }
     default: {
       const spr = o.spr; if (!spr) return;
       g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));
@@ -212,7 +217,7 @@ function render(now) {
   drawHoldText(cx, cy);
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
-    if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y))); }
+    if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)) + Math.round(pitZ(o.x, o.y) * PIT_U)); }
     const nm = o === ME ? S.name : o.name, x = Math.round(o.x - cx), y = Math.round(o.y - 46 - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText(nm, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }
