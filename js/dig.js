@@ -183,7 +183,7 @@ function tickTrees(dt) {
     if (o.k === 'decor' && ROLL[o.src.d]) {   // pebbles and small rocks get kicked and roll; the bigger the stone, the less it rolls
       const f = ROLL[o.src.d]; o.vx = o.vx || 0; o.vy = o.vy || 0; o.ang = o.ang || 0;
       const dx = o.x - ME.x, dy = o.y - ME.y, d = Math.hypot(dx, dy * 1.3);
-      if (ME.moving && d < 9 && d > 0.1 && Math.hypot(o.vx, o.vy) < 8) { const k = 62 * f / d; o.vx = dx * k; o.vy = dy * k; }
+      if (ME.moving && d < 9 && d > 0.1) { const k = 62 * f / d; o.vx = dx * k; o.vy = dy * k; }
       const sp = Math.hypot(o.vx, o.vy);
       if (sp > 2.5) {
         const nx = o.x + o.vx * dt, ny = o.y + o.vy * dt;
