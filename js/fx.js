@@ -1,7 +1,7 @@
 'use strict';
 // Ambient effects shared by the game and the editor: waves, lily pads, cloud shadows, vignette, drifting leaves, tree sway.
 const FX = { cloud: null, leaves: [], lastLeaf: 0 };
-const fxOn = () => typeof S === 'undefined' || S.fx !== false;
+const fxOn = () => FEATURES.fx && (typeof S === 'undefined' || S.fx !== false);
 
 function buildClouds() {
   const c = mk(640, 480), r = rng(4242);

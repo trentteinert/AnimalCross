@@ -424,6 +424,7 @@ function render(now) {
   L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
+  if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
   // light
   const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();
   g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4);
@@ -441,6 +442,7 @@ function render(now) {
   }
   if (rain) { g.fillStyle = 'rgba(190,215,240,0.55)'; for (let i = 0; i < 90; i++) { const sp = 150 + hash2(i, 3, 5) * 70, x = (hash2(i, 1, 5) * (VW + 40) + now * 30) % (VW + 40) - 20, y = (hash2(i, 2, 5) * VH + now * sp) % VH; g.fillRect(Math.round(x), Math.round(y), 1, 4); } }
   if (fxOn()) fxVignette();
+  }
   // text layer
   g.textAlign = 'center'; g.font = '6px "Pixelify Sans", monospace'; g.lineJoin = 'round';
   if (ME.hold) {

@@ -48,7 +48,7 @@ function renderTerrain() {
     if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3)) : m + 16 * (hv > 0.5 ? 1 : 0);
     c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  decorate(c); drawSites(c); drawDeck(c); return c;
+  if (FEATURES.groundDetail) decorate(c); drawSites(c); drawDeck(c); return c;
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
   const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#5e8438'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#6a9040'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#5e8438'); PX(t, 3, k & 1, '#8fb853'); return t; });
