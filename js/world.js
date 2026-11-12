@@ -49,7 +49,8 @@ function renderTerrain() {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
     for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L) m |= 1 << k;
     if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? (L === 3 && ASSET.img.grass_variants ? grassVariantCol(hash2(i, j, 77)) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
-    c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
+    if (m === 15 && L === 3 && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the grass interiors are mirrored (edges never are)
+    else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
   if (FEATURES.groundDetail) decorate(c); drawSites(c); drawDeck(c); return c;
 }
