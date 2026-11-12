@@ -121,18 +121,22 @@ function drawDeck(c) { // tile-based decking: planks run along the walkway, open
   }
 }
 const siteAtT = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? 0 : SITE[y * MW + x];
-function drawSites(c) { // roped-off excavation squares: disturbed soil, a string border and a stake at each corner
+function drawSites(c) { // excavation squares (placeholder art): trampled dirt, scattered finds on the surface, a rope border and a stake at each corner
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
-    const z = SITE[ty * MW + tx]; if (!z) continue; const ox = tx * TS, oy = ty * TS, col = SITES[z].col;
-    c.g.fillStyle = 'rgba(70,44,22,0.30)'; c.g.fillRect(ox, oy, TS, TS);
-    for (let i = 0; i < 4; i++) { const px = ox + 1 + Math.floor(hash2(tx, ty, 90 + i) * 14), py = oy + 1 + Math.floor(hash2(tx, ty, 95 + i) * 14); RC(c, px, py, 2, 1, hash2(tx, ty, 99 + i) < 0.5 ? 'rgba(110,76,40,0.7)' : 'rgba(200,160,100,0.55)'); }
-    c.g.fillStyle = 'rgba(30,20,10,0.16)'; c.g.fillRect(ox, oy, TS, 1); c.g.fillRect(ox, oy, 1, TS);
+    const z = SITE[ty * MW + tx]; if (!z) continue; const ox = tx * TS, oy = ty * TS, col = SITES[z].col, h = k => hash2(tx, ty, 700 + k);
+    c.g.fillStyle = col; c.g.fillRect(ox, oy, TS, TS);
+    c.g.fillStyle = 'rgba(0,0,0,0.12)'; for (let i = 0; i < 6; i++) c.g.fillRect(ox + Math.floor(h(i) * 14), oy + Math.floor(h(10 + i) * 14), 2, 1);       // soil texture
+    c.g.fillStyle = 'rgba(255,230,190,0.10)'; for (let i = 0; i < 5; i++) c.g.fillRect(ox + Math.floor(h(20 + i) * 14), oy + Math.floor(h(30 + i) * 14), 2, 1);
+    if (h(40) < 0.30) { const x = ox + 2 + Math.floor(h(41) * 10), y = oy + 3 + Math.floor(h(42) * 9); RC(c, x, y, 3, 1, '#d4a878'); RC(c, x + 1, y + 1, 2, 1, '#b88458'); }   // pottery shard
+    if (h(43) < 0.20) { const x = ox + 2 + Math.floor(h(44) * 11), y = oy + 2 + Math.floor(h(45) * 11); RC(c, x, y, 2, 1, '#a8552a'); PX(c, x + 1, y + 1, '#7a3a1a'); }               // rusted fragment
+    if (h(46) < 0.34) { const x = ox + 2 + Math.floor(h(47) * 10), y = oy + 2 + Math.floor(h(48) * 10); RC(c, x, y, 3, 2, '#8a8a82'); RC(c, x, y, 3, 1, '#b4b4aa'); }                    // pebble
+    if (h(49) < 0.07) { const x = ox + 3 + Math.floor(h(50) * 6), y = oy + 4 + Math.floor(h(51) * 6); RC(c, x, y, 6, 1, '#5e3f24'); RC(c, x + 1, y - 1, 4, 1, '#5e3f24'); RC(c, x + 1, y + 1, 4, 1, '#7a5430'); }   // an exposed artifact shape, half buried
     const U = siteAtT(tx, ty - 1) === z, D = siteAtT(tx, ty + 1) === z, L = siteAtT(tx - 1, ty) === z, R = siteAtT(tx + 1, ty) === z;
     if (!U) { RC(c, ox, oy, TS, 1, '#efe2c0'); RC(c, ox, oy + 1, TS, 1, 'rgba(60,40,20,0.35)'); }
     if (!D) { RC(c, ox, oy + TS - 1, TS, 1, '#efe2c0'); RC(c, ox, oy + TS, TS, 1, 'rgba(60,40,20,0.35)'); }
     if (!L) { RC(c, ox, oy, 1, TS, '#efe2c0'); RC(c, ox + 1, oy, 1, TS, 'rgba(60,40,20,0.35)'); }
     if (!R) { RC(c, ox + TS - 1, oy, 1, TS, '#efe2c0'); RC(c, ox + TS, oy, 1, TS, 'rgba(60,40,20,0.35)'); }
-    for (const [sx, sy, open] of [[ox, oy, !U && !L], [ox + TS - 1, oy, !U && !R], [ox, oy + TS - 1, !D && !L], [ox + TS - 1, oy + TS - 1, !D && !R]]) if (open) { RC(c, sx - 1, sy - 4, 3, 6, '#5a3a1a'); RC(c, sx - 1, sy - 4, 3, 2, col); RC(c, sx, sy - 4, 1, 1, '#ffffff'); }
+    for (const [sx, sy, open] of [[ox, oy, !U && !L], [ox + TS - 1, oy, !U && !R], [ox, oy + TS - 1, !D && !L], [ox + TS - 1, oy + TS - 1, !D && !R]]) if (open) { RC(c, sx - 1, sy - 4, 3, 6, '#5a3a1a'); RC(c, sx - 1, sy - 4, 3, 2, '#8a5a30'); }
   }
 }
 function buildSiteRegions() { // one record per painted dig site (connected tiles of one zone): bounding box + tile list, used for the signs and level locks
@@ -171,12 +175,11 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { tackle: [[-22, -9, 44, 9], 18], portal: [[-20, -6, 40, 6], 22] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
-    case 'tackle': o = { k: 'tackle', spr: SPR.tackle }; break;
-    case 'portal': o = { k: 'portal', to: s.to || 'island', sx: s.sx || 0, sy: s.sy || 0, style: s.style, spr: s.style === 'exit' ? SPR.portalExit : SPR.portalCave }; break;
+    case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
     default: return;
   }
   const sd = SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;

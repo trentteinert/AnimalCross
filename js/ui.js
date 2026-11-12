@@ -1,14 +1,11 @@
 'use strict';
-const UI = { isOpen: false, cur: null, cr: null, crTimer: 0, hintTxt: '', actIcon: null, revealT: 0, toastQ: [] };
+const UI = { isOpen: false, cur: null, cr: null, crTimer: 0, hintTxt: '', actIcon: null, toastQ: [] };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const EMOTES = ['👋', '❤️', '😄', '❓', '⛏️', '✨'];
 
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
-  $('#menu').innerHTML = [['book', 'Book'], ['bag', 'Bag'], ['chat', 'Emote']].map(m =>
-    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[0])}" alt=""><i id="badge-${m[0]}"></i></button>`).join('');
-  $('#emotes').innerHTML = EMOTES.map(e => `<button data-act="emote:${e}">${e}</button>`).join('');
-  $('#coinimg').src = actURL('coin');
+  $('#menu').innerHTML = [['book', 'Collection', 'book'], ['gear', 'Gear', 'bag'], ['me', 'You', 'wave']].map(m =>
+    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
@@ -16,10 +13,8 @@ UI.init = function () {
 };
 
 UI.refresh = function () {
-  $('#gold').textContent = S.gold; $('#lv').textContent = S.lv;
-  $('#xpfill').style.width = clamp(S.xp / needXP(S.lv), 0, 1) * 100 + '%';
-  const b = $('#badge-bag'); b.textContent = bagCount() >= bagCap() ? 'FULL' : bagCount() + '/' + bagCap(); b.className = bagCount() >= bagCap() ? 'full' : '';
-  const R = { dealer: () => UI.renderDealer() }; if (R[UI.cur]) R[UI.cur]();
+  const m = $('#mats'); if (m) m.innerHTML = UI.matsHTML();
+  if (UI.cur === 'camp') UI.renderCamp();
   saveState();
 };
 
@@ -38,46 +33,22 @@ UI.setAct = function (icon, prog, alert) {
   $('#actbar').style.width = clamp(prog || 0, 0, 1) * 100 + '%'; a.classList.toggle('prog', prog != null && prog > 0); a.classList.toggle('alert', !!alert);
 };
 
-UI.reveal = function (list, meta) {
-  meta = meta || {};
-  const groups = []; list.forEach(i => { const g = groups.find(x => x.id === i.id); if (g) { g.n++; g.val += i.val; g.isNew = g.isNew || i.isNew; } else groups.push({ id: i.id, n: 1, val: i.val, inst: i, isNew: i.isNew }); });
-  groups.sort((a, b) => ITEM[b.id].r - ITEM[a.id].r);
-  const m = groups[0], it = ITEM[m.id], rar = RAR[it.r];
-  const tags = []; if (m.isNew) tags.push('<em class="new">NEW!</em>'); if (m.inst.isBest) tags.push('<em class="best">BEST SIZE!</em>'); else if (m.inst.big) tags.push('<em class="big">BIG!</em>');
-  const sz = fmtSz(m.inst);
-  const extra = groups.slice(1).map(g => `<span class="ex"><img src="${itemURL(g.id)}" alt="">${g.n > 1 ? '×' + g.n : ''}</span>`).join('');
-  const el = $('#reveal');
-  el.innerHTML = `<div class="rv px r${it.r}" style="--rc:${rar.c}"><div class="tags">${tags.join('')}</div><img class="ic" src="${itemURL(m.id)}" alt=""><div class="nm">${esc(it.name)}${m.n > 1 ? ' ×' + m.n : ''}</div><div class="mt">${sz ? sz + ' · ' : ''}<span style="color:${rar.c}">${rar.n}</span></div><div class="vl">worth ${m.val}g</div>${extra ? '<div class="exs">' + extra + '</div>' : ''}${meta.full ? '<div class="full">Bag full: some items left behind</div>' : ''}</div>`;
-  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); el.style.pointerEvents = 'auto';
-  clearTimeout(UI.revealT); UI.revealT = setTimeout(UI.hideReveal, it.r >= 2 ? 3200 : 2400);
-};
-UI.hideReveal = function () { const el = $('#reveal'); el.classList.remove('go'); el.style.pointerEvents = 'none'; };
-
 // ---- modal plumbing -------------------------------------------------------
 UI.open = function (type, html) {
   UI.cur = type; UI.isOpen = true; const m = $('#modal'); m.innerHTML = `<div class="sheet px" data-type="${type}">${html}</div>`; m.classList.remove('hidden');
-  $('#emotes').classList.add('hidden');
 };
 UI.close = function () {
   if (!UI.isOpen) return; clearInterval(UI.crTimer); UI.isOpen = false; UI.cur = null; $('#modal').classList.add('hidden'); $('#modal').innerHTML = ''; saveState();
 };
 const head = (t, x) => `<div class="mh"><h2>${t}</h2>${x === false ? '' : '<button class="x" data-act="close" aria-label="Close">✕</button>'}</div>`;
-const gemImg = `<img class="gem" src="${actURL('gem')}" alt="">`;
 
 UI.onClick = function (e) {
   const b = e.target.closest('[data-act]'); if (!b) { if (e.target.id === 'modal' && UI.cur !== 'creator') UI.close(); return; }
   const [a, p1, p2, p3] = b.dataset.act.split(':'); sfx('ui');
   switch (a) {
-    case 'x': UI.hideReveal(); break;
     case 'close': UI.close(); break;
-    case 'open': if (p1 === 'chat') { $('#emotes').classList.toggle('hidden'); } else UI['open' + p1[0].toUpperCase() + p1.slice(1)](); break;
-    case 'emote': doEmote(p1); $('#emotes').classList.add('hidden'); break;
-    case 'bookcat': UI.renderBook(p1); break;
-    case 'bookitem': UI.bookDetail(p1); break;
-    case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openBag(); break;
-    case 'fx': S.fx = S.fx === false; UI.openBag(); break;
-    case 'lefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); UI.openBag(); break;
-    case 'editlook': UI.openMe(false); break;
+    case 'open': UI['open' + p1[0].toUpperCase() + p1.slice(1)](p1 === 'me' ? false : undefined); break;
+    case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openGear(); break;
     case 'mehair': { const n = $('#mename').value; HERO.tint.hairStyle = p1; heroApply(); UI.openMe(UI.me.first); $('#mename').value = n; break; }
     case 'meturn': UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); break;
     case 'merand': Object.assign(HERO.tint, randLook()); heroApply(); UI.meSync(); break;
@@ -87,32 +58,6 @@ UI.onClick = function (e) {
   }
 };
 
-// ---- bag ------------------------------------------------------------------
-function grouped(f) { const g = {}; S.bag.filter(i => !f || f(i)).forEach(i => { (g[i.id] = g[i.id] || { id: i.id, n: 0, val: 0 }); g[i.id].n++; g[i.id].val += i.val; }); return Object.values(g).sort((a, b) => ITEM[b.id].r - ITEM[a.id].r || b.val - a.val); }
-UI.openBag = function () {
-  const g = grouped(), tot = S.bag.reduce((s, i) => s + i.val, 0);
-  const cells = g.length ? g.map(x => `<button class="cell r${ITEM[x.id].r}" data-act="show:${x.id}"><img src="${itemURL(x.id)}" alt=""><b>${x.n > 1 ? '×' + x.n : ''}</b><span>${esc(ITEM[x.id].name)}</span></button>`).join('') : '<p class="empty">Nothing yet. Find a dig site and start digging!</p>';
-  UI.open('bag', `${head('Bag')}<div class="capbar"><i style="width:${bagCount() / bagCap() * 100}%"></i><span>${bagCount()} / ${bagCap()} · worth ${tot}g</span></div><div class="grid">${cells}</div>
-  <p class="note">Tap an item to show it off. Sell your finds at the Antiquities Dealer.</p>
-  <div class="foot"><button class="btn small" data-act="editlook">Edit look</button><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="lefty">Left-handed: ${S.lefty ? 'On' : 'Off'}</button><button class="btn small" data-act="fx">Effects: ${S.fx === false ? 'Off' : 'On'}</button></div>`);
-};
-
-// ---- book -----------------------------------------------------------------
-UI.openBook = function () { UI.renderBook('fish'); };
-UI.renderBook = function (cat) {
-  const items = ITEMS.filter(i => i.cat === cat), found = items.filter(i => S.book[i.id]).length;
-  const tabs = CATS.map(c => { const n = ITEMS.filter(i => i.cat === c.id), f = n.filter(i => S.book[i.id]).length; return `<button class="tab ${c.id === cat ? 'on' : ''}" data-act="bookcat:${c.id}">${c.n}<small>${f}/${n.length}</small></button>`; }).join('');
-  const cells = items.map(i => { const b = S.book[i.id]; return `<button class="cell bk ${b ? 'r' + i.r : 'unk'}" data-act="bookitem:${i.id}"><img src="${itemURL(i.id)}" alt=""><span>${b ? esc(i.name) : '???'}</span></button>`; }).join('');
-  UI.open('book', `${head('Collection Book')}<div class="tabs">${tabs}</div><div class="grid g4">${cells}</div><div id="bookdetail" class="detail"><p class="empty">${found}/${items.length} found. Tap an entry for details.</p></div>`);
-  UI.bookCat = cat;
-};
-UI.bookDetail = function (id) {
-  const it = ITEM[id], b = S.book[id], r = RAR[it.r];
-  $('#bookdetail').innerHTML = b ? `<img src="${itemURL(id)}" alt=""><div><h3 style="color:${r.c}">${esc(it.name)} <small>${r.n}</small></h3><p>${esc(it.desc)}</p><p class="mut">Found ${b.n}× · ${it.sz ? 'best ' + (b.best >= 10 ? Math.round(b.best) : b.best) + ' cm · ' : ''}base ${it.v}g</p><p class="mut">${whereText(it)}</p></div>`
-    : `<img class="sil" src="${itemURL(id)}" alt=""><div><h3>???</h3><p class="mut">Hint: ${whereText(it)}</p></div>`;
-};
-
-// ---- the player: name + clothes (colour pickers recolour the UV-skinned hero) -------------------------------
 UI.openMe = function (first) {
   const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); UI.me = { dir: 0, first: !!first };
   const hs = HERO.tint.hairStyle || HAIR_STYLES[0], hh = HERO.hair[hs], picks = LOOK_ROLES.filter(r => r[0] === 'hair' ? hs !== 'none' && hh : (HERO.roles[r[0]] || []).length).map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || (r === 'hair' ? hex(hh.main) : hex(heroRoleColor(r)))}"></label>`).join('');
