@@ -189,7 +189,7 @@ function drawCrowns(cx, cy, now) {
   for (const o of W.objs) {
     if (o.k !== 'tree' || o.bare || !o.crown) continue; const c = o.crown, x = o.x - c.ax, y = o.y - c.ay;
     if (x + c.width < cx - 10 || x > cx + VW + 10 || y + c.height < cy - 10 || y > cy + VH + 10) continue;
-    let a = 1; if (GHOST_MODE === 'fade' && ME) { const over = ME.x + 9 > x && ME.x - 9 < x + c.width && ME.y > y && ME.y - 46 < y + c.height; o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; a = o.fa; }
+    let a = 1; if (false) { const over = ME.x + 9 > x && ME.x - 9 < x + c.width && ME.y > y && ME.y - 46 < y + c.height; o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; a = o.fa; }
     const sx = o.sx || 0, px = Math.round(x - cx), py = Math.round(y - cy), h = c.height, b1 = Math.round(h * 0.34), b2 = Math.round(h * 0.67);
     if (a < 1) g.globalAlpha = a;
     g.drawImage(c, 0, 0, c.width, b1, px + sx, py, c.width, b1);                                   // the top of the crown sways most,
@@ -210,7 +210,7 @@ function drawLeaves(cx, cy) {
 const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
 function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
-  if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me') return 1;
+  if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me' || o.k === 'tree' || o.k === 'decor') return 1;
   const s = o.spr, over = o.y > ME.y && ME.x + 9 > o.x - s.ax && ME.x - 9 < o.x - s.ax + s.width && ME.y > o.y - s.ay && ME.y - 46 < o.y;
   o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; return o.fa;
 }
@@ -219,8 +219,7 @@ function drawGhost(L, cx, cy) {
   const bob = A && A.k === 'dig' ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0, z = pitZ(e.x, e.y);
   const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U);
   const near = (x0, y0, sw, sh) => x0 + sw > sx && x0 < sx + w && y0 + sh > sy && y0 < sy + h;
-  const front = (GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && near(o.x - o.spr.ax - cx, o.y - o.spr.ay - cy, o.spr.width, o.spr.height))).map(o => ({ spr: o.spr, px: Math.round(o.x - o.spr.ax - cx), py: Math.round(o.y - o.spr.ay - cy) }));   // things drawn after you that overlap you
-  if (GHOST_MODE !== 'fade') for (const o of W.objs) if (o.k === 'tree' && o.crown && !o.bare) { const px = Math.round(o.x - o.crown.ax - cx + o.sx), py = Math.round(o.y - o.crown.ay - cy); if (near(px, py, o.crown.width, o.crown.height)) front.push({ spr: o.crown, px, py }); }   // tree crowns are drawn over everything
+  const front = (GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && o.k !== 'tree' && o.k !== 'decor' && near(o.x - o.spr.ax - cx, o.y - o.spr.ay - cy, o.spr.width, o.spr.height))).map(o => ({ spr: o.spr, px: Math.round(o.x - o.spr.ax - cx), py: Math.round(o.y - o.spr.ay - cy) }));   // things drawn after you that overlap you
   const ry = z > 0.01 ? rimY(e.x, e.y) : null;
   if (!front.length && ry == null) return;
   if (!GHOST.mask) { GHOST.tmp = mk(48, 56); GHOST.mask = mk(48, 56); GHOST.sil = mk(48, 56); GHOST.checker = mk(48, 56); for (let y = 0; y < 56; y++) for (let x = 0; x < 48; x++) if ((x & 1) && (y & 1)) GHOST.checker.g.fillRect(x, y, 1, 1); }
