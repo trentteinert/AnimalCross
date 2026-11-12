@@ -169,6 +169,12 @@ const LEAVES = [];
 function tickTrees(dt) {
   if (!W.objs) return; const t = performance.now() / 1000;
   for (const o of W.objs) {
+    if (o.k === 'decor' && /^bush/.test(o.src.d)) {   // walk through a bush and it rustles and puffs out leaves
+      o.sx = 0; if (o.shake > 0) o.shake = Math.max(0, o.shake - dt);
+      if (ME.moving && Math.abs(ME.x - o.x) < o.spr.width / 2 && ME.y > o.y - 6 && ME.y < o.y + 4 && (!o.rt || t - o.rt > 1.2)) { o.rt = t; o.shake = 0.45; for (let i = 0; i < 5; i++) spawnLeaf(o); }
+      if (o.shake > 0) o.sx = Math.round(Math.sin(t * 42) * o.shake * 2.4);
+      continue;
+    }
     if (o.k !== 'tree') continue; o.sx = 0;
     if (Math.abs(o.x - ME.x) > 220 || Math.abs(o.y - ME.y) > 260) continue;   // only trees near you are alive
     o.shake = Math.max(0, o.shake - dt); const sw = o.bare ? 0 : Math.round(Math.sin(t * 0.8 + o.ph) * 1.2 + Math.sin(t * 1.9 + o.ph * 2) * 0.5); o.sx = sw + Math.round(Math.sin(t * 42) * o.shake * 2.4);
@@ -182,6 +188,7 @@ function tickTrees(dt) {
   }
 }
 function spawnLeaf(o) {
+  if (o.k === 'decor') { const w = o.spr.width; LEAVES.push({ x: o.x + rnd(-w / 3, w / 3), y: o.y - rnd(4, o.spr.height * 0.7), vy: rnd(14, 24), vx: rnd(-8, 8), ph: rnd(0, 6.28), t: 0, k: Math.floor(rnd(0, 3)), gy: o.y + rnd(-2, 6), land: false, lt: 0 }); return; }
   const c = o.crown, x = o.x - c.ax + rnd(0.15, 0.85) * c.width, y = o.y - c.ay + rnd(0.4, 0.95) * c.height;
   LEAVES.push({ x, y, vy: rnd(10, 17), vx: rnd(-3, 3), ph: rnd(0, 6.28), t: 0, k: Math.floor(rnd(0, 3)), gy: o.y + rnd(-8, 12), land: false, lt: 0 });
 }

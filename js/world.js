@@ -195,7 +195,7 @@ function instantiate(s) {
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;
   }
-  let sd = SOLIDS[s.k]; if (s.k === 'decor' && /^(bush|rock\d)/.test(s.d)) { const bw = o.spr.width; sd = [[-Math.floor(bw / 2) + 2, -3, bw - 4, 3]]; }
+  let sd = SOLIDS[s.k]; 
   o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
