@@ -39,8 +39,8 @@ const W = { terrain: null, sites: [], objs: [], solids: [], trees: [], bushes: [
 // ---- terrain rendering (dual-grid autotiling, see tiles.js) -------------------
 const LVL = [0, 1, 2, 3, 4, 5, 2];
 const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 0 : GRID[ty * MW + tx];
-function grassVariantCol(h) { // half the meadow is the plain tile, the speckled variants are common, the tufty ones rare
-  if (h < 0.5) return 32; if (h < 0.9) return 33 + Math.floor((h - 0.5) / 0.4 * 4); return 37 + Math.min(3, Math.floor((h - 0.9) / 0.1 * 4));
+function grassVariantCol(h) { // about a third of the meadow is the plain tile, most of the rest is the small tuft/speckle variants (bottom row of the sheet), the big tufts (top row) are rare
+  if (h < 0.35) return 32; if (h < 0.96) return 33 + Math.min(3, Math.floor((h - 0.35) / 0.61 * 4)); return 37 + Math.min(3, Math.floor((h - 0.96) / 0.04 * 4));
 }
 function renderTerrain() {
   const A = atlasFor(W.theme), c = mk(PW, PH);
