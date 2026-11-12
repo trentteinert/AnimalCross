@@ -125,7 +125,7 @@ function tick(dt) {
   if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { const ti = targetInfo(target); UI.setAct(ti.icon, 0, false); UI.setHint(ti.hint); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
-  tickHoles(dt);
+  tickHoles(dt); tickTrees(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
@@ -163,8 +163,8 @@ function drawEnt(o, cx, cy, now) {
     }
     default: {
       const spr = o.spr; if (!spr) return;
-      if (o.k === 'tree') g.drawImage(shadowSpr(28, 9), Math.round(o.x - 14 - cx), Math.round(o.y - 5 - cy));
-      const fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
+      if (o.k === 'tree') { g.globalAlpha = 0.3; g.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx), Math.round(o.y - o.shadow.ay - cy)); g.globalAlpha = 1; }   // the crown's shadow on the ground
+      const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
       g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
     }
   }
@@ -186,7 +186,7 @@ function render(now) {
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
-  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawGhost(L, cx, cy);
+  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawLeaves(cx, cy); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)

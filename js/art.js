@@ -82,5 +82,16 @@ function makeCamp() {
 }
 function buildSprites() {
   SPR.camp = makeCamp();
-  const t = ASSET.img.tree; if (t) { const c = mk(t.width, t.height); c.g.drawImage(t, 0, 0); SPR.tree = anchor(c, 34, 100); }   // painted tree, anchored at the foot of its trunk
+  const T = ASSET.tree, im = ASSET.img.tree;   // the tree is three layers: trunk, crown (drawn over everything, it sways) and the crown's shadow
+  const cut = (img, q) => { const c = mk(q.w, q.h); c.g.drawImage(img, q.x, q.y, q.w, q.h, 0, 0, q.w, q.h); return c; };
+  if (T && im) {
+    const trunk = cut(im, T.trunk); trunk.ax = T.trunk.ax; trunk.ay = T.trunk.ay;
+    const crown = cut(im, T.crown); crown.ax = -T.crown.ox; crown.ay = -T.crown.oy;
+    const shadow = cut(im, T.shadow); shadow.g.globalCompositeOperation = 'source-in'; shadow.g.fillStyle = '#0c1a0c'; shadow.g.fillRect(0, 0, shadow.width, shadow.height); shadow.ax = -T.shadow.ox; shadow.ay = -T.shadow.oy;
+    SPR.tree = { trunk, crown, shadow };
+  }
+  SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
+  if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
+  SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells
+  if (lm) for (let f = 0; f < 4; f++) { SPR.leaves[f] = []; for (let k = 0; k < 3; k++) { const c = cut(lm, { x: f * 15 + k * 5, y: 0, w: 5, h: 5 }); c.ax = 2; c.ay = 2; SPR.leaves[f][k] = c; } }
 }

@@ -9,15 +9,19 @@ const ED = {
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#f1d8a6', '#abb488', '#c89676', '#c9b790', '#54a0b8'];
 const PAL = [
-  { k: 'camp', n: 'Camp (process and craft)' }, { k: 'tree', n: 'Tree' }
+  { k: 'camp', n: 'Camp (process and craft)' }, { k: 'tree', v: 0, n: 'Tree' }, { k: 'tree', v: 1, n: 'Bare tree' },
+  { k: 'decor', d: 'flower0', n: 'Flower: red' }, { k: 'decor', d: 'flower1', n: 'Flower: purple' }, { k: 'decor', d: 'flower2', n: 'Flower: gold' }, { k: 'decor', d: 'flower3', n: 'Flower: small red' }, { k: 'decor', d: 'flower4', n: 'Flower: small white' }, { k: 'decor', d: 'flower5', n: 'Flower: poppy' }, { k: 'decor', d: 'flower6', n: 'Flower: blue' }, { k: 'decor', d: 'flower7', n: 'Flower: pink' },
+  { k: 'decor', d: 'bush0', n: 'Bush 1' }, { k: 'decor', d: 'bush1', n: 'Bush 2' }, { k: 'decor', d: 'bush2', n: 'Bush 3' }, { k: 'decor', d: 'bush3', n: 'Bush 4' }, { k: 'decor', d: 'bush4', n: 'Bush 1 (olive)' }, { k: 'decor', d: 'bush5', n: 'Bush 2 (olive)' }, { k: 'decor', d: 'bush6', n: 'Bush 3 (olive)' }, { k: 'decor', d: 'bush7', n: 'Bush 4 (olive)' },
+  { k: 'decor', d: 'rock0', n: 'Rock' }, { k: 'decor', d: 'rock1', n: 'Big rock' }, { k: 'decor', d: 'pebble0', n: 'Pebble 1' }, { k: 'decor', d: 'pebble1', n: 'Pebble 2' }, { k: 'decor', d: 'pebble2', n: 'Pebble 3' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
-const LABELS = { camp: 'Camp', tree: 'Tree' };
+const LABELS = { camp: 'Camp', tree: 'Tree', decor: 'Scenery' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'camp': return SPR.camp;
-    case 'tree': return SPR.tree;
+    case 'tree': return SPR.tree && SPR.tree.trunk;
+    case 'decor': return SPR.decor[e.d];
   }
 }
 function runtimeSpr(o) {
@@ -88,7 +92,7 @@ function lineTiles(x0, y0, x1, y1, fn) {
 }
 function placeAt(wx, wy) {
   const e = ED.place; if (!e) { msg('Pick an object from the palette first.'); return; }
-  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style;
+  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style; if (e.d) o.d = e.d;
   if (e.k === 'portal') { o.to = e.style === 'exit' ? 'island' : 'cave'; o.sx = e.style === 'exit' ? 512 : 512; o.sy = e.style === 'exit' ? 224 : 912; } if (e.k === 'note') o.text = 'Write your tip here.';
   MAPDATA.objects.push(o); rebuildAndSelect(o); commit();
 }
@@ -235,7 +239,7 @@ function edRender(now) {
   g.fillStyle = '#121a27'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) fxWater(cx, cy, now);
   const L = W.objs.filter(o => o.x > cx - 80 && o.x < cx + VW + 80 && o.y > cy - 10 && o.y < cy + VH + 100).sort((a, b) => a.y - b.y);
-  for (const o of L) drawEnt(o, cx, cy, now);
+  for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now);
   if (ED.grid) {
     g.fillStyle = 'rgba(255,255,255,0.11)'; const lw = 1 / Z;
     for (let x = Math.max(0, Math.floor(cx / TS)) * TS; x <= Math.min(PW, cx + VW); x += TS) g.fillRect(x - cx, Math.max(0, -cy), lw, Math.min(PH - cy, VH));

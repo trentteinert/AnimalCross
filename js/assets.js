@@ -6,11 +6,13 @@ const ASSET = { img: {}, props: null, ok: false };
 
 const HAIR_STYLES = ['default'];   // ids of the hair sheets in assets/chars/hair_<id>.png; 'none' (bald) is always available
 function loadAssets(cb) {
-  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', tree: 'assets/props/tree.png', grass_tiles: 'assets/tiles/grass.png', sand_tiles: 'assets/tiles/sand.png', dirt_tiles: 'assets/tiles/dirt.png', grass_variants: 'assets/tiles/grass_variants.png', sand_variants: 'assets/tiles/sand_variants.png', dirt_variants: 'assets/tiles/dirt_variants.png' };
+  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', tree: 'assets/props/tree.png', decor: 'assets/props/decor.png', leaves: 'assets/props/leaves.png', grass_tiles: 'assets/tiles/grass.png', sand_tiles: 'assets/tiles/sand.png', dirt_tiles: 'assets/tiles/dirt.png', grass_variants: 'assets/tiles/grass_variants.png', sand_variants: 'assets/tiles/sand_variants.png', dirt_variants: 'assets/tiles/dirt_variants.png' };
   for (const id of HAIR_STYLES) list['hair_' + id] = 'assets/chars/hair_' + id + '.png';   // hair styles: one sheet each (see tools/make_hero_sheet.py)
-  let left = Object.keys(list).length + 2; const failed = [];
+  let left = Object.keys(list).length + 4; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
+  fetch('assets/props/tree.json').then(r => r.json()).then(j => { ASSET.tree = j; done(); }).catch(() => { ASSET.tree = null; done(); });
+  fetch('assets/props/decor.json').then(r => r.json()).then(j => { ASSET.decor = j; done(); }).catch(() => { ASSET.decor = null; done(); });
   fetch('assets/chars/hero_hairmap.json').then(r => r.json()).then(j => { ASSET.hairMap = j.cell; done(); }).catch(() => { ASSET.hairMap = null; done(); });
   fetch('assets/chars/hero_roles.json').then(r => r.json()).then(j => { ASSET.heroRoles = j; done(); }).catch(() => { ASSET.heroRoles = {}; done(); });
 }

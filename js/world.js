@@ -186,15 +186,17 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20], tree: [[-4, -5, 8, 5]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
-    case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree }; break;
+    case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree.trunk, crown: SPR.tree.crown, shadow: SPR.tree.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break;
+    case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;
   }
-  const sd = SOLIDS[s.k]; o.x = s.x; o.y = s.y; o.src = s;
+  let sd = SOLIDS[s.k]; if (s.k === 'decor' && /^(bush|rock\d)/.test(s.d)) { const bw = o.spr.width; sd = [[-Math.floor(bw / 2) + 2, -3, bw - 4, 3]]; }
+  o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
 }

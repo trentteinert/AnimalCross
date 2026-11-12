@@ -164,6 +164,48 @@ function drawHoldText(cx, cy) {   // name, how intact it is, and tags
   } else sw('+' + r.n + ' ' + it.name, by, '#d8c8a8', 'bold 7px "Pixelify Sans", monospace');
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
+// ---- trees: the crown is drawn over everything and sways; leaves drift down from it ---------------------------------------------------------------------
+const LEAVES = [];
+function tickTrees(dt) {
+  if (!W.objs) return; const t = performance.now() / 1000;
+  for (const o of W.objs) {
+    if (o.k !== 'tree') continue; o.sx = 0;
+    if (Math.abs(o.x - ME.x) > 220 || Math.abs(o.y - ME.y) > 260) continue;   // only trees near you are alive
+    o.shake = Math.max(0, o.shake - dt); const sw = o.bare ? 0 : Math.round(Math.sin(t * 0.8 + o.ph) * 1.2 + Math.sin(t * 1.9 + o.ph * 2) * 0.5); o.sx = sw + Math.round(Math.sin(t * 42) * o.shake * 2.4);
+    if (!o.bare && SPR.leaves.length) { o.lt -= dt; if (o.lt <= 0) { o.lt = rnd(3.5, 8); spawnLeaf(o); } }
+    if (ME.moving && Math.hypot(ME.x - o.x, (ME.y - o.y) * 1.2) < 13 && !o.bare) { if (!o.rt || t - o.rt > 1.6) { o.rt = t; o.shake = 0.55; for (let i = 0; i < 4; i++) spawnLeaf(o); } }   // brush past the trunk and the crown rustles
+  }
+  for (let i = LEAVES.length - 1; i >= 0; i--) {
+    const l = LEAVES[i]; l.t += dt;
+    if (!l.land) { l.y += l.vy * dt; l.x += (Math.sin(l.t * 1.7 + l.ph) * 9 + l.vx) * dt; if (l.y >= l.gy) { l.y = l.gy; l.land = true; l.lt = 0; } }
+    else { l.lt += dt; if (l.lt > 3.5) LEAVES.splice(i, 1); }
+  }
+}
+function spawnLeaf(o) {
+  const c = o.crown, x = o.x - c.ax + rnd(0.15, 0.85) * c.width, y = o.y - c.ay + rnd(0.4, 0.95) * c.height;
+  LEAVES.push({ x, y, vy: rnd(10, 17), vx: rnd(-3, 3), ph: rnd(0, 6.28), t: 0, k: Math.floor(rnd(0, 3)), gy: o.y + rnd(-8, 12), land: false, lt: 0 });
+}
+function drawCrowns(cx, cy, now) {
+  for (const o of W.objs) {
+    if (o.k !== 'tree' || o.bare || !o.crown) continue; const c = o.crown, x = o.x - c.ax, y = o.y - c.ay;
+    if (x + c.width < cx - 10 || x > cx + VW + 10 || y + c.height < cy - 10 || y > cy + VH + 10) continue;
+    let a = 1; if (GHOST_MODE === 'fade' && ME) { const over = ME.x + 9 > x && ME.x - 9 < x + c.width && ME.y > y && ME.y - 46 < y + c.height; o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; a = o.fa; }
+    const sx = o.sx || 0, px = Math.round(x - cx), py = Math.round(y - cy), h = c.height, b1 = Math.round(h * 0.34), b2 = Math.round(h * 0.67);
+    if (a < 1) g.globalAlpha = a;
+    g.drawImage(c, 0, 0, c.width, b1, px + sx, py, c.width, b1);                                   // the top of the crown sways most,
+    g.drawImage(c, 0, b1, c.width, b2 - b1, px + Math.round(sx * 0.6), py + b1, c.width, b2 - b1);   // the middle less,
+    g.drawImage(c, 0, b2, c.width, h - b2, px + Math.round(sx * 0.25), py + b2, c.width, h - b2);   // and the bottom hardly at all
+    g.globalAlpha = 1;
+  }
+}
+function drawLeaves(cx, cy) {
+  for (const l of LEAVES) {
+    if (l.x < cx - 10 || l.x > cx + VW + 10 || l.y < cy - 10 || l.y > cy + VH + 10) continue;
+    const fr = l.land ? 3 : Math.floor(l.t * 7) % 4, s = SPR.leaves[fr][l.k]; if (l.land) g.globalAlpha = clamp(1 - Math.max(0, l.lt - 2.5), 0, 1);
+    g.drawImage(s, Math.round(l.x - s.ax - cx), Math.round(l.y - s.ay - cy)); g.globalAlpha = 1;
+  }
+}
+
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
 const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
@@ -176,7 +218,9 @@ function drawGhost(L, cx, cy) {
   const e = ME, spr = heroSprite(faceIdx(e), (A && A.k === 'dig') || ME.hold ? 0 : heroFrameOf(e), null), w = spr.width, h = spr.height;
   const bob = A && A.k === 'dig' ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0, z = pitZ(e.x, e.y);
   const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U);
-  const front = GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && o.x - cx + 40 > sx && o.x - cx - 40 < sx + w && o.y - cy + 4 > sy && o.y - o.spr.ay - cy < sy + h);   // things drawn after you that overlap you
+  const near = (x0, y0, sw, sh) => x0 + sw > sx && x0 < sx + w && y0 + sh > sy && y0 < sy + h;
+  const front = (GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && o.k !== 'me' && near(o.x - o.spr.ax - cx, o.y - o.spr.ay - cy, o.spr.width, o.spr.height))).map(o => ({ spr: o.spr, px: Math.round(o.x - o.spr.ax - cx), py: Math.round(o.y - o.spr.ay - cy) }));   // things drawn after you that overlap you
+  if (GHOST_MODE !== 'fade') for (const o of W.objs) if (o.k === 'tree' && o.crown && !o.bare) { const px = Math.round(o.x - o.crown.ax - cx + o.sx), py = Math.round(o.y - o.crown.ay - cy); if (near(px, py, o.crown.width, o.crown.height)) front.push({ spr: o.crown, px, py }); }   // tree crowns are drawn over everything
   const ry = z > 0.01 ? rimY(e.x, e.y) : null;
   if (!front.length && ry == null) return;
   if (!GHOST.mask) { GHOST.tmp = mk(48, 56); GHOST.mask = mk(48, 56); GHOST.sil = mk(48, 56); GHOST.checker = mk(48, 56); for (let y = 0; y < 56; y++) for (let x = 0; x < 48; x++) if ((x & 1) && (y & 1)) GHOST.checker.g.fillRect(x, y, 1, 1); }
@@ -184,7 +228,7 @@ function drawGhost(L, cx, cy) {
   M.g.clearRect(0, 0, 48, 56); Sil.g.clearRect(0, 0, 48, 56);
   M.g.globalCompositeOperation = 'source-over'; M.g.fillStyle = '#fff';
   if (ry != null) M.g.fillRect(0, Math.round(ry - cy - sy) + oy, 48, 56);
-  for (const o of front) M.g.drawImage(o.spr, Math.round(o.x - o.spr.ax - cx) - sx + ox, Math.round(o.y - o.spr.ay - cy) - sy + oy);   // where something solid is drawn over you
+  for (const o of front) M.g.drawImage(o.spr, o.px - sx + ox, o.py - sy + oy);   // where something solid is drawn over you
   if (GHOST_MODE === 'outline') {   // a one pixel outline of you, only where something hides you
     const T = GHOST.tmp; T.g.clearRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over'; T.g.drawImage(spr, ox, oy); T.g.globalCompositeOperation = 'source-in'; T.g.fillStyle = '#fff'; T.g.fillRect(0, 0, 48, 56); T.g.globalCompositeOperation = 'source-over';
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Sil.g.drawImage(T, dx, dy);
