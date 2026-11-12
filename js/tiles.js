@@ -70,7 +70,13 @@ function generateAtlas() {
 function applyFills(c) {
   const f = ASSET && ASSET.img && ASSET.img.fills; if (!f) return c;
   const put = (srcRow, dstRow, dstCol0, tint) => { for (let k = 0; k < 4; k++) { c.g.drawImage(f, k * 16, srcRow * 16, 16, 16, (dstCol0 + k) * 16, dstRow * 16, 16, 16); if (tint) { c.g.save(); c.g.globalCompositeOperation = 'source-atop'; c.g.fillStyle = tint; c.g.fillRect((dstCol0 + k) * 16, dstRow * 16, 16, 16); c.g.restore(); } } };
-  put(3, 0, 0, 'rgba(0,24,34,0.32)'); put(3, 1, 32, 'rgba(120,210,190,0.12)'); put(2, 2, 32); put(0, 3, 32); put(1, 4, 32); put(3, 6, 32);
+  put(3, 0, 0, 'rgba(0,24,34,0.32)'); put(3, 1, 32, 'rgba(120,210,190,0.12)'); put(2, 2, 32); put(1, 4, 32); put(3, 6, 32);
+  const gt = ASSET.img.grass_tiles;   // painted grass (assets/tiles/grass.png, one tile per corner mask, built by tools/make_tiles.py); it has no outer lip, only its own edge
+  if (gt) {
+    c.g.clearRect(0, 3 * 16, ATL_COLS * 16, 16);
+    for (let m = 1; m < 16; m++) for (let set = 0; set < 2; set++) c.g.drawImage(gt, m * 16, 0, 16, 16, (m + 16 * set) * 16, 3 * 16, 16, 16);
+    for (let k = 0; k < 4; k++) c.g.drawImage(gt, 15 * 16, 0, 16, 16, (32 + k) * 16, 3 * 16, 16, 16);
+  } else put(0, 3, 32);
   return c;
 }
 function showAtlas(a) {

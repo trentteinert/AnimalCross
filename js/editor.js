@@ -7,7 +7,7 @@ const ED = {
   pan: null, mv: null, msg: '', msgT: 0, last: 0, lastWheel: 0, unsaved: false
 };
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
-const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#7b9b45', '#b88652', '#c9b790', '#54a0b8'];
+const TILE_COL = ['#2e6294', '#5fa8c0', '#e2cd96', '#abb488', '#b88652', '#c9b790', '#54a0b8'];
 const PAL = [
   { k: 'tackle', n: 'Antiquities dealer' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)

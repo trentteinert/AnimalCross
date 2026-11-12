@@ -6,7 +6,7 @@ const ASSET = { img: {}, props: null, ok: false };
 
 const HAIR_STYLES = ['default'];   // ids of the hair sheets in assets/chars/hair_<id>.png; 'none' (bald) is always available
 function loadAssets(cb) {
-  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png' };
+  const list = { hero_uv: 'assets/chars/hero_uv.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', grass_tiles: 'assets/tiles/grass.png' };
   for (const id of HAIR_STYLES) list['hair_' + id] = 'assets/chars/hair_' + id + '.png';   // hair styles: one sheet each (see tools/make_hero_sheet.py)
   let left = Object.keys(list).length + 2; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
