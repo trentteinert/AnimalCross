@@ -160,3 +160,10 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats{display:flex;flex-wrap:wrap;gap:6px}
 .costs{display:flex;gap:8px;margin-top:3px}.cst{display:inline-flex;align-items:center;gap:2px;font-size:12px}.cst img{width:14px;height:14px}.cst.ok{color:#8fe09a}.cst.no{color:#ff9a8a}
 .okt{color:#8fe09a;font-size:12px}.lockt{color:var(--muted);font-size:12px;text-align:right;max-width:120px}.row.dim{opacity:.6}.list2{margin-top:2px}
+
+/* direction wheel: a fixed on-screen stick, touch devices only (opposite the action button) */
+#wheel{display:none;position:absolute;left:calc(var(--sal) + 22px);bottom:calc(var(--sab) + 26px);width:124px;height:124px;border-radius:50%;border:3px solid rgba(245,233,207,.5);background:rgba(15,22,36,.35);pointer-events:auto;touch-action:none;z-index:4}
+#wheel::before,#wheel::after{content:"";position:absolute;background:rgba(245,233,207,.18)}#wheel::before{left:50%;top:10px;bottom:10px;width:2px;margin-left:-1px}#wheel::after{top:50%;left:10px;right:10px;height:2px;margin-top:-1px}
+#wknob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(245,233,207,.82);border:3px solid rgba(15,22,36,.5)}
+body.touch #wheel{display:block}body.lefty #wheel{left:auto;right:calc(var(--sar) + 22px)}
+body.touch #hint{bottom:calc(var(--sab) + 164px)}
