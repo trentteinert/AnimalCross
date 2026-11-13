@@ -213,21 +213,12 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
   if (big && r.pct >= 80) { g.fillStyle = 'rgba(255,240,170,0.9)'; for (let i = 0; i < 4; i++) { const a = now * 2 + i * 1.57, rr = sz * 0.55 + 4; g.fillRect(Math.round(e.x - cx + Math.cos(a) * rr), Math.round(top + sz / 2 + Math.sin(a) * rr * 0.7), 2, 2); } }
   g.drawImage(ic, Math.round(e.x - sz / 2 - cx), top, sz, sz); g.globalAlpha = 1;
 }
-function drawHoldText(cx, cy) {   // a small plaque over the held find: what it is, how intact it is, and whether it is new or your best
+function drawHoldText(cx, cy) {   // one short line over the held find: its name, in the rarity colour, with a thin dark shadow
   if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', x = Math.round(ME.x - cx);
-  const bottom = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 47 : 44 + 16 * (big ? 3 : 2)) - cy), accent = big ? RAR[it.r].c : '#d8c8a8';
-  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2) ; g.textAlign = 'left'; g.textBaseline = 'middle';
-  const F = 'bold 7px "Pixelify Sans", monospace', FS = '6px "Pixelify Sans", monospace', tags = [];
-  if (big && r.isNew) tags.push(['NEW', '#8fe09a']); if (big && r.isBest) tags.push(['BEST', '#78bfff']);
-  g.font = F; const title = big ? it.name : '+' + r.n + ' ' + it.name, sub = big ? r.pct + '% intact' : '', tw = Math.ceil(g.measureText(title).width);
-  g.font = FS; const sw = sub ? Math.ceil(g.measureText(sub).width) : 0, tgw = tags.reduce((a, t) => a + Math.ceil(g.measureText(t[0]).width) + 7, 0);
-  const w = Math.max(tw, sw + 22, 30) + 10, rows = 1 + (sub ? 1 : 0), hgt = 5 + rows * 9 + (sub ? 2 : 0), bx = Math.round(x - w / 2), by = bottom - hgt;
-  g.fillStyle = 'rgba(22,16,12,0.92)'; g.fillRect(bx, by, w, hgt); g.fillStyle = accent; g.fillRect(bx, by, w, 1); g.fillStyle = 'rgba(90,74,54,0.9)'; g.fillRect(bx, by + hgt - 1, w, 1); g.fillRect(bx, by + 1, 1, hgt - 2); g.fillRect(bx + w - 1, by + 1, 1, hgt - 2);
-  g.font = F; g.fillStyle = accent; g.fillText(title, bx + 5, by + 7);
-  if (sub) { g.font = FS; g.fillStyle = pctCol(r.pct); g.fillText(sub, bx + 5, by + 16); const bw = w - 10 - sw - 5; g.fillStyle = '#0c0907'; g.fillRect(bx + 5 + sw + 4, by + 14, bw, 3); g.fillStyle = pctCol(r.pct); g.fillRect(bx + 5 + sw + 4, by + 14, Math.max(1, Math.round(bw * r.pct / 100)), 3); }
-  let tx = bx; g.font = FS;   // tags sit on the top edge as little tabs
-  tags.forEach(t => { const tw2 = Math.ceil(g.measureText(t[0]).width) + 6; g.fillStyle = t[1]; g.fillRect(tx + 3, by - 8, tw2, 8); g.fillStyle = '#17110c'; g.fillText(t[0], tx + 6, by - 4); tx += tw2 + 2; });
-  g.textBaseline = 'alphabetic'; g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace'; g.textAlign = 'center';
+  const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
+  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = 'bold 7px "Pixelify Sans", monospace';
+  g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(txt, x + 1, y + 1); g.fillText(txt, x, y + 1); g.fillText(txt, x + 1, y); g.fillStyle = col; g.fillText(txt, x, y);
+  g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
 // ---- trees: the crown is drawn over everything and sways; leaves drift down from it ---------------------------------------------------------------------
 const LEAVES = [];
