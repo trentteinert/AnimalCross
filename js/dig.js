@@ -154,12 +154,11 @@ function actState() {
   if (A.k === 'dig') return { icon: 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph ? 'Brushing...' : 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
-  if (res.kind === 'dirt') { UI.gain(null, 'Just dirt'); sfx('no'); UI.refresh(); return; }
+  if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
   ME.hold = { res, t: 0, dur: res.kind === 'artifact' ? 4 : 2.6 };
   const rr = res.kind === 'artifact' ? ARTIFACTS.find(a => a.id === res.id).r : 0;
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
-  if (res.isNew) UI.logPopup(res); else UI.gain(res);   // the first time you find something it goes in the collection log popup; after that, a small + next to the menu
   if (res.unlocks && res.unlocks.length) setTimeout(() => UI.banner('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
 }
@@ -214,15 +213,21 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
   if (big && r.pct >= 80) { g.fillStyle = 'rgba(255,240,170,0.9)'; for (let i = 0; i < 4; i++) { const a = now * 2 + i * 1.57, rr = sz * 0.55 + 4; g.fillRect(Math.round(e.x - cx + Math.cos(a) * rr), Math.round(top + sz / 2 + Math.sin(a) * rr * 0.7), 2, 2); } }
   g.drawImage(ic, Math.round(e.x - sz / 2 - cx), top, sz, sz); g.globalAlpha = 1;
 }
-function drawHoldText(cx, cy) {   // name, how intact it is, and tags
-  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', sz = 16 * (big ? 3 : 2), x = Math.round(ME.x - cx), by = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 50 : 44 + sz) - cy) - 4;
-  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center';
-  const sw = (s, y, col, f) => { g.font = f; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y); };
-  if (big) {
-    sw(r.pct + '% intact', by, pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); sw(it.name, by - 9, RAR[it.r].c, 'bold 8px "Pixelify Sans", monospace');
-    const tags = []; if (r.isNew) tags.push(['NEW!', '#8fe09a']); if (r.isBest) tags.push(['BEST YET!', '#78bfff']); tags.forEach((t, i) => sw(t[0], by - 19 - i * 9, t[1], 'bold 7px "Pixelify Sans", monospace'));
-  } else sw('+' + r.n + ' ' + it.name, by, '#d8c8a8', 'bold 7px "Pixelify Sans", monospace');
-  g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
+function drawHoldText(cx, cy) {   // a small plaque over the held find: what it is, how intact it is, and whether it is new or your best
+  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', x = Math.round(ME.x - cx);
+  const bottom = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 47 : 44 + 16 * (big ? 3 : 2)) - cy), accent = big ? RAR[it.r].c : '#d8c8a8';
+  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2) ; g.textAlign = 'left'; g.textBaseline = 'middle';
+  const F = 'bold 7px "Pixelify Sans", monospace', FS = '6px "Pixelify Sans", monospace', tags = [];
+  if (big && r.isNew) tags.push(['NEW', '#8fe09a']); if (big && r.isBest) tags.push(['BEST', '#78bfff']);
+  g.font = F; const title = big ? it.name : '+' + r.n + ' ' + it.name, sub = big ? r.pct + '% intact' : '', tw = Math.ceil(g.measureText(title).width);
+  g.font = FS; const sw = sub ? Math.ceil(g.measureText(sub).width) : 0, tgw = tags.reduce((a, t) => a + Math.ceil(g.measureText(t[0]).width) + 7, 0);
+  const w = Math.max(tw, sw + 22, 30) + 10, rows = 1 + (sub ? 1 : 0), hgt = 5 + rows * 9 + (sub ? 2 : 0), bx = Math.round(x - w / 2), by = bottom - hgt;
+  g.fillStyle = 'rgba(22,16,12,0.92)'; g.fillRect(bx, by, w, hgt); g.fillStyle = accent; g.fillRect(bx, by, w, 1); g.fillStyle = 'rgba(90,74,54,0.9)'; g.fillRect(bx, by + hgt - 1, w, 1); g.fillRect(bx, by + 1, 1, hgt - 2); g.fillRect(bx + w - 1, by + 1, 1, hgt - 2);
+  g.font = F; g.fillStyle = accent; g.fillText(title, bx + 5, by + 7);
+  if (sub) { g.font = FS; g.fillStyle = pctCol(r.pct); g.fillText(sub, bx + 5, by + 16); const bw = w - 10 - sw - 5; g.fillStyle = '#0c0907'; g.fillRect(bx + 5 + sw + 4, by + 14, bw, 3); g.fillStyle = pctCol(r.pct); g.fillRect(bx + 5 + sw + 4, by + 14, Math.max(1, Math.round(bw * r.pct / 100)), 3); }
+  let tx = bx; g.font = FS;   // tags sit on the top edge as little tabs
+  tags.forEach(t => { const tw2 = Math.ceil(g.measureText(t[0]).width) + 6; g.fillStyle = t[1]; g.fillRect(tx + 3, by - 8, tw2, 8); g.fillStyle = '#17110c'; g.fillText(t[0], tx + 6, by - 4); tx += tw2 + 2; });
+  g.textBaseline = 'alphabetic'; g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace'; g.textAlign = 'center';
 }
 // ---- trees: the crown is drawn over everything and sways; leaves drift down from it ---------------------------------------------------------------------
 const LEAVES = [];

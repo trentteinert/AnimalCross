@@ -217,6 +217,7 @@ function render(now) {
   }
   // text layer
   g.textAlign = 'center'; g.font = '6px "Pixelify Sans", monospace'; g.lineJoin = 'round';
+  drawHoldText(cx, cy);
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
     if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)) + Math.round(pitZ(o.x, o.y) * PIT_U)); }

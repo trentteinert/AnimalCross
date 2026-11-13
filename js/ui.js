@@ -27,17 +27,6 @@ UI.toast = function (t, cls) {
 UI.banner = function (t, sub) {
   const el = $('#banner'); el.innerHTML = `<b>${esc(t)}</b><span>${esc(sub || '')}</span>`; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 };
-UI.logPopup = function (res) {   // first time you find something: a framed note at the top of the screen, like a collection log entry
-  const it = ITEM[res.id], big = res.kind === 'artifact', col = big ? RAR[it.r].c : '#d8c8a8', have = ARTIFACTS.filter(a => found(a.id)).length;
-  const d = document.createElement('div'); d.className = 'logpop px';
-  d.innerHTML = `<h4>Collection</h4><div class="lp"><img src="${itemURL(res.id)}" alt=""><div><small>New item:</small><b style="color:${col}">${esc(it.name)}</b>${big ? `<small>${RAR[it.r].n} · ${res.pct}% intact · ${have} of ${ARTIFACTS.length}</small>` : `<small>Salvage</small>`}</div></div>`;
-  document.body.querySelectorAll('.logpop').forEach(e => e.remove()); $('#hud').appendChild(d); setTimeout(() => d.classList.add('out'), 3600); setTimeout(() => d.remove(), 4200);
-};
-UI.gain = function (res, text) {   // after the first time: a small +1 beside the menu buttons (just text for an empty dig)
-  const box = $('#gains'); if (!box) return; const d = document.createElement('div'); d.className = 'gain px';
-  d.innerHTML = res ? `<img src="${itemURL(res.id)}" alt=""><b>+${res.kind === 'salvage' ? res.n : 1}</b>${res.kind === 'artifact' ? `<small>${res.pct}%${res.isBest ? ' best' : ''}</small>` : ''}` : `<small>${esc(text)}</small>`;
-  box.appendChild(d); setTimeout(() => d.classList.add('out'), 2000); setTimeout(() => d.remove(), 2500); while (box.children.length > 3) box.firstChild.remove();
-};
 UI.setAct = function (icon, prog, alert) {
   const a = $('#act');
   if (icon !== UI.actIcon) { UI.actIcon = icon; if (icon) $('#acticon').src = actURL(icon); a.classList.toggle('show', !!icon); }
