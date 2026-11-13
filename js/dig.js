@@ -74,9 +74,31 @@ function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 6;   // seconds of digging at base speed (long for now, so the dig animation can be watched)
 const BRUSH_TIME = 3;   // seconds of brushing at base brush speed before a find is revealed (a better brush is faster)
-const DIGA = { r: { img: 'dig_east', ax: 27, ay: 49, hands: [-0.5, -38] }, d: { img: 'dig_south', ax: 24, ay: 48, hands: [-0.5, -37] } };   // hand-drawn dig strips by direction: where his feet sit in the 64px frame, and where the held find goes
-const digAnim = dir => DIGA[dir] && ASSET.img[DIGA[dir].img] ? DIGA[dir] : null;
-const DIGE = { fw: 64, fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]], brush: [6, 7], reward: [8, 9, 10, 11] };   // frames 1-6 dig, 7-8 brushing, 9-12 reward; hands: where the find is held, from the feet   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
+// The dig animation sheet (assets/chars/dig_sheet.png): 12 rows (one per animation frame), 20 columns of 32x48 cells: body, hair, brush, the find, mattock, each with 4 directions (down, right, up, left).
+const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
+const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
+const DIGC = { px: null, lk: '', c: {}, roles: null, obj: {} };
+function digInit() {   // read the sheet once, and work out which of its colours belong to which part of the look (skin, shirt, jeans, boots)
+  const im = ASSET.img.dig_sheet, t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); DIGC.px = t.g.getImageData(0, 0, im.width, im.height).data; DIGC.w = im.width; DIGC.roles = {};
+  for (const role in HERO.roles) { const main = Math.max(1, heroLum(heroRoleColor(role))); HERO.roles[role].forEach((q, k) => { const i = heroPix(role, k), c = [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; DIGC.roles[c[0] << 16 | c[1] << 8 | c[2]] = [role, heroLum(c) / main]; }); }
+}
+function digSprite(dir, fr) {   // one 32x48 frame with your hair, skin and clothes colours on it
+  if (!DIGC.px) digInit(); const look = HERO.tint, lk = JSON.stringify(look); if (DIGC.lk !== lk) { DIGC.lk = lk; DIGC.c = {}; }
+  const di = DIGD.dirs[dir], key = di * 16 + fr; if (DIGC.c[key]) return DIGC.c[key];
+  const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, P = DIGC.px, hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const cell = (col, x, y) => ((fr * 48 + y) * DIGC.w + (col * 32 + x)) * 4;
+  const put = (col, fn) => { for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) { const i = cell(col, x, y); if (!P[i + 3]) continue; const k = (y * 32 + x) * 4, r = fn(P[i], P[i + 1], P[i + 2]); o[k] = r[0]; o[k + 1] = r[1]; o[k + 2] = r[2]; o[k + 3] = 255; } };
+  put(di, (r, g2, b) => { const m = DIGC.roles[r << 16 | g2 << 8 | b]; if (!m || !look[m[0]]) return [r, g2, b]; const t = hex(look[m[0]]); return [0, 1, 2].map(q => clamp(Math.round(t[q] * m[1]), 0, 255)); });   // body: recoloured by role
+  const hs = look.hairStyle; if (hs !== 'none') { const t = look.hair ? hex(look.hair) : null, ml = heroLum([136, 96, 75]); put(4 + di, (r, g2, b) => t ? [0, 1, 2].map(q => clamp(Math.round(t[q] * heroLum([r, g2, b]) / ml), 0, 255)) : [r, g2, b]); }   // hair: recoloured around its main shade
+  put(8 + di, (r, g2, b) => [r, g2, b]); put(16 + di, (r, g2, b) => [r, g2, b]);   // the brush and the mattock keep the colours they were drawn in
+  c.g.putImageData(id, 0, 0); return DIGC.c[key] = c;
+}
+function digObjAt(dir, fr) {   // where the find sits in the hole on this frame (the sheet's find column): its centre, or null when it isn't showing
+  const di = DIGD.dirs[dir], key = di * 16 + fr; if (key in DIGC.obj) return DIGC.obj[key]; if (!DIGC.px) digInit();
+  let x0 = 99, x1 = -1, y0 = 99, y1 = -1; for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) if (DIGC.px[((fr * 48 + y) * DIGC.w + 12 * 32 + di * 32 + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return DIGC.obj[key] = x1 < 0 ? null : { x: (x0 + x1 + 1) / 2, y: (y0 + y1 + 1) / 2 };
+}
+const DIGE = { fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]], brush: [6, 7], reward: [8, 9, 10, 11] };   // frames 1-6 dig, 7-8 brushing, 9-12 reward; hands: where the find is held, from the feet   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
 function digFrameE(a) {
   if (a.ph === 'brush') return DIGE.brush[Math.floor(a.bt * DIGE.fps * 0.75) % 2];
   if (a.ph === 'reward') return DIGE.reward[Math.min(3, Math.floor(a.rt * DIGE.fps))];
@@ -105,7 +127,7 @@ function updateAct(dt) {
       return;
     }
     if (A.ph === 'reward') {   // stand and hold the find up; it is revealed when the last frame lands
-      A.rt += dt; if (A.rt >= 3 / DIGE.fps) { recordFind(A.res); showFind(A.res, A.x, A.y); if (ME.hold) ME.hold.pose = digAnim(A.dir); endAct(); }
+      A.rt += dt; if (A.rt >= 3 / DIGE.fps) { recordFind(A.res); showFind(A.res, A.x, A.y); if (ME.hold) ME.hold.pose = { dir: A.dir, hands: DIGD.hands }; endAct(); }
       return;
     }
     A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up

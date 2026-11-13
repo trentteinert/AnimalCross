@@ -148,10 +148,13 @@ function drawChar(e, cx, cy, now) {
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
-  const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose) : null, de = anim && ASSET.img[anim.img];   // digging toward the east uses the hand-drawn dig animation
-  if (de) g.drawImage(de, (digging ? digFrameE(A) : DIGE.reward[3]) * DIGE.fw, 0, DIGE.fw, DIGE.fw, Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy), DIGE.fw, DIGE.fw);
-  else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
-  if (digging && !de) drawMattock(e, cx, cy, now);
+  const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
+  if (anim) {
+    const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
+    g.drawImage(digSprite(dd, fi), Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy));
+    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id); if (ob) { const sz = 8, rv = Math.round(sz * (0.3 + 0.7 * A.bt / A.bdur)); g.drawImage(ic, 0, 0, ic.width, ic.height * rv / sz, Math.round(e.x - anim.ax + ob.x - sz / 2 - cx), Math.round(e.y - anim.ay + ob.y - sz / 2 - cy), sz, rv); } }   // the find shows a little more of itself the longer you brush
+  } else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
+  if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
