@@ -168,7 +168,7 @@ function showFind(res, hx, hy) {   // the find is held up over your head with it
   const rr = res.kind === 'artifact' ? ARTIFACTS.find(a => a.id === res.id).r : 0;
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
-  if (res.unlocks && res.unlocks.length) setTimeout(() => UI.banner('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
+  if (res.unlocks && res.unlocks.length) setTimeout(() => UI.note('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
 }
 function tickHoles(dt) { for (let i = HOLES.length - 1; i >= 0; i--) { HOLES[i].t += dt; if (HOLES[i].t > HOLE_LIFE) HOLES.splice(i, 1); } }
@@ -405,7 +405,7 @@ function craft(id) {
   for (const k in r.cost) S.mats[k] -= r.cost[k];
   if (r.kind === 'mattock') S.gear.mattock = r.to; else S.gear.brush = r.to;
   sfx('level'); UI.toast(r.name + ' crafted!', 'gold');
-  if (r.kind === 'mattock') { const z = SITES.findIndex((s, i) => i && s.tier === mattock().tier); if (z > 0) setTimeout(() => UI.banner('New area unlocked', SITES[z].n), 600); }
+  if (r.kind === 'mattock') { const z = SITES.findIndex((s, i) => i && s.tier === mattock().tier); if (z > 0) setTimeout(() => UI.note('New area unlocked', SITES[z].n), 600); }
   UI.refresh(); UI.renderCamp();
 }
 function processExtras(id) {

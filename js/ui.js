@@ -25,6 +25,10 @@ UI.toast = function (t, cls) {
   setTimeout(() => d.classList.add('out'), 1800); setTimeout(() => d.remove(), 2300);
   while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
 };
+UI.note = function (label, name) {   // a small line in the top left, no box: "Recipe unlocked: Specialty Brush"
+  const box = document.getElementById('notes'); if (!box) return; const d = document.createElement('div'); d.className = 'nt';
+  d.innerHTML = `<b>${esc(label)}:</b> ${esc(name)}`; box.appendChild(d); setTimeout(() => d.classList.add('out'), 4200); setTimeout(() => d.remove(), 4800); while (box.children.length > 3) box.firstChild.remove();
+};
 UI.banner = function (t, sub) {
   const el = $('#banner'); el.innerHTML = `<b>${esc(t)}</b><span>${esc(sub || '')}</span>`; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 };
