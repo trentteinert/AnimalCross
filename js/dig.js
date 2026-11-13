@@ -35,7 +35,7 @@ function recordFind(res) {
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
     S.arts.push({ id: res.id, pct: res.pct });
     res.unlocks = res.isNew ? RECIPES.filter(r => r.unlock === res.id) : [];
-  } else { st.dry++; if (res.kind === 'salvage') S.mats[res.id] = (S.mats[res.id] | 0) + res.n; }
+  } else { st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; S.mats[res.id] = (S.mats[res.id] | 0) + res.n; } }
 }
 
 // ---- targets and actions ----------------------------------------------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ function updateAct(dt) {
     if (digAnim(A.dir)) { const fr = digFrameE(A); if (fr === 4 && A.lf !== 4) strike(); A.lf = fr; }   // the dig sound and dust happen only as the mattock lands (frame 5 of the animation)
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
-      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
+      const res = rollDig(SITES[A.zone].tier, A.depth); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
       if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME / brush().spd; A.fx = 0; return; }   // something is in the hole: brush it clear, then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
@@ -154,11 +154,12 @@ function actState() {
   if (A.k === 'dig') return { icon: 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph ? 'Brushing...' : 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
-  if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
+  if (res.kind === 'dirt') { UI.gain(null, 'Just dirt'); sfx('no'); UI.refresh(); return; }
   ME.hold = { res, t: 0, dur: res.kind === 'artifact' ? 4 : 2.6 };
   const rr = res.kind === 'artifact' ? ARTIFACTS.find(a => a.id === res.id).r : 0;
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
+  if (res.isNew) UI.logPopup(res); else UI.gain(res);   // the first time you find something it goes in the collection log popup; after that, a small + next to the menu
   if (res.unlocks && res.unlocks.length) setTimeout(() => UI.banner('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
 }
