@@ -138,7 +138,9 @@ function updateAct(dt) {
     }
     A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up
     if (A.d <= 0) return;
-    A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); }
+    const strike = () => { burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); };
+    if (digAnim(A.dir)) { const fr = digFrameE(A); if (fr === 4 && A.lf !== 4) strike(); A.lf = fr; }   // the dig sound and dust happen only as the mattock lands (frame 5 of the animation)
+    else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
       if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME / brush().spd; A.fx = 0; return; }   // something is in the hole: brush it clear, then hold it up
