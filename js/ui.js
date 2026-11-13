@@ -5,7 +5,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
   $('#menu').innerHTML = [['book', 'Collection', 'book'], ['gear', 'Gear', 'bag'], ['me', 'You', 'wave']].map(m =>
-    `<button class="mbtn px fm" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
+    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
