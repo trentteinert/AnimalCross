@@ -72,6 +72,13 @@ function findTarget() {
 }
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
+const DIG_TIME = 6;   // seconds of digging at base speed (long for now, so the dig animation can be watched)
+const DIGE = { fw: 64, ax: 27, ay: 49, fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]] };   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
+function digFrameE(a) {   // which frame of the east dig strip is showing; the random clips are chosen once and remembered so they don't flicker
+  if (!a.seq) a.seq = DIGE.begin.slice(); const i = Math.floor(a.t * DIGE.fps);
+  while (a.seq.length <= i) a.seq.push(...DIGE.clips[Math.floor(Math.random() * DIGE.clips.length)]);
+  return a.seq[i];
+}
 function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.face = FACE_OF_DIR[ME.dir]; ME.faceDir = ME.dir; ME.hold = null;
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
@@ -79,7 +86,7 @@ function startAction() {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
     const v = DV[t.dir];
-    A = { k: 'dig', t: 0, dur: 1.5 / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
+    A = { k: 'dig', t: 0, dur: DIG_TIME / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
   }
 }
 function updateAct(dt) {

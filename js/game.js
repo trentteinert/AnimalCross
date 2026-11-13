@@ -148,8 +148,10 @@ function drawChar(e, cx, cy, now) {
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
   g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
-  g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
-  if (digging) drawMattock(e, cx, cy, now);
+  const de = digging && A.dir === 'r' && ASSET.img.dig_east;   // digging toward the east uses the hand-drawn dig animation
+  if (de) g.drawImage(de, digFrameE(A) * DIGE.fw, 0, DIGE.fw, DIGE.fw, Math.round(e.x - DIGE.ax - cx), Math.round(e.y - DIGE.ay - cy), DIGE.fw, DIGE.fw);
+  else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
+  if (digging && !de) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
