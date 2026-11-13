@@ -73,8 +73,11 @@ function findTarget() {
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 6;   // seconds of digging at base speed (long for now, so the dig animation can be watched)
-const DIGE = { fw: 64, ax: 27, ay: 49, fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]] };   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
+const BRUSH_TIME = 3;   // seconds of brushing at base brush speed before a find is revealed (a better brush is faster)
+const DIGE = { fw: 64, ax: 27, ay: 49, fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]], brush: [6, 7], reward: [8, 9, 10, 11], hands: [-0.5, -38] };   // frames 1-6 dig, 7-8 brushing, 9-12 reward; hands: where the find is held, from the feet   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
 function digFrameE(a) {
+  if (a.ph === 'brush') return DIGE.brush[Math.floor(a.bt * DIGE.fps * 0.75) % 2];
+  if (a.ph === 'reward') return DIGE.reward[Math.min(3, Math.floor(a.rt * DIGE.fps))];
   if (a.rise != null) return [2, 1, 0][Math.min(2, Math.floor(a.rise * DIGE.fps))];   // which frame of the east dig strip is showing; the random clips are chosen once and remembered so they don't flicker
   if (!a.seq) a.seq = DIGE.begin.slice(); const i = Math.floor(a.t * DIGE.fps);
   while (a.seq.length <= i) a.seq.push(...DIGE.clips[Math.floor(Math.random() * DIGE.clips.length)]);
@@ -94,18 +97,29 @@ function updateAct(dt) {
   if (!A) return; A.t += dt;
   if (A.k === 'dig') {
     if (A.rise != null) { A.rise += dt; if (A.rise >= 3 / DIGE.fps) endAct(); return; }   // standing back up: frames 3-2-1 played in reverse
+    if (A.ph === 'brush') {   // brush the find clear: a better brush finishes sooner
+      A.bt += dt; A.fx -= dt; if (A.fx <= 0) { A.fx = 0.3; burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 2, 20, 0.5, 60, 1); }
+      if (A.bt >= A.bdur) { A.ph = 'reward'; A.rt = 0; }
+      return;
+    }
+    if (A.ph === 'reward') {   // stand and hold the find up; it is revealed when the last frame lands
+      A.rt += dt; if (A.rt >= 3 / DIGE.fps) { recordFind(A.res); showFind(A.res, A.x, A.y); if (ME.hold) ME.hold.pose = true; endAct(); }
+      return;
+    }
     A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up
     if (A.d <= 0) return;
     A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); }
     if (A.d >= A.dur) {
-      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; if (A.dir === 'r' && ASSET.img.dig_east) A.rise = 0; else endAct();
+      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
+      if (A.dir === 'r' && ASSET.img.dig_east && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME / brush().spd; A.fx = 0; return; }   // something is in the hole: brush it clear, then hold it up
+      recordFind(res); if (A.dir === 'r' && ASSET.img.dig_east) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
   }
 }
 function actState() {
   if (!A) return null;
-  if (A.k === 'dig') return { icon: 'beach', prog: (A.d || 0) / A.dur, alert: false, hint: 'Digging...' };
+  if (A.k === 'dig') return { icon: 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph ? 'Brushing...' : 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
   if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
@@ -128,7 +142,7 @@ function drawHoles(cx, cy) {
     g.fillStyle = '#9a7248'; g.fillRect(x + 1, y + 12, 4, 2); g.fillRect(x + 11, y + 11, 4, 2); g.fillRect(x + 6, y + 13, 5, 1);   // the spoil heaps
     g.globalAlpha = 1;
   }
-  if (A && A.k === 'dig' && A.d > 0 && A.rise == null) {   // the hole opening up while you dig
+  if (A && A.k === 'dig' && A.d > 0 && A.rise == null && !A.ph) {   // the hole opening up while you dig
     const x = Math.round(A.x - cx), y = Math.round(A.y - cy + A.depth * PIT_U), u = clamp((A.d || 0) / A.dur, 0, 1), w = 2 + Math.round(u * 8);
     g.fillStyle = '#2e1c10'; g.fillRect(x - w / 2, y - 2, w, 4 + Math.round(u * 3));
   }
@@ -159,6 +173,7 @@ function drawMarker(cx, cy, now) {
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
 }
 function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and bobs
+  if (ME.hold.pose) { const h = ME.hold, ic = itemIcon(h.res.id), u = Math.min(1, h.t / 0.2), fade = clamp((h.dur - h.t) / 0.35, 0, 1); g.globalAlpha = fade; g.drawImage(ic, Math.round(e.x + DIGE.hands[0] - ic.width / 2 - cx), Math.round(e.y + DIGE.hands[1] - ic.height / 2 - cy + (1 - u) * 4), ic.width, ic.height); g.globalAlpha = 1; return; }   // held between the hands of the reward pose
   const h = ME.hold, r = h.res, ic = itemIcon(r.id), big = r.kind === 'artifact', u = Math.min(1, h.t / 0.24), k = 2.70158, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
   const fade = clamp((h.dur - h.t) / 0.35, 0, 1), sz = Math.round(ic.width * (big ? 3 : 2) * eb), bob = Math.round(Math.sin(now * 4)), top = Math.round(e.y - 44 - sz + bob - cy);
   g.globalAlpha = fade;
@@ -166,7 +181,7 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
   g.drawImage(ic, Math.round(e.x - sz / 2 - cx), top, sz, sz); g.globalAlpha = 1;
 }
 function drawHoldText(cx, cy) {   // name, how intact it is, and tags
-  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', sz = 16 * (big ? 3 : 2), x = Math.round(ME.x - cx), by = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - 44 - sz - cy) - 4;
+  if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', sz = 16 * (big ? 3 : 2), x = Math.round(ME.x - cx), by = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 50 : 44 + sz) - cy) - 4;
   g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center';
   const sw = (s, y, col, f) => { g.font = f; g.lineWidth = 2.4; g.strokeStyle = 'rgba(20,16,24,0.9)'; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y); };
   if (big) {
