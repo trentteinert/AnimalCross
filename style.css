@@ -38,14 +38,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 #hint.show{opacity:1}
 
 /* action button: always bottom-right, pops in when something is usable */
-#act{position:absolute;right:calc(var(--sar) + 22px);bottom:calc(var(--sab) + 30px);width:84px;height:84px;padding:0;background:var(--panel2);display:grid;place-items:center;
+#act{position:absolute;right:calc(var(--sar) + 22px);bottom:calc(var(--sab) + 30px);width:84px;height:84px;padding:0;box-sizing:border-box;border:solid transparent;border-width:15px 12px 12px 12px;border-image:url(assets/ui/panel_act.png) 5 4 4 4 fill/15px 12px 12px 12px stretch;image-rendering:pixelated;background:none;box-shadow:none;display:grid;place-items:center;
   transform:scale(.55);opacity:0;pointer-events:none;transition:transform .16s cubic-bezier(.3,1.6,.5,1),opacity .12s;overflow:visible;touch-action:none}
 #act.show{transform:scale(1);opacity:1;pointer-events:auto}
 #act:active,#act.held{filter:brightness(1.15)}
 #acticon{width:52px;height:52px;image-rendering:pixelated;pointer-events:none}
-#act .bar{position:absolute;left:8px;right:8px;bottom:6px;height:6px;background:#101826;opacity:0;overflow:hidden;pointer-events:none}
+#act .bar{position:absolute;left:2px;right:2px;bottom:-1px;height:6px;background:#101826;opacity:0;overflow:hidden;pointer-events:none}
 #act.prog .bar{opacity:1}#act .bar i{display:block;height:100%;width:0;background:var(--amber)}
-#act.alert{background:var(--red);animation:shake .18s infinite}
+#act.alert{animation:shake .18s infinite;border-image-source:url(assets/ui/panel_act_alert.png)}
 @keyframes shake{0%,100%{transform:translateX(0) scale(1.08)}50%{transform:translateX(3px) scale(1.08)}}
 body.lefty #act{right:auto;left:calc(var(--sal) + 22px)}
 body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
