@@ -93,6 +93,12 @@ function digSprite(dir, fr) {   // one 32x48 frame with your hair, skin and clot
   put(8 + di, (r, g2, b) => [r, g2, b]); put(16 + di, (r, g2, b) => [r, g2, b]);   // the brush and the mattock keep the colours they were drawn in
   c.g.putImageData(id, 0, 0); return DIGC.c[key] = c;
 }
+function digBlob(dir, fr, prog) {   // the dirt blob drawn over the find in the sheet, with pixels brushed away at random as `prog` goes from 0 to 1
+  const q = Math.min(24, Math.floor(prog * 24)), di = DIGD.dirs[dir], key = (di * 16 + fr) * 32 + q; if (DIGC.bl && DIGC.bl[key]) return DIGC.bl[key]; if (!DIGC.px) digInit(); DIGC.bl = DIGC.bl || {};
+  const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, P = DIGC.px;
+  for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) { const i = ((fr * 48 + y) * DIGC.w + 12 * 32 + di * 32 + x) * 4; if (!P[i + 3] || hash2(x, y, 5) * 0.96 < q / 24) continue; const k = (y * 32 + x) * 4; o[k] = P[i]; o[k + 1] = P[i + 1]; o[k + 2] = P[i + 2]; o[k + 3] = 255; }
+  c.g.putImageData(id, 0, 0); return DIGC.bl[key] = c;
+}
 function digObjAt(dir, fr) {   // where the find sits in the hole on this frame (the sheet's find column): its centre, or null when it isn't showing
   const di = DIGD.dirs[dir], key = di * 16 + fr; if (key in DIGC.obj) return DIGC.obj[key]; if (!DIGC.px) digInit();
   let x0 = 99, x1 = -1, y0 = 99, y1 = -1; for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) if (DIGC.px[((fr * 48 + y) * DIGC.w + 12 * 32 + di * 32 + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }

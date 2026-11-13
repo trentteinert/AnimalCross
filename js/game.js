@@ -152,7 +152,7 @@ function drawChar(e, cx, cy, now) {
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
     g.drawImage(digSprite(dd, fi), Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy));
-    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id); if (ob) { const sz = 8, rv = Math.round(sz * (0.3 + 0.7 * A.bt / A.bdur)); g.drawImage(ic, 0, 0, ic.width, ic.height * rv / sz, Math.round(e.x - anim.ax + ob.x - sz / 2 - cx), Math.round(e.y - anim.ay + ob.y - sz / 2 - cy), sz, rv); } }   // the find shows a little more of itself the longer you brush
+    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - 4), Math.round(oy + ob.y - 4), 8, 8); g.drawImage(digBlob(dd, fi, A.bt / A.bdur), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
   } else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
   if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
