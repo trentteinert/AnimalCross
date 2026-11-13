@@ -44,6 +44,11 @@ const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boo
 function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders)
   if (iconCache['i' + id]) return iconCache['i' + id];
   if (ITEM_CELLS[id] && ASSET.img.items) { const c = mk(8, 8); c.g.drawImage(ASSET.img.items, ITEM_CELLS[id][0] * 8, ITEM_CELLS[id][1] * 8, 8, 8, 0, 0, 8, 8); return iconCache['i' + id] = c; }
+  if (/^mattock\d$/.test(id) && ASSET.img.icon_mattock) {   // the painted mattock, with its head recoloured for iron and steel
+    const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_mattock, 0, 0); const t = +id.slice(7);
+    if (t > 0) { const d = k.g.getImageData(0, 0, 16, 16), P = d.data, tc = hexRGB(MATTOCKS[t].col), ml = 200; for (let i = 0; i < P.length; i += 4) if (P[i + 3] && P[i] > 190 && P[i + 1] > 140 && P[i + 2] < 150) { const f = (0.3 * P[i] + 0.59 * P[i + 1] + 0.11 * P[i + 2]) / ml; for (let q = 0; q < 3; q++) P[i + q] = Math.min(255, Math.round(tc[q] * f)); } k.g.putImageData(d, 0, 0); }
+    return iconCache['i' + id] = k;
+  }
   const c = mk(16, 16);
   switch (id) {
     case 'jug': EL(c, 8, 10, 4.6, 5, '#b9774a'); RC(c, 6, 3, 4, 4, '#a0643c'); RC(c, 5, 2, 6, 2, '#d89a68'); RC(c, 3, 6, 2, 4, '#8f5532'); RC(c, 5, 9, 6, 1, '#8f5532'); break;
@@ -60,6 +65,7 @@ function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools 
 }
 function actIcon(name) {   // buttons: dig, camp, collection book, you
   if (iconCache['a' + name]) return iconCache['a' + name];
+  if (name === 'beach' && ASSET.img.icon_mattock) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_mattock, 0, 0); return iconCache['a' + name] = k; }   // painted mattock for the dig button
   if (name === 'bag' && ASSET.img.icon_bag) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_bag, 0, 0); return iconCache['a' + name] = k; }   // painted 16x16 bag icon
   if (name === 'book' && ASSET.img.icon_log) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_log, 0, 0); return iconCache['a' + name] = k; }   // painted 16x16 collection log icon
   const c = mk(16, 16);

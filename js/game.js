@@ -34,7 +34,21 @@ const SFX = {
   pop: [[420, .09, 'triangle', .05, 0, 760]], no: [[200, .15, 'square', .04, 0, 140]], level: [[392, .1], [523, .1, 'square', .04, .1], [659, .1, 'square', .04, .2], [784, .28, 'square', .05, .3]],
   dig: [[160, .07, 'square', .04, 0, 90]], shake: [[240, .06, 'triangle', .04, 0, 200]]
 };
-function sfx(n) { if (!S.sound || !AC) return; const s = SFX[n]; if (!s) return; try { s.forEach(a => tone(a[0], a[1], a[2], a[3], a[4], a[5])); } catch (e) { } }
+function noise(d, f, q, v, type, t0, f2) {   // a short burst of filtered noise: the base of the footsteps and the bush rustle
+  const n = Math.ceil(AC.sampleRate * d), b = AC.createBuffer(1, n, AC.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0); src.buffer = b; fl.type = type; fl.frequency.setValueAtTime(f, t); if (f2) fl.frequency.linearRampToValueAtTime(f2, t + d); fl.Q.value = q;
+  gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); src.connect(fl); fl.connect(gn); gn.connect(AC.destination); src.start(t); src.stop(t + d + 0.02);
+}
+const STEP = {   // [filter freq, Q, volume, length, filter type] per surface, played quietly and nudged a little each step so they don't sound mechanical
+  grass: [2600, 0.6, 0.016, 0.07, 'bandpass'], sand: [3400, 0.5, 0.014, 0.1, 'bandpass'], dirt: [420, 0.7, 0.03, 0.06, 'lowpass'], stone: [1600, 1.4, 0.022, 0.04, 'bandpass'], wood: [700, 1.2, 0.035, 0.055, 'lowpass']
+};
+function footstep() {
+  if (!S.sound || !AC) return; const x = ME.x, y = ME.y - 2; let k = 'grass';
+  if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
+  const a = STEP[k], j = 0.85 + Math.random() * 0.3; try { noise(a[3], a[0] * j, a[1], a[2] * (0.8 + Math.random() * 0.4), a[4]); if (k === 'wood') tone(150 * j, 0.05, 'sine', 0.02, 0, 100); } catch (e) { }
+}
+const NSFX = { rustle: () => { for (let i = 0; i < 4; i++) noise(0.07, 3000 + Math.random() * 1500, 0.8, 0.025, 'bandpass', i * 0.045); } };   // walking onto a bush: a few quick leafy rustles
+function sfx(n) { if (!S.sound || !AC) return; if (NSFX[n]) { try { NSFX[n](); } catch (e) { } return; } const s = SFX[n]; if (!s) return; try { s.forEach(a => tone(a[0], a[1], a[2], a[3], a[4], a[5])); } catch (e) { } }
 const vib = ms => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch (e) { } };
 
 // ---- canvas ---------------------------------------------------------------
@@ -110,7 +124,7 @@ function updateMe(dt) {
   if (mag > 0.05) {
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
-    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt * Math.max(0.25, Math.min(1, mag));   // the walk animation runs at the pace you move
+    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt * Math.max(0.25, Math.min(1, mag)); { const sn = Math.floor(ME.t * WALK_FPS / 2); if (ME.moving && sn !== ME.lastStep) { ME.lastStep = sn; footstep(); } }   // the walk animation runs at the pace you move
 
   }
 }

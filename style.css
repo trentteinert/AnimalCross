@@ -42,7 +42,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   transform:scale(.55);opacity:0;pointer-events:none;transition:transform .16s cubic-bezier(.3,1.6,.5,1),opacity .12s;overflow:visible;touch-action:none}
 #act.show{transform:scale(1);opacity:1;pointer-events:auto}
 #act:active,#act.held{filter:brightness(1.15)}
-#acticon{width:52px;height:52px;image-rendering:pixelated;pointer-events:none}
+#acticon{width:48px;height:48px;image-rendering:pixelated;pointer-events:none}
 #act .bar{position:absolute;left:2px;right:2px;bottom:-1px;height:6px;background:#101826;opacity:0;overflow:hidden;pointer-events:none}
 #act.prog .bar{opacity:1}#act .bar i{display:block;height:100%;width:0;background:var(--amber)}
 #act.alert{animation:shake .18s infinite;border-image-source:url(assets/ui/panel_act_alert.png)}
