@@ -208,7 +208,9 @@ function drawMarker(cx, cy, now) {
   if (!target) return;
   if (target.kind === 'dig') {   // outline the tile you would dig
     const x = target.tx * TS - cx, y = target.ty * TS - cy + Math.round(pitZ((target.tx + 0.5) * TS, (target.ty + 0.5) * TS) * PIT_U), ok = siteOpen(target.zone) && !holeAt(target.tx, target.ty); g.fillStyle = ok ? `rgba(255,255,255,${0.55 + 0.35 * Math.sin(now * 6)})` : 'rgba(255,120,110,0.7)';
-    g.fillRect(x, y, TS, 1); g.fillRect(x, y + TS - 1, TS, 1); g.fillRect(x, y, 1, TS); g.fillRect(x + TS - 1, y, 1, TS); return;
+    const L = 4;   // only the four corners are marked: short L-shapes, not a full box
+    g.fillRect(x, y, L, 1); g.fillRect(x, y, 1, L); g.fillRect(x + TS - L, y, L, 1); g.fillRect(x + TS - 1, y, 1, L);
+    g.fillRect(x, y + TS - 1, L, 1); g.fillRect(x, y + TS - L, 1, L); g.fillRect(x + TS - L, y + TS - 1, L, 1); g.fillRect(x + TS - 1, y + TS - L, 1, L); return;
   }
   const o = target.ref, bob = Math.round(Math.sin(now * 6) * 1.5), px = Math.round(o.x - cx), py = Math.round(o.y - 44 - cy + bob);
   g.fillStyle = '#2a1c1c'; g.fillRect(px - 3, py - 1, 7, 2); g.fillRect(px - 2, py + 1, 5, 2); g.fillRect(px - 1, py + 3, 3, 1);
