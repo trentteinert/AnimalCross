@@ -27,7 +27,7 @@ function tone(f, d, type, v, t0, f2) {
   if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); gn.gain.setValueAtTime(v || 0.04, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
   o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
 }
-['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => addEventListener(ev, () => { audioInit(); if (AC && AC.state !== 'running') AC.resume(); }, true));   // browsers only allow sound after a tap or key press: any of them switches it on, and brings it back if the browser paused it
+['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mouseup', 'keydown', 'keyup', 'click'].forEach(ev => addEventListener(ev, () => { audioInit(); if (AC && AC.state !== 'running') AC.resume(); }, true));   // browsers only allow sound after a real tap, click or key press (a touch that only starts, or a stick drag, doesn't count until the finger lifts), so every kind of press and release tries to switch it on or wake it
 const SFX = {
   ui: [[660, .05]], cast: [[500, .12, 'triangle', .05, 0, 200]], splash: [[300, .15, 'sawtooth', .02, 0, 120]], bite: [[880, .08], [1100, .1, 'square', .05, .09]],
   hook: [[500, .08], [700, .08, 'square', .04, .07]], catch: [[523, .09], [659, .09, 'square', .04, .09], [784, .14, 'square', .04, .18]],
