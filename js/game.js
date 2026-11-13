@@ -35,25 +35,48 @@ const SFX = {
   pop: [[420, .09, 'triangle', .05, 0, 760]], no: [[200, .15, 'square', .04, 0, 140]], level: [[392, .1], [523, .1, 'square', .04, .1], [659, .1, 'square', .04, .2], [784, .28, 'square', .05, .3]],
   dig: [[160, .07, 'square', .04, 0, 90]], shake: [[240, .06, 'triangle', .04, 0, 200]]
 };
-function noise(d, f, q, v, type, t0, att) {   // a soft burst of filtered noise with a gentle attack (no hard edge, so it never clicks or snaps)
-  const n = Math.ceil(AC.sampleRate * d), b = AC.createBuffer(1, n, AC.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
-  const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), fl2 = AC.createBiquadFilter(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0), at = att || 0.015; src.buffer = b; fl.type = type; fl.frequency.value = f; fl.Q.value = q;
-  gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(v, t + at); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); fl2.type = 'lowpass'; fl2.frequency.value = type === 'lowpass' ? f : f * 1.6; fl2.Q.value = 0.5; src.connect(fl); fl.connect(fl2); fl2.connect(gn); gn.connect(AC.destination); src.start(t); src.stop(t + d + 0.02);   // two filters in a row: a steep roll-off so nothing bright gets through
+// A small footstep synth in the spirit of fishtheweb's: soft pink noise through a band-pass that sweeps downward, a gentle attack, short bursts and a touch of room reverb.
+let MIX = null, REV = null, PINK = null;
+function mixInit() {
+  if (MIX && MIX.context === AC) return; MIX = AC.createGain(); MIX.gain.value = 2; MIX.connect(AC.destination);
+  const len = Math.floor(AC.sampleRate * 0.7), ir = AC.createBuffer(2, len, AC.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+  REV = AC.createConvolver(); REV.buffer = ir; const rg = AC.createGain(); rg.gain.value = 0.6; REV.connect(rg); rg.connect(MIX);
+  const n = AC.sampleRate * 2, pb = AC.createBuffer(1, n, AC.sampleRate), d = pb.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;   // pink noise (Paul Kellet's filter)
+  for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.969 * b2 + w * 0.153852; b3 = 0.8665 * b3 + w * 0.3104856; b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898; d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11; b6 = w * 0.115926; }
+  PINK = pb;
 }
-function thump(f, d, v, t0, type) {   // the low, soft weight of a footfall: a sine that sags in pitch as it fades
-  const o = AC.createOscillator(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.55, t + d);
-  gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(v, t + 0.008); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
+function out(g, wet) { g.connect(MIX); if (wet) { const w = AC.createGain(); w.gain.value = wet; g.connect(w); w.connect(REV); } }
+function nz(t0, o) {   // a burst of noise: colour, band-pass (or low-pass) sweeping f to fTo, attack a, length dur, gain, reverb send wet
+  mixInit(); const t = AC.currentTime + (t0 || 0), dur = o.dur, src = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain();
+  if (o.color === 'pink') { src.buffer = PINK; } else { const n = Math.ceil(AC.sampleRate * (dur + 0.05)), b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; src.buffer = b; }
+  fl.type = o.filter; fl.frequency.setValueAtTime(o.f, t); if (o.fTo) fl.frequency.exponentialRampToValueAtTime(o.fTo, t + dur); fl.Q.value = o.q || 0.7;
+  gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(o.gain, t + (o.a || 0.01)); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur); src.connect(fl); fl.connect(gn); out(gn, o.wet);
+  src.start(t, o.color === 'pink' ? Math.random() * 1.5 : 0, dur + 0.05);
 }
-const STEP = {   // per surface: [noise cutoff, noise volume, noise length, thump pitch, thump volume, thump length]. Low, round and soft: cozy, with a little weight to each step
-  grass: [520, 0.1, 0.15, 120, 0.07, 0.1], sand: [750, 0.07, 0.18, 100, 0.035, 0.1], dirt: [320, 0.12, 0.13, 85, 0.1, 0.12], stone: [900, 0.06, 0.08, 190, 0.07, 0.07], wood: [420, 0.06, 0.1, 150, 0.09, 0.11]
+function tn(t0, o) {   // a soft tone with a pitch glide and optional upper partials
+  mixInit(); const t = AC.currentTime + (t0 || 0);
+  for (const pt of [{ ratio: 1, gain: 1, d: o.d }].concat(o.partials || [])) {
+    const os = AC.createOscillator(), gn = AC.createGain(), lp = AC.createBiquadFilter(); os.type = o.type || 'sine'; os.frequency.setValueAtTime(o.freq * pt.ratio, t); if (o.to) os.frequency.exponentialRampToValueAtTime(o.to * pt.ratio, t + (o.glide || pt.d));
+    lp.type = 'lowpass'; lp.frequency.value = o.lp || 4000; gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(o.gain * pt.gain, t + (o.a || 0.005)); gn.gain.exponentialRampToValueAtTime(0.0001, t + pt.d); os.connect(lp); lp.connect(gn); out(gn, o.wet); os.start(t); os.stop(t + pt.d + 0.02);
+  }
+}
+const rj = a => 1 + (Math.random() * 2 - 1) * a;   // random wobble so no two steps are the same
+const STEPS = {
+  grass: () => { const j = rj(0.08); nz(0, { color: 'pink', filter: 'bandpass', f: 2400 * j, fTo: 1300 * j, q: 0.8, a: 0.015, dur: 0.07 + Math.random() * 0.015, gain: 0.34 * rj(0.15), wet: 0.03 }); },
+  sand: () => { const j = rj(0.08), v = rj(0.15); nz(0, { color: 'white', filter: 'bandpass', f: 4200 * j, q: 1.2, a: 0.003, dur: 0.03, gain: 0.13 * v, wet: 0.02 }); nz(0.02, { color: 'white', filter: 'bandpass', f: 2800 * j, fTo: 1900 * j, q: 0.8, a: 0.01, dur: 0.05 + Math.random() * 0.015, gain: 0.1 * v, wet: 0.02 }); },
+  dirt: () => { const j = rj(0.08), v = rj(0.15); nz(0, { color: 'pink', filter: 'lowpass', f: 650 * j, fTo: 320 * j, a: 0.004, dur: 0.055 + Math.random() * 0.015, gain: 0.3 * v, wet: 0.03 }); nz(0, { color: 'white', filter: 'bandpass', f: 2000 * j, q: 1.2, a: 0.002, dur: 0.02, gain: 0.04 * v, wet: 0.02 }); },
+  wood: () => { const j = rj(0.05), v = rj(0.15); tn(0, { freq: 215 * j, to: 190 * j, glide: 0.06, a: 0.002, d: 0.085, lp: 1600, gain: 0.08 * v, partials: [{ ratio: 2.4, gain: 0.45, d: 0.04 }, { ratio: 4.1, gain: 0.2, d: 0.02 }], wet: 0.08 }); nz(0, { color: 'white', filter: 'bandpass', f: 1300 * j, q: 1.4, a: 0.001, dur: 0.025, gain: 0.1 * v, wet: 0.04 }); }
 };
+STEPS.stone = STEPS.dirt;
 function footstep() {
   if (!S.sound || !AC) return; const x = ME.x, y = ME.y - 2; let k = 'grass';
   if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
-  const a = STEP[k], side = (ME.stepSide = !ME.stepSide) ? 1.04 : 0.96, j = side * (0.97 + Math.random() * 0.06), vol = 0.9 + Math.random() * 0.2;   // left and right foot sit a touch apart in pitch
-  try { noise(a[2], a[0] * j, 0.4, a[1] * vol, 'lowpass', 0, 0.02); thump(a[3] * j, a[5], a[4] * vol); if (k === 'wood') thump(a[3] * 2 * j, 0.07, a[4] * 0.3 * vol, 0, 'triangle'); } catch (e) { }
+  try { STEPS[k](); } catch (e) { }
 }
-const NSFX = { rustle: () => { for (let i = 0; i < 3; i++) noise(0.2, 900 + Math.random() * 400, 0.5, 0.075, 'lowpass', i * 0.075, 0.035); thump(140, 0.12, 0.04); } };   // walking onto a bush: soft overlapping leaf rustles and a gentle whump
+const NSFX = { rustle: () => {   // walking onto a bush: three soft pink-noise rustles that sweep down, with a gentle low whump
+  for (let i = 0; i < 3; i++) { const j = rj(0.1); nz(i * 0.06, { color: 'pink', filter: 'bandpass', f: 2200 * j, fTo: 1000 * j, q: 0.7, a: 0.02, dur: 0.12 + Math.random() * 0.04, gain: 0.22 * rj(0.2), wet: 0.06 }); }
+  tn(0, { freq: 130, to: 75, glide: 0.09, a: 0.006, d: 0.13, lp: 400, gain: 0.07, wet: 0.05 });
+} };
 function sfx(n) { if (!S.sound || !AC) return; if (NSFX[n]) { try { NSFX[n](); } catch (e) { } return; } const s = SFX[n]; if (!s) return; try { s.forEach(a => tone(a[0], a[1], a[2], a[3], a[4], a[5])); } catch (e) { } }
 const vib = ms => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch (e) { } };
 
