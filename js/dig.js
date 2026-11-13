@@ -367,7 +367,7 @@ UI.openGear = function () {
   const sites = SITES.slice(1).map((s, i) => `<div class="row"><div class="grow"><b>${esc(s.n)}</b><small>Tier ${s.tier}</small></div><span class="${siteOpen(i + 1) ? 'okt' : 'lockt'}">${siteOpen(i + 1) ? 'Open' : 'Needs ' + toolFor(i + 1)}</span></div>`).join('');
   UI.open('gear', `${head('Gear')}<div class="list"><div class="row"><img src="${itemURL('mattock' + S.gear.mattock)}" alt=""><div class="grow"><b>${esc(m.n)}</b><small>Tier ${m.tier} · dig speed ×${m.spd}</small></div></div>
     <div class="row"><img src="${itemURL('brush' + S.gear.brush)}" alt=""><div class="grow"><b>${esc(b.n)}</b><small>Finds are ${b.pres}% more intact</small></div></div></div>
-    <h3 class="sub">Dig sites</h3><div class="list">${sites}</div><p class="note">Craft better tools at the camp tent.</p><div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button></div>`);
+    <h3 class="sub">Dig sites</h3><div class="list">${sites}</div><p class="note">Craft better tools at the camp tent.</p><div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="testmenu">Test tools</button></div>`);
 };
 UI.openCamp = function (tab) { UI.open('camp', '<div id="campbox"></div>'); UI.cur = 'camp'; UI.renderCamp(tab || 'process'); sfx('pop'); };
 UI.renderCamp = function (tab) {
@@ -414,8 +414,22 @@ function processExtras(id) {
   S.arts = S.arts.filter(a => a.id !== id); S.arts.push(keep); S.mats.scrap = (S.mats.scrap | 0) + scrap;
   sfx('coin'); UI.toast(`Processed ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''} → ${scrap} scrap`, 'gold'); UI.refresh(); UI.renderCamp();
 }
+UI.openTest = function () {   // testing tools: start the dig-and-collect loop again from nothing
+  UI.open('gear', `${head('Test tools')}<p class="note">For testing. Both buttons ask you to tap twice, because they can't be undone.</p>
+    <div class="list"><div class="row"><div class="grow"><b>Reset progress</b><small>Clears the collection, materials, artifacts, tools, counts and every dug hole. Keeps your name and look.</small></div><button class="btn small" data-act="testreset" id="tr1">Reset</button></div>
+    <div class="row"><div class="grow"><b>Erase everything</b><small>Deletes the whole save, character included, and reloads so you start at the character creator.</small></div><button class="btn small lock" data-act="testwipe" id="tr2">Erase</button></div></div>`);
+};
+UI.testConfirm = function (id, label, fn) {   // first tap arms the button, a second tap within a few seconds does it
+  const b = document.getElementById(id); if (!b) return; if (b.dataset.armed) { fn(); return; }
+  b.dataset.armed = '1'; b.textContent = 'Tap again to confirm'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = label; } }, 3500);
+};
 UI.onClick2 = function (a, p1) {
   switch (a) {
+    case 'testmenu': UI.openTest(); break;
+    case 'testreset': UI.testConfirm('tr1', 'Reset', () => {
+      S.col = {}; S.arts = []; S.mats = { nails: 0, boot: 0, fabric: 0, scrap: 0 }; S.gear = { mattock: 0, brush: 0 }; S.stats = { digs: 0, dry: 0 }; HOLES.length = 0; ME.hold = null; A = null; saveState(); UI.refresh(); UI.close(); UI.toast('Progress reset', 'info');
+    }); break;
+    case 'testwipe': UI.testConfirm('tr2', 'Erase', () => { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem('littledig.proto.v1'); } catch (e) { } S = defaultState(); location.reload(); }); break;
     case 'ctab': UI.renderCamp(p1); break;
     case 'process': processExtras(p1); break;
     case 'craft': craft(p1); break;
