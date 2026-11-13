@@ -283,12 +283,10 @@ function drawCrowns(cx, cy, now) {
     g.globalAlpha = 1;
   }
 }
-function drawLeaves(cx, cy) {
-  for (const l of LEAVES) {
-    if (l.x < cx - 10 || l.x > cx + VW + 10 || l.y < cy - 10 || l.y > cy + VH + 10) continue;
-    const fr = l.land ? 3 : Math.floor(l.t * 7) % 4, s = SPR.leaves[fr][l.k]; if (l.land) g.globalAlpha = clamp(1 - Math.max(0, l.lt - 2.5), 0, 1);
-    g.drawImage(s, Math.round(l.x - s.ax - cx), Math.round(l.y - s.ay - cy)); g.globalAlpha = 1;
-  }
+function drawLeaf(l, cx, cy) {
+  if (l.x < cx - 10 || l.x > cx + VW + 10 || l.y < cy - 10 || l.y > cy + VH + 10) return;
+  const fr = l.land ? 3 : Math.floor(l.t * 7) % 4, s = SPR.leaves[fr][l.k]; if (l.land) g.globalAlpha = clamp(1 - Math.max(0, l.lt - 2.5), 0, 1);
+  g.drawImage(s, Math.round(l.x - s.ax - cx), Math.round(l.y - s.ay - cy)); g.globalAlpha = 1;
 }
 
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------

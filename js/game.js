@@ -160,6 +160,7 @@ function drawChar(e, cx, cy, now) {
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
+    case 'leaf': drawLeaf(o.l, cx, cy); return;
     case 'me': case 'npc': {
       const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
@@ -190,8 +191,9 @@ function render(now) {
   }
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
+  for (const l of LEAVES) if (l.x > cx - 10 && l.x < cx + VW + 10 && l.y > cy - 10 && l.y < cy + VH + 10) L.push({ k: 'leaf', x: l.x, y: l.gy, l });   // leaves sort with everything else by where they will land, so they pass behind you or in front like anything on the ground
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
-  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawLeaves(cx, cy); drawGhost(L, cx, cy);
+  L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
