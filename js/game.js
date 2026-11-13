@@ -224,7 +224,7 @@ function render(now) {
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
   g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) fxWater(cx, cy, now);
-  drawLockedShade(cx, cy); drawHoles(cx, cy);
+  drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now);
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
   for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }

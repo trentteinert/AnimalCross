@@ -204,14 +204,15 @@ function drawSiteBoards(cx, cy) {   // a sign on every dig site: its name and wh
     g.fillStyle = '#f5e9cf'; g.textAlign = 'center'; g.fillText(txt, sx, sy - 5); g.font = '6px "Pixelify Sans", monospace'; g.fillStyle = locked ? '#ff9a8a' : '#a8e8a0'; g.fillText(sub, sx, sy + 2); g.globalAlpha = 1;
   }
 }
-function drawMarker(cx, cy, now) {
-  if (!target) return;
-  if (target.kind === 'dig') {   // outline the tile you would dig
-    const x = target.tx * TS - cx, y = target.ty * TS - cy + Math.round(pitZ((target.tx + 0.5) * TS, (target.ty + 0.5) * TS) * PIT_U), ok = siteOpen(target.zone) && !holeAt(target.tx, target.ty); g.fillStyle = ok ? `rgba(255,255,255,${0.55 + 0.35 * Math.sin(now * 6)})` : 'rgba(255,120,110,0.7)';
-    const L = 4;   // only the four corners are marked: short L-shapes, not a full box
-    g.fillRect(x, y, L, 1); g.fillRect(x, y, 1, L); g.fillRect(x + TS - L, y, L, 1); g.fillRect(x + TS - 1, y, 1, L);
-    g.fillRect(x, y + TS - 1, L, 1); g.fillRect(x, y + TS - L, 1, L); g.fillRect(x + TS - L, y + TS - 1, L, 1); g.fillRect(x + TS - 1, y + TS - L, 1, L); return;
-  }
+function drawDigMarker(cx, cy, now) {   // the corners of the tile you would dig: drawn on the ground, under you and everything standing on it
+  if (!target || target.kind !== 'dig') return;
+  const x = target.tx * TS - cx, y = target.ty * TS - cy + Math.round(pitZ((target.tx + 0.5) * TS, (target.ty + 0.5) * TS) * PIT_U), ok = siteOpen(target.zone) && !holeAt(target.tx, target.ty); g.fillStyle = ok ? `rgba(255,255,255,${0.55 + 0.35 * Math.sin(now * 6)})` : 'rgba(255,120,110,0.7)';
+  const L = 4;   // only the four corners are marked: short L-shapes, not a full box
+  g.fillRect(x, y, L, 1); g.fillRect(x, y, 1, L); g.fillRect(x + TS - L, y, L, 1); g.fillRect(x + TS - 1, y, 1, L);
+  g.fillRect(x, y + TS - 1, L, 1); g.fillRect(x, y + TS - L, 1, L); g.fillRect(x + TS - L, y + TS - 1, L, 1); g.fillRect(x + TS - 1, y + TS - L, 1, L);
+}
+function drawMarker(cx, cy, now) {   // the bobbing arrow over a camp or other thing you can use
+  if (!target || target.kind === 'dig') return;
   const o = target.ref, bob = Math.round(Math.sin(now * 6) * 1.5), px = Math.round(o.x - cx), py = Math.round(o.y - 44 - cy + bob);
   g.fillStyle = '#2a1c1c'; g.fillRect(px - 3, py - 1, 7, 2); g.fillRect(px - 2, py + 1, 5, 2); g.fillRect(px - 1, py + 3, 3, 1);
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
