@@ -27,6 +27,7 @@ function tone(f, d, type, v, t0, f2) {
   if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); gn.gain.setValueAtTime(v || 0.04, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
   o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
 }
+['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => addEventListener(ev, () => { audioInit(); if (AC && AC.state !== 'running') AC.resume(); }, true));   // browsers only allow sound after a tap or key press: any of them switches it on, and brings it back if the browser paused it
 const SFX = {
   ui: [[660, .05]], cast: [[500, .12, 'triangle', .05, 0, 200]], splash: [[300, .15, 'sawtooth', .02, 0, 120]], bite: [[880, .08], [1100, .1, 'square', .05, .09]],
   hook: [[500, .08], [700, .08, 'square', .04, .07]], catch: [[523, .09], [659, .09, 'square', .04, .09], [784, .14, 'square', .04, .18]],
@@ -34,20 +35,25 @@ const SFX = {
   pop: [[420, .09, 'triangle', .05, 0, 760]], no: [[200, .15, 'square', .04, 0, 140]], level: [[392, .1], [523, .1, 'square', .04, .1], [659, .1, 'square', .04, .2], [784, .28, 'square', .05, .3]],
   dig: [[160, .07, 'square', .04, 0, 90]], shake: [[240, .06, 'triangle', .04, 0, 200]]
 };
-function noise(d, f, q, v, type, t0, f2) {   // a short burst of filtered noise: the base of the footsteps and the bush rustle
-  const n = Math.ceil(AC.sampleRate * d), b = AC.createBuffer(1, n, AC.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
-  const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0); src.buffer = b; fl.type = type; fl.frequency.setValueAtTime(f, t); if (f2) fl.frequency.linearRampToValueAtTime(f2, t + d); fl.Q.value = q;
-  gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); src.connect(fl); fl.connect(gn); gn.connect(AC.destination); src.start(t); src.stop(t + d + 0.02);
+function noise(d, f, q, v, type, t0, att) {   // a soft burst of filtered noise with a gentle attack (no hard edge, so it never clicks or snaps)
+  const n = Math.ceil(AC.sampleRate * d), b = AC.createBuffer(1, n, AC.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), fl2 = AC.createBiquadFilter(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0), at = att || 0.015; src.buffer = b; fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+  gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(v, t + at); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); fl2.type = 'lowpass'; fl2.frequency.value = type === 'lowpass' ? f : f * 1.6; fl2.Q.value = 0.5; src.connect(fl); fl.connect(fl2); fl2.connect(gn); gn.connect(AC.destination); src.start(t); src.stop(t + d + 0.02);   // two filters in a row: a steep roll-off so nothing bright gets through
 }
-const STEP = {   // [filter freq, Q, volume, length, filter type] per surface, played quietly and nudged a little each step so they don't sound mechanical
-  grass: [2600, 0.6, 0.016, 0.07, 'bandpass'], sand: [3400, 0.5, 0.014, 0.1, 'bandpass'], dirt: [420, 0.7, 0.03, 0.06, 'lowpass'], stone: [1600, 1.4, 0.022, 0.04, 'bandpass'], wood: [700, 1.2, 0.035, 0.055, 'lowpass']
+function thump(f, d, v, t0, type) {   // the low, soft weight of a footfall: a sine that sags in pitch as it fades
+  const o = AC.createOscillator(), gn = AC.createGain(), t = AC.currentTime + (t0 || 0); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.55, t + d);
+  gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(v, t + 0.008); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
+}
+const STEP = {   // per surface: [noise cutoff, noise volume, noise length, thump pitch, thump volume, thump length]. Low, round and soft: cozy, with a little weight to each step
+  grass: [520, 0.1, 0.15, 120, 0.07, 0.1], sand: [750, 0.07, 0.18, 100, 0.035, 0.1], dirt: [320, 0.12, 0.13, 85, 0.1, 0.12], stone: [900, 0.06, 0.08, 190, 0.07, 0.07], wood: [420, 0.06, 0.1, 150, 0.09, 0.11]
 };
 function footstep() {
   if (!S.sound || !AC) return; const x = ME.x, y = ME.y - 2; let k = 'grass';
   if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
-  const a = STEP[k], j = 0.85 + Math.random() * 0.3; try { noise(a[3], a[0] * j, a[1], a[2] * (0.8 + Math.random() * 0.4), a[4]); if (k === 'wood') tone(150 * j, 0.05, 'sine', 0.02, 0, 100); } catch (e) { }
+  const a = STEP[k], side = (ME.stepSide = !ME.stepSide) ? 1.04 : 0.96, j = side * (0.97 + Math.random() * 0.06), vol = 0.9 + Math.random() * 0.2;   // left and right foot sit a touch apart in pitch
+  try { noise(a[2], a[0] * j, 0.4, a[1] * vol, 'lowpass', 0, 0.02); thump(a[3] * j, a[5], a[4] * vol); if (k === 'wood') thump(a[3] * 2 * j, 0.07, a[4] * 0.3 * vol, 0, 'triangle'); } catch (e) { }
 }
-const NSFX = { rustle: () => { for (let i = 0; i < 4; i++) noise(0.07, 3000 + Math.random() * 1500, 0.8, 0.025, 'bandpass', i * 0.045); } };   // walking onto a bush: a few quick leafy rustles
+const NSFX = { rustle: () => { for (let i = 0; i < 3; i++) noise(0.2, 900 + Math.random() * 400, 0.5, 0.075, 'lowpass', i * 0.075, 0.035); thump(140, 0.12, 0.04); } };   // walking onto a bush: soft overlapping leaf rustles and a gentle whump
 function sfx(n) { if (!S.sound || !AC) return; if (NSFX[n]) { try { NSFX[n](); } catch (e) { } return; } const s = SFX[n]; if (!s) return; try { s.forEach(a => tone(a[0], a[1], a[2], a[3], a[4], a[5])); } catch (e) { } }
 const vib = ms => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch (e) { } };
 

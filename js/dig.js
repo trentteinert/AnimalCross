@@ -222,11 +222,13 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
   if (big && r.pct >= 80) { g.fillStyle = 'rgba(255,240,170,0.9)'; for (let i = 0; i < 4; i++) { const a = now * 2 + i * 1.57, rr = sz * 0.55 + 4; g.fillRect(Math.round(e.x - cx + Math.cos(a) * rr), Math.round(top + sz / 2 + Math.sin(a) * rr * 0.7), 2, 2); } }
   g.drawImage(ic, Math.round(e.x - sz / 2 - cx), top, sz, sz); g.globalAlpha = 1;
 }
-function drawHoldText(cx, cy) {   // one short line over the held find: its name, in the rarity colour, with a thin dark shadow
+function drawHoldText(cx, cy) {   // over the held find: its name in the rarity colour and, for artifacts, how intact it is, each with a thin dark shadow
   if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', x = Math.round(ME.x - cx);
   const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
-  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = 'bold 7px "Pixelify Sans", monospace';
-  g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(txt, x + 1, y + 1); g.fillText(txt, x, y + 1); g.fillText(txt, x + 1, y); g.fillStyle = col; g.fillText(txt, x, y);
+  g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const line = (t, yy, c, f) => { g.font = f; g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(t, x + 1, yy + 1); g.fillText(t, x, yy + 1); g.fillText(t, x + 1, yy); g.fillStyle = c; g.fillText(t, x, yy); };
+  if (big) { line(r.pct + '% intact', y, pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); line(txt, y - 9, col, 'bold 7px "Pixelify Sans", monospace'); }
+  else line(txt, y, col, 'bold 7px "Pixelify Sans", monospace');
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
 // ---- trees: the crown is drawn over everything and sways; leaves drift down from it ---------------------------------------------------------------------
