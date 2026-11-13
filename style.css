@@ -160,4 +160,23 @@ h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats
 .costs{display:flex;gap:8px;margin-top:3px}.cst{display:inline-flex;align-items:center;gap:2px;font-size:12px}.cst img{width:14px;height:14px}.cst.ok{color:#8fe09a}.cst.no{color:#ff9a8a}
 .okt{color:#8fe09a;font-size:12px}.lockt{color:var(--muted);font-size:12px;text-align:right;max-width:120px}.row.dim{opacity:.6}.list2{margin-top:2px}
 
-#mats.px{border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background:var(--panel);background-clip:padding-box;box-shadow:none;padding:0 3px}
+#mats.px{border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background:#e0ded3;background-clip:padding-box;box-shadow:none;padding:0 3px}
+
+/* ---- light panels: the frame's cream (#e0ded3) fills every panel, with dark brown text. Colours are remapped for everything inside a .px panel. ---- */
+.px{--cream:#4a3326;--muted:#7d6a56;--amber:#a85a16;--teal:#2f7f6f;--panel2:#cdc6b0;--ink:#3a2a1e;background-color:#e0ded3;color:#4a3326}
+.px .mbtn i,.px.mbtn i{color:#f5e9cf}
+.px .row,.px .card,.px .cell,.px .detail,.px .tab,.px .mt.big,.px .chips .chip,.px .chip:not(#mats){background:#d3cfbd;box-shadow:inset 0 -3px 0 rgba(90,70,50,.18)}
+.px .card{box-shadow:inset 0 -3px 0 var(--rc,#8a7a66)}.px .card b{color:color-mix(in srgb,var(--rc,#4a3326) 40%,#3a2a1e)}
+.px .cell{border-bottom-color:#a89a82}.px .cell.r3{background:#e6dcbc}.px .cell.empty-slot{border-color:#a89a82;background:transparent}.px .cell small,.px .cell span{color:#4a3326}
+.px .tab.on{background:#f1efe5;color:#a85a16;box-shadow:inset 0 -3px 0 #a85a16}
+.px .chips .chip.on,.px .chip.on{background:#2f7f6f;color:#f0fff8}
+.px .btn{color:#4a3326;background:#cdc6b0;box-shadow:0 -3px 0 #6c4938,0 3px 0 #6c4938,-3px 0 0 #6c4938,3px 0 0 #6c4938,inset 0 3px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(90,70,50,.25)}
+.px .btn.big,.px .btn.on{background:#2f7f6f;color:#f0fff8}.px .btn.lock{background:#e6b8ae;color:#8a2f22}.px .btn.gemb{background:#a8c6d6}
+.px .x{background:#cdc6b0;box-shadow:0 -2px 0 #6c4938,0 2px 0 #6c4938,-2px 0 0 #6c4938,2px 0 0 #6c4938;color:#4a3326}
+.px .cst.ok,.px .okt{color:#2f7f4a}.px .cst.no,.px .lockt,.px .err,.px .rv .full{color:#b0402f}.px .row small.nx{color:#3a6a9a}.px .row .gold,.px .gold{color:#a85a16}
+.px .pbar,.px .capbar,.px .chk{background:#b9b3a0}.px .chk.done{background:#2f7f6f;color:#f0fff8}
+.px .crform input{background:#cfc9b5;color:#4a3326;box-shadow:inset 0 2px 0 rgba(90,70,50,.35)}.px .crform label,.px .crrows small,.px .looks2 .lk{color:#7d6a56}
+.px .sws .sw{box-shadow:0 0 0 2px #6c4938}.px .sws .sw.on{box-shadow:0 0 0 2px #6c4938,0 0 0 5px #a85a16}
+.px .mh h2,.px h3.sub{color:#a85a16}.px h4{color:#7d6a56}
+.toast.gold{color:#a85a16}.toast.info{color:#3a5f86}
+.px .mt b{color:#4a3326}
