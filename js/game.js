@@ -38,7 +38,7 @@ const SFX = {
 // A small footstep synth in the spirit of fishtheweb's: soft pink noise through a band-pass that sweeps downward, a gentle attack, short bursts and a touch of room reverb.
 let MIX = null, REV = null, PINK = null;
 function mixInit() {
-  if (MIX && MIX.context === AC) return; MIX = AC.createGain(); MIX.gain.value = 2; MIX.connect(AC.destination);
+  if (MIX && MIX.context === AC) return; MIX = AC.createGain(); MIX.gain.value = 0.8; MIX.connect(AC.destination);
   const len = Math.floor(AC.sampleRate * 0.7), ir = AC.createBuffer(2, len, AC.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
   REV = AC.createConvolver(); REV.buffer = ir; const rg = AC.createGain(); rg.gain.value = 0.6; REV.connect(rg); rg.connect(MIX);
   const n = AC.sampleRate * 2, pb = AC.createBuffer(1, n, AC.sampleRate), d = pb.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;   // pink noise (Paul Kellet's filter)
