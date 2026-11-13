@@ -6,6 +6,7 @@ UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
   $('#menu').innerHTML = [['book', 'Collection', 'book'], ['gear', 'Gear', 'bag'], ['me', 'You', 'wave']].map(m =>
     `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
+  if (UI.refreshPortrait) UI.refreshPortrait();
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
@@ -50,6 +51,7 @@ UI.onClick = function (e) {
     case 'open': UI['open' + p1[0].toUpperCase() + p1.slice(1)](p1 === 'me' ? false : undefined); break;
     case 'snd': S.sound = !S.sound; if (S.sound) audioInit(); UI.openGear(); break;
     case 'mehair': { const n = $('#mename').value; HERO.tint.hairStyle = p1; heroApply(); UI.openMe(UI.me.first); $('#mename').value = n; break; }
+    case 'mecol': HERO.tint[p1] = p2; heroApply(); document.querySelectorAll('#modal .sw[data-act^="mecol:' + p1 + ':"]').forEach(b => b.classList.toggle('on', b.dataset.act === 'mecol:' + p1 + ':' + p2)); break;
     case 'meturn': UI.me.dir = (UI.me.dir + 1) % 4; UI.meDraw(); break;
     case 'merand': Object.assign(HERO.tint, randLook()); heroApply(); UI.meSync(); break;
     case 'mereset': for (const k in HERO.tint) delete HERO.tint[k]; heroApply(); UI.meSync(); break;
@@ -60,15 +62,17 @@ UI.onClick = function (e) {
 
 UI.openMe = function (first) {
   const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); UI.me = { dir: 0, first: !!first };
-  const hs = HERO.tint.hairStyle || HAIR_STYLES[0], hh = HERO.hair[hs], picks = LOOK_ROLES.filter(r => r[0] === 'hair' ? hs !== 'none' && hh : (HERO.roles[r[0]] || []).length).map(([r, n]) => `<label class="lk">${n}<input type="color" data-role="${r}" value="${HERO.tint[r] || (r === 'hair' ? hex(hh.main) : hex(heroRoleColor(r)))}"></label>`).join('');
+  const hs = HERO.tint.hairStyle || HAIR_STYLES[0], hh = HERO.hair[hs], picks = LOOK_ROLES.filter(r => r[0] === 'hair' ? hs !== 'none' && hh : (HERO.roles[r[0]] || []).length).map(([r, n]) => {   // a row of allowed colours per part, no free colour picker
+    const cur = HERO.tint[r] || nearestIn(PALETTE[r], hex(r === 'hair' ? hh.main : heroRoleColor(r)));
+    return `<div class="lk"><small>${n}</small><div class="sws">${PALETTE[r].map(c => `<button class="sw ${c === cur ? 'on' : ''}" style="background:${c}" data-act="mecol:${r}:${c}" aria-label="${n} ${c}"></button>`).join('')}</div></div>`;
+  }).join('');
   UI.open('creator', `${head(first ? 'Make it yours' : 'Your look', !first)}${first ? '<p class="note">You are getting the hang of this! Pick a name and some clothes. You can change them later.</p>' : ''}
   <div class="crtop"><canvas id="meprev" width="96" height="144" data-act="meturn"></canvas>
   <div class="crform"><label>Name<input id="mename" maxlength="14" value="${esc(S.name)}" autocomplete="off" spellcheck="false"></label><div id="meerr" class="err"></div><div class="looks2">${picks}</div></div></div>
   <div class="chips" style="margin:6px 0"><small style="color:var(--muted);align-self:center">Hair</small>${["none", ...HAIR_STYLES].map(id => `<button class="chip ${hs === id ? "on" : ""}" data-act="mehair:${id}">${id === "none" ? "Bald" : id[0].toUpperCase() + id.slice(1)}</button>`).join("")}</div>
   <div class="foot"><button class="btn small" data-act="merand">Randomize</button><button class="btn small" data-act="mereset">Reset clothes</button></div>
   <button class="btn big" data-act="medone">${first ? 'Looks good!' : 'Save'}</button>`);
-  document.querySelectorAll('#modal input[data-role]').forEach(inp => inp.addEventListener('input', () => { HERO.tint[inp.dataset.role] = inp.value; heroApply(); }));
-  clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.meDraw, 160); UI.meDraw();
+    clearInterval(UI.crTimer); UI.crTimer = setInterval(UI.meDraw, 160); UI.meDraw();
 };
 UI.meDraw = function () {
   const c = $('#meprev'); if (!c) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);

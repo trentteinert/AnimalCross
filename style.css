@@ -181,3 +181,6 @@ h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats
 .px .mh h2,.px h3.sub{color:#a85a16}.px h4{color:#7d6a56}
 .toast.gold{color:#a85a16}.toast.info{color:#3a5f86}
 .px .mt b{color:#4a3326}
+
+.looks2{display:flex;flex-direction:column;gap:6px}.looks2 .lk{align-items:flex-start;gap:3px}.looks2 .sws{gap:5px}.looks2 .sw{width:22px;height:22px;cursor:pointer}
+.px .chip.on:not(#mats){background:#2f7f6f;color:#f0fff8}

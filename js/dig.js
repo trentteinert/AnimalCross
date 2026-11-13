@@ -78,17 +78,26 @@ const BRUSH_TIME = 3;   // seconds of brushing at base brush speed before a find
 const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
 const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
 const DIGC = { px: null, lk: '', c: {}, roles: null, obj: {} };
-function digInit() {   // read the sheet once, and work out which of its colours belong to which part of the look (skin, shirt, jeans, boots)
-  const im = ASSET.img.dig_sheet, t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); DIGC.px = t.g.getImageData(0, 0, im.width, im.height).data; DIGC.w = im.width; DIGC.roles = {};
+function lookRoles() {   // which colours in the painted sheets belong to which part of the look, and how bright each shade is compared with its role's main colour
+  if (DIGC.roles) return DIGC.roles; DIGC.roles = {};
   for (const role in HERO.roles) { const main = Math.max(1, heroLum(heroRoleColor(role))); HERO.roles[role].forEach((q, k) => { const i = heroPix(role, k), c = [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; DIGC.roles[c[0] << 16 | c[1] << 8 | c[2]] = [role, heroLum(c) / main]; }); }
+  return DIGC.roles;
+}
+function lookPix(r, g2, b, y, look, upper) {   // recolour one painted pixel by role; the two browns shared by eyes/collar and boots are told apart by where they sit
+  let m = lookRoles()[r << 16 | g2 << 8 | b]; const key = r << 16 | g2 << 8 | b;
+  if (key === 0x513b30) m = y < upper ? ['eyes', 1] : ['boots', 1]; else if (key === 0x77543c) m = y < upper ? ['shirt', heroLum([r, g2, b]) / Math.max(1, heroLum(heroRoleColor('shirt')))] : ['boots', m ? m[1] : 1];
+  if (!m || !look[m[0]]) return [r, g2, b]; const t = [1, 3, 5].map(i => parseInt(look[m[0]].slice(i, i + 2), 16)); return [0, 1, 2].map(q => clamp(Math.round(t[q] * m[1]), 0, 255));
+}
+function digInit() {
+  const im = ASSET.img.dig_sheet, t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); DIGC.px = t.g.getImageData(0, 0, im.width, im.height).data; DIGC.w = im.width; lookRoles();
 }
 function digSprite(dir, fr) {   // one 32x48 frame with your hair, skin and clothes colours on it
   if (!DIGC.px) digInit(); const look = HERO.tint, lk = JSON.stringify(look); if (DIGC.lk !== lk) { DIGC.lk = lk; DIGC.c = {}; }
   const di = DIGD.dirs[dir], key = di * 16 + fr; if (DIGC.c[key]) return DIGC.c[key];
   const c = mk(32, 48), id = c.g.createImageData(32, 48), o = id.data, P = DIGC.px, hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const cell = (col, x, y) => ((fr * 48 + y) * DIGC.w + (col * 32 + x)) * 4;
-  const put = (col, fn) => { for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) { const i = cell(col, x, y); if (!P[i + 3]) continue; const k = (y * 32 + x) * 4, r = fn(P[i], P[i + 1], P[i + 2]); o[k] = r[0]; o[k + 1] = r[1]; o[k + 2] = r[2]; o[k + 3] = 255; } };
-  put(di, (r, g2, b) => { const m = DIGC.roles[r << 16 | g2 << 8 | b]; if (!m || !look[m[0]]) return [r, g2, b]; const t = hex(look[m[0]]); return [0, 1, 2].map(q => clamp(Math.round(t[q] * m[1]), 0, 255)); });   // body: recoloured by role
+  const put = (col, fn) => { for (let y = 0; y < 48; y++) for (let x = 0; x < 32; x++) { const i = cell(col, x, y); if (!P[i + 3]) continue; const k = (y * 32 + x) * 4, r = fn(P[i], P[i + 1], P[i + 2], y); o[k] = r[0]; o[k + 1] = r[1]; o[k + 2] = r[2]; o[k + 3] = 255; } };
+  put(di, (r, g2, b, y) => lookPix(r, g2, b, y, look, 36));   // body: recoloured by role
   const hs = look.hairStyle; if (hs !== 'none') { const t = look.hair ? hex(look.hair) : null, ml = heroLum([136, 96, 75]); put(4 + di, (r, g2, b) => t ? [0, 1, 2].map(q => clamp(Math.round(t[q] * heroLum([r, g2, b]) / ml), 0, 255)) : [r, g2, b]); }   // hair: recoloured around its main shade
   put(8 + di, (r, g2, b) => [r, g2, b]); put(16 + di, (r, g2, b) => [r, g2, b]);   // the brush and the mattock keep the colours they were drawn in
   c.g.putImageData(id, 0, 0); return DIGC.c[key] = c;
@@ -410,3 +419,20 @@ UI.onClick2 = function (a, p1) {
     case 'craft': craft(p1); break;
   }
 };
+
+// ---- the "You" button: a little portrait of your character in your colours (assets/ui/portrait.png: body, shadow and hair, with and without hair) ----
+const PORT = { px: null };
+function portraitIcon() {
+  const im = ASSET.img.portrait; if (!im) return null;
+  if (!PORT.px) { const t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); PORT.px = t.g.getImageData(0, 0, im.width, im.height).data; PORT.w = im.width; }
+  const look = HERO.tint, hair = look.hairStyle !== 'none', row = hair ? 0 : 1, P = PORT.px, c = mk(16, 16), id = c.g.createImageData(16, 16), o = id.data;
+  const at = (col, x, y) => ((row * 16 + y) * PORT.w + col * 16 + x) * 4, put = (k, r, g2, b, a) => { o[k] = r; o[k + 1] = g2; o[k + 2] = b; o[k + 3] = a; };
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const i = at(1, x, y); if (P[i + 3]) put((y * 16 + x) * 4, P[i], P[i + 1], P[i + 2], 105); }   // the drop shadow, see-through
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const i = at(0, x, y); if (!P[i + 3]) continue; const r = lookPix(P[i], P[i + 1], P[i + 2], y, look, 16); put((y * 16 + x) * 4, r[0], r[1], r[2], 255); }
+  if (hair) {
+    const t = look.hair ? [1, 3, 5].map(i => parseInt(look.hair.slice(i, i + 2), 16)) : null, ml = heroLum([136, 96, 75]);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const i = at(2, x, y); if (!P[i + 3]) continue; const f = heroLum([P[i], P[i + 1], P[i + 2]]) / ml; put((y * 16 + x) * 4, ...(t ? [0, 1, 2].map(q => clamp(Math.round(t[q] * f), 0, 255)) : [P[i], P[i + 1], P[i + 2]]), 255); }
+  }
+  c.g.putImageData(id, 0, 0); return c;
+}
+UI.refreshPortrait = function () { const im = document.querySelector('.mbtn[data-act="open:me"] img'), c = HERO.base && portraitIcon(); if (im && c) im.src = c.toDataURL(); };

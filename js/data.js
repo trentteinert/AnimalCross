@@ -42,8 +42,16 @@ const SITES = [null,   // painted onto the map (SITE layer); a site opens when y
   { id: 'meadow', n: 'Meadow Dig', tier: 1, col: '#7a5a3a' },
   { id: 'hillside', n: 'Hillside Dig', tier: 2, col: '#6e5238' },
   { id: 'deep', n: 'Deep Dig', tier: 3, col: '#5e4632' }];
+// The character creator only offers these colours: earthy, natural, and all readable against the cream panels and the green grass.
 const SKIN = ['#f6d3b3', '#e9b98f', '#d49a6a', '#b57a4a', '#8a5a36', '#5e3b24'];
-const HAIRC = ['#2b1d1a', '#5a3a22', '#8a5a2f', '#d8a24a', '#e8d27a', '#c2442f', '#6f5ad8', '#e86fa8'];
+const HAIRC = ['#2b1d1a', '#4a3022', '#6e4a2c', '#a8512f', '#c2652f', '#d8a24a', '#9a968c', '#d9d2bc'];
+const PALETTE = {
+  hair: HAIRC, skin: SKIN,
+  eyes: ['#513b30', '#7a5a2f', '#3f6f9a', '#4a7a4a', '#6b7480', '#2a2a30'],
+  shirt: ['#b4533a', '#d9a441', '#3f6fb0', '#2f8a7a', '#8a3a4a', '#4a4f5c', '#b8905a', '#3f6a3f'],
+  jeans: ['#4f6f9a', '#34455f', '#3a3a44', '#6b5a4a', '#8f7a52', '#3f5a3f'],
+  boots: ['#a8641e', '#4a3326', '#2a2a30', '#7a2f2a', '#6b6b70', '#5a5a3a']
+};
 
 // ---- save state -----------------------------------------------------------
 const SAVE_KEY = 'littledig.loop.v1';

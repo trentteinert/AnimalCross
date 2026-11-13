@@ -6,7 +6,7 @@ const ASSET = { img: {}, props: null, ok: false };
 
 const HAIR_STYLES = ['default'];   // ids of the hair sheets in assets/chars/hair_<id>.png; 'none' (bald) is always available
 function loadAssets(cb) {
-  const list = { hero_uv: 'assets/chars/hero_uv.png', dig_sheet: 'assets/chars/dig_sheet.png', items: 'assets/props/items.png', icon_log: 'assets/ui/icon_log.png', icon_bag: 'assets/ui/icon_bag.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', tree: 'assets/props/tree.png', decor: 'assets/props/decor.png', leaves: 'assets/props/leaves.png', grass_tiles: 'assets/tiles/grass.png', sand_tiles: 'assets/tiles/sand.png', dirt_tiles: 'assets/tiles/dirt.png', grass_variants: 'assets/tiles/grass_variants.png', sand_variants: 'assets/tiles/sand_variants.png', dirt_variants: 'assets/tiles/dirt_variants.png' };
+  const list = { hero_uv: 'assets/chars/hero_uv.png', dig_sheet: 'assets/chars/dig_sheet.png', items: 'assets/props/items.png', icon_log: 'assets/ui/icon_log.png', icon_bag: 'assets/ui/icon_bag.png', portrait: 'assets/ui/portrait.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', tree: 'assets/props/tree.png', decor: 'assets/props/decor.png', leaves: 'assets/props/leaves.png', grass_tiles: 'assets/tiles/grass.png', sand_tiles: 'assets/tiles/sand.png', dirt_tiles: 'assets/tiles/dirt.png', grass_variants: 'assets/tiles/grass_variants.png', sand_variants: 'assets/tiles/sand_variants.png', dirt_variants: 'assets/tiles/dirt_variants.png' };
   for (const id of HAIR_STYLES) list['hair_' + id] = 'assets/chars/hair_' + id + '.png';   // hair styles: one sheet each (see tools/make_hero_sheet.py)
   let left = Object.keys(list).length + 4; const failed = [];
   const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
@@ -55,7 +55,7 @@ function heroBuild(tint) { // a skin = the original skin with the chosen colour 
   }
   return d;
 }
-function heroApply() { HERO.data = heroBuild(HERO.tint); HERO.cache = {}; saveState(); }   // the local player's skin
+function heroApply() { HERO.data = heroBuild(HERO.tint); HERO.cache = {}; saveState(); if (typeof UI !== 'undefined' && UI.refreshPortrait) UI.refreshPortrait(); }   // the local player's skin
 function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-4 = walk cycle. `tint` is another character's look (their skins are cached by look)
   if (typeof face === 'string') face = FACE_OF_DIR[face] || 0;
   let data = HERO.data, cache = HERO.cache;
@@ -81,6 +81,6 @@ function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-4
   c.g.putImageData(id, 0, 0); c.ax = HC.ax; c.ay = HC.ay; return cache[key] = c;
 }
 const LOOK_ROLES = [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']];
-function cleanLook(l) { const o = {}; if (l && typeof l === 'object') { for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = l[r].toLowerCase(); if (l.hairStyle === 'none' || HAIR_STYLES.includes(l.hairStyle)) o.hairStyle = l.hairStyle; } return o; }
-const SHIRTS = ['#7a9a4a', '#c9503f', '#3f6fb0', '#e0b43a', '#8a5aa8', '#e8e0d0', '#2f8a7a', '#d9738a'], JEANS = ['#4f6f9a', '#34455f', '#6b5a4a', '#3a3a44', '#7a8a6a'], BOOTS = ['#a8641e', '#4a3326', '#2a2a30', '#7a2f2a'];
-function randLook() { const o = { hair: pick(HAIRC), eyes: pick(['#4a3326', '#2f5a8a', '#3a7a4a', '#2a2a30']), skin: pick(SKIN), shirt: pick(SHIRTS), jeans: pick(JEANS), boots: pick(BOOTS) }; for (const k in o) if (k !== 'hair' && !(HERO.roles[k] || []).length) delete o[k]; o.hairStyle = Math.random() < 0.85 ? pick(HAIR_STYLES) : 'none'; return o; }   // only the parts this character has   // wandering diggers get a random outfit
+function cleanLook(l) { const o = {}; if (l && typeof l === 'object') { for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = PALETTE[r] ? nearestIn(PALETTE[r], l[r].toLowerCase()) : l[r].toLowerCase(); if (l.hairStyle === 'none' || HAIR_STYLES.includes(l.hairStyle)) o.hairStyle = l.hairStyle; } return o; }
+const nearestIn = (list, h) => { const c = hexRGB(h); let best = list[0], bd = 1e9; for (const x of list) { const d = hexRGB(x).reduce((a, v, i) => a + (v - c[i]) ** 2, 0); if (d < bd) { bd = d; best = x; } } return best; };   // snap any colour to the closest allowed one
+function randLook() { const o = {}; for (const r in PALETTE) o[r] = pick(PALETTE[r]); for (const k in o) if (k !== 'hair' && !(HERO.roles[k] || []).length) delete o[k]; o.hairStyle = Math.random() < 0.85 ? pick(HAIR_STYLES) : 'none'; return o; }   // only the parts this character has   // wandering diggers get a random outfit
