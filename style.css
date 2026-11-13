@@ -12,7 +12,8 @@ img{image-rendering:pixelated}
 button{font:inherit;color:inherit;cursor:pointer}
 
 /* notched pixel panels, no images needed */
-.px{background:var(--panel);color:var(--cream);border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background-clip:padding-box;image-rendering:pixelated}   /* every panel wears the painted wooden frame (a 9-slice at 2x); the action button uses the big cream version */
+.px{background:var(--panel);color:var(--cream);border:solid transparent;border-width:8px;border-image:url(assets/ui/frame_thick.png) 4/8px stretch;background-clip:padding-box;image-rendering:pixelated}
+.px.fm{border-width:6px;border-image:url(assets/ui/frame_med.png) 3/6px stretch}.px.fs{border-width:4px;border-image:url(assets/ui/frame_thin.png) 2/4px stretch}   /* three frame weights: thick for big windows, medium and thin for small boxes */   /* every panel wears the painted wooden frame (a 9-slice at 2x); the action button uses the big cream version */
 
 .tl{position:absolute;left:calc(var(--sal) + 14px);top:calc(var(--sat) + 14px);display:flex;flex-direction:column;gap:9px;align-items:flex-start}
 .tr{position:absolute;right:calc(var(--sar) + 14px);top:calc(var(--sat) + 14px);display:flex;flex-direction:column;gap:9px;align-items:flex-end}
@@ -72,7 +73,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #banner.go{animation:banner 2s ease-out both}
 @keyframes banner{0%{opacity:0;transform:translateX(-50%) scale(.5)}12%{opacity:1;transform:translateX(-50%) scale(1.1)}20%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
 #toasts{position:absolute;left:50%;top:calc(var(--sat) + 74px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%}
-.toast{padding:6px 12px;font-size:13px;animation:tin .2s ease-out;max-width:84vw;text-align:center}
+.toast{padding:5px 10px;font-size:13px;animation:tin .2s ease-out;max-width:84vw;text-align:center}
 .toast.out{opacity:0;transition:opacity .4s}.toast.gold{color:var(--amber)}.toast.info{color:#cfe6ff}
 @keyframes tin{from{transform:translateY(-8px);opacity:0}}
 
@@ -160,7 +161,7 @@ h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats
 .costs{display:flex;gap:8px;margin-top:3px}.cst{display:inline-flex;align-items:center;gap:2px;font-size:12px}.cst img{width:14px;height:14px}.cst.ok{color:#8fe09a}.cst.no{color:#ff9a8a}
 .okt{color:#8fe09a;font-size:12px}.lockt{color:var(--muted);font-size:12px;text-align:right;max-width:120px}.row.dim{opacity:.6}.list2{margin-top:2px}
 
-#mats.px{border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background:#e0ded3;background-clip:padding-box;box-shadow:none;padding:4px 8px}
+#mats.px{border:solid transparent;border-width:6px;border-image:url(assets/ui/frame_med.png) 3/6px stretch;background:#e0ded3;background-clip:padding-box;box-shadow:none;padding:4px 8px}
 
 /* ---- light panels: the frame's cream (#e0ded3) fills every panel, with dark brown text. Colours are remapped for everything inside a .px panel. ---- */
 .px{--cream:#4a3326;--muted:#7d6a56;--amber:#a85a16;--teal:#2f7f6f;--panel2:#cdc6b0;--ink:#3a2a1e;background-color:#e0ded3;color:#4a3326}

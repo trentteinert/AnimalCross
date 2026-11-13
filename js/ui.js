@@ -5,7 +5,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
   $('#menu').innerHTML = [['book', 'Collection', 'book'], ['gear', 'Gear', 'bag'], ['me', 'You', 'wave']].map(m =>
-    `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
+    `<button class="mbtn px fm" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
@@ -20,7 +20,7 @@ UI.refresh = function () {
 
 UI.setHint = function (t) { if (t === UI.hintTxt) return; UI.hintTxt = t; const h = $('#hint'); h.textContent = t; h.classList.toggle('show', !!t); };
 UI.toast = function (t, cls) {
-  const d = document.createElement('div'); d.className = 'toast px ' + (cls || ''); d.textContent = t; $('#toasts').appendChild(d);
+  const d = document.createElement('div'); d.className = 'toast px fs ' + (cls || ''); d.textContent = t; $('#toasts').appendChild(d);
   setTimeout(() => d.classList.add('out'), 1800); setTimeout(() => d.remove(), 2300);
   while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
 };
