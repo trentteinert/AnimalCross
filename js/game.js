@@ -302,16 +302,18 @@ function loadMapData(cb) {
   if (draft) return cb(draft, 'draft');
   fetch('maps/' + AREA + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => ok(m) ? cb(m, 'file') : cb(defaultFor(AREA), 'default')).catch(() => cb(defaultFor(AREA), 'default'));
 }
+const LOAD_MIN = 1600;   // the loading screen stays up at least this long (ms), so the title can be seen; add ?loadhold to the address to keep it up for design work
+function loadProgress(p) { const b = document.getElementById('lbar'); if (b) b.style.width = Math.round(p * 100) + '%'; }
 function boot() {
-  loadState(); resize(); addEventListener('resize', resize);
+  const t0 = performance.now(); loadState(); resize(); addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); if (!EDIT) UI.init();
+  loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); if (!EDIT) UI.init(); loadProgress(0.9);
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
     ME = { k: 'me', x: W.spawn.x, y: W.spawn.y, dir: 'd', t: 0, moving: false, bubble: null, bt: 0 };
-    $('#loading').classList.add('hidden'); requestAnimationFrame(loop);
+    loadProgress(1); if (!qs.has('loadhold')) setTimeout(() => $('#loading').classList.add('hidden'), Math.max(250, LOAD_MIN - (performance.now() - t0))); requestAnimationFrame(loop);
     if (!S.created) setTimeout(() => UI.openMe(true), 600);
     if (src === 'draft') UI.toast('Playing your draft map', 'info');
     window.__game = { get ME() { return ME; }, get A() { return A; }, S, W, NPCS, get target() { return target; } };

@@ -9,7 +9,7 @@ function loadAssets(cb) {
   const list = { hero_uv: 'assets/chars/hero_uv.png', dig_sheet: 'assets/chars/dig_sheet.png', items: 'assets/props/items.png', icon_log: 'assets/ui/icon_log.png', icon_bag: 'assets/ui/icon_bag.png', portrait: 'assets/ui/portrait.png', icon_mattock: 'assets/ui/icon_mattock.png', hero_skin: 'assets/chars/hero_skin.png', fills: 'assets/tiles/fills.png', tree: 'assets/props/tree.png', decor: 'assets/props/decor.png', leaves: 'assets/props/leaves.png', grass_tiles: 'assets/tiles/grass.png', sand_tiles: 'assets/tiles/sand.png', dirt_tiles: 'assets/tiles/dirt.png', grass_variants: 'assets/tiles/grass_variants.png', sand_variants: 'assets/tiles/sand_variants.png', dirt_variants: 'assets/tiles/dirt_variants.png' };
   for (const id of HAIR_STYLES) list['hair_' + id] = 'assets/chars/hair_' + id + '.png';   // hair styles: one sheet each (see tools/make_hero_sheet.py)
   let left = Object.keys(list).length + 4; const failed = [];
-  const done = () => { if (--left === 0) { ASSET.ok = !failed.length; cb(failed); } };
+  const total = left, done = () => { loadProgress(0.7 * (1 - --left / total)); if (left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
   fetch('assets/props/tree.json').then(r => r.json()).then(j => { ASSET.tree = j; done(); }).catch(() => { ASSET.tree = null; done(); });
   fetch('assets/props/decor.json').then(r => r.json()).then(j => { ASSET.decor = j; done(); }).catch(() => { ASSET.decor = null; done(); });
