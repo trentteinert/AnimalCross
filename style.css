@@ -72,7 +72,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 #banner.go{animation:banner 2s ease-out both}
 @keyframes banner{0%{opacity:0;transform:translateX(-50%) scale(.5)}12%{opacity:1;transform:translateX(-50%) scale(1.1)}20%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
 #toasts{position:absolute;left:50%;top:calc(var(--sat) + 74px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%}
-.toast{padding:2px 6px;font-size:13px;animation:tin .2s ease-out;max-width:84vw;text-align:center}
+.toast{padding:6px 12px;font-size:13px;animation:tin .2s ease-out;max-width:84vw;text-align:center}
 .toast.out{opacity:0;transition:opacity .4s}.toast.gold{color:var(--amber)}.toast.info{color:#cfe6ff}
 @keyframes tin{from{transform:translateY(-8px);opacity:0}}
 
@@ -152,7 +152,7 @@ body.lefty #hint{left:auto;right:calc(var(--sar) + 14px);text-align:right}
 .looks2 input[type=color]{width:42px;height:30px;padding:0;border:0;background:none}
 
 /* loop UI: materials chip, collection cards, camp rows */
-#mats{display:flex;gap:10px;padding:6px 10px}.mt{display:inline-flex;align-items:center;gap:3px;font-size:13px}.mt img{width:16px;height:16px}.mt b{color:var(--cream);font-weight:600}.mt.big{font-size:13px;gap:5px;background:#1b2538;padding:6px 9px}
+#mats{display:flex;gap:10px}.mt{display:inline-flex;align-items:center;gap:3px;font-size:13px}.mt img{width:16px;height:16px}.mt b{color:var(--cream);font-weight:600}.mt.big{font-size:13px;gap:5px;background:#1b2538;padding:6px 9px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.card{background:#1b2538;padding:8px 6px;text-align:center;box-shadow:inset 0 -3px 0 var(--rc,#d7e0ea)}.card.unk img{filter:brightness(0) opacity(.55)}
 .card img{width:40px;height:40px;image-rendering:pixelated}.card b{display:block;font-size:14px;color:var(--rc,#d7e0ea)}.card small{display:block;color:var(--muted);font-size:11px}.card p{font-size:11px;color:var(--muted);margin:4px 0 0}
 .pbar{height:6px;background:#0e1522;margin:5px 4px 3px}.pbar i{display:block;height:100%}
@@ -160,7 +160,7 @@ h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats
 .costs{display:flex;gap:8px;margin-top:3px}.cst{display:inline-flex;align-items:center;gap:2px;font-size:12px}.cst img{width:14px;height:14px}.cst.ok{color:#8fe09a}.cst.no{color:#ff9a8a}
 .okt{color:#8fe09a;font-size:12px}.lockt{color:var(--muted);font-size:12px;text-align:right;max-width:120px}.row.dim{opacity:.6}.list2{margin-top:2px}
 
-#mats.px{border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background:#e0ded3;background-clip:padding-box;box-shadow:none;padding:0 3px}
+#mats.px{border:solid transparent;border-width:8px;border-image:url(assets/ui/panel_act.png) 4/8px stretch;background:#e0ded3;background-clip:padding-box;box-shadow:none;padding:4px 8px}
 
 /* ---- light panels: the frame's cream (#e0ded3) fills every panel, with dark brown text. Colours are remapped for everything inside a .px panel. ---- */
 .px{--cream:#4a3326;--muted:#7d6a56;--amber:#a85a16;--teal:#2f7f6f;--panel2:#cdc6b0;--ink:#3a2a1e;background-color:#e0ded3;color:#4a3326}
