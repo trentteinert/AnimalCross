@@ -40,8 +40,10 @@ function shadowSpr(w, h) {
 
 // ---- placeholder art: everything below is basic shapes until the real art arrives -------------------------------------------------
 const iconCache = {};
-function itemIcon(id) {   // 16x16 icons of finds, salvage and tools
+const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boot: [0, 1], fabric: [1, 1], scrap: [2, 1] };   // 8x8 painted icons in assets/props/items.png (column, row)
+function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders)
   if (iconCache['i' + id]) return iconCache['i' + id];
+  if (ITEM_CELLS[id] && ASSET.img.items) { const c = mk(8, 8); c.g.drawImage(ASSET.img.items, ITEM_CELLS[id][0] * 8, ITEM_CELLS[id][1] * 8, 8, 8, 0, 0, 8, 8); return iconCache['i' + id] = c; }
   const c = mk(16, 16);
   switch (id) {
     case 'jug': EL(c, 8, 10, 4.6, 5, '#b9774a'); RC(c, 6, 3, 4, 4, '#a0643c'); RC(c, 5, 2, 6, 2, '#d89a68'); RC(c, 3, 6, 2, 4, '#8f5532'); RC(c, 5, 9, 6, 1, '#8f5532'); break;
