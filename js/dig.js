@@ -74,7 +74,8 @@ function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 6;   // seconds of digging at base speed (long for now, so the dig animation can be watched)
 const DIGE = { fw: 64, ax: 27, ay: 49, fps: 8, begin: [0, 1, 2, 3, 4, 5], clips: [[3, 4, 5], [4, 5]] };   // the east dig strip: frames 1-6 play when digging starts, then 'dig 2' (frames 4-6) and 'prospect' (frames 5-6) at random
-function digFrameE(a) {   // which frame of the east dig strip is showing; the random clips are chosen once and remembered so they don't flicker
+function digFrameE(a) {
+  if (a.rise != null) return [2, 1, 0][Math.min(2, Math.floor(a.rise * DIGE.fps))];   // which frame of the east dig strip is showing; the random clips are chosen once and remembered so they don't flicker
   if (!a.seq) a.seq = DIGE.begin.slice(); const i = Math.floor(a.t * DIGE.fps);
   while (a.seq.length <= i) a.seq.push(...DIGE.clips[Math.floor(Math.random() * DIGE.clips.length)]);
   return a.seq[i];
@@ -92,11 +93,12 @@ function startAction() {
 function updateAct(dt) {
   if (!A) return; A.t += dt;
   if (A.k === 'dig') {
+    if (A.rise != null) { A.rise += dt; if (A.rise >= 3 / DIGE.fps) endAct(); return; }   // standing back up: frames 3-2-1 played in reverse
     A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up
     if (A.d <= 0) return;
     A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); }
     if (A.d >= A.dur) {
-      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; endAct();
+      const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; if (A.dir === 'r' && ASSET.img.dig_east) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
   }
@@ -126,7 +128,7 @@ function drawHoles(cx, cy) {
     g.fillStyle = '#9a7248'; g.fillRect(x + 1, y + 12, 4, 2); g.fillRect(x + 11, y + 11, 4, 2); g.fillRect(x + 6, y + 13, 5, 1);   // the spoil heaps
     g.globalAlpha = 1;
   }
-  if (A && A.k === 'dig' && A.d > 0) {   // the hole opening up while you dig
+  if (A && A.k === 'dig' && A.d > 0 && A.rise == null) {   // the hole opening up while you dig
     const x = Math.round(A.x - cx), y = Math.round(A.y - cy + A.depth * PIT_U), u = clamp((A.d || 0) / A.dur, 0, 1), w = 2 + Math.round(u * 8);
     g.fillStyle = '#2e1c10'; g.fillRect(x - w / 2, y - 2, w, 4 + Math.round(u * 3));
   }
