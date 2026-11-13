@@ -60,6 +60,7 @@ function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools 
 }
 function actIcon(name) {   // buttons: dig, camp, collection book, you
   if (iconCache['a' + name]) return iconCache['a' + name];
+  if (name === 'book' && ASSET.img.icon_log) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_log, 0, 0); return iconCache['a' + name] = k; }   // painted 16x16 collection log icon
   const c = mk(16, 16);
   switch (name) {
     case 'beach': LN(c, 3, 14, 12, 4, '#8a5a30'); LN(c, 4, 14, 13, 4, '#a8743a'); RC(c, 9, 2, 6, 3, '#c08a40'); RC(c, 9, 2, 6, 1, '#e8b870'); RC(c, 11, 5, 2, 2, '#6b4423'); break;
