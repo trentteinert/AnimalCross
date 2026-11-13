@@ -86,14 +86,16 @@ function startAction() {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
     const v = DV[t.dir];
-    A = { k: 'dig', t: 0, dur: DIG_TIME / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
+    A = { k: 'dig', t: 0, dur: DIG_TIME / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, hit: t.dir === 'r' ? 4 / DIGE.fps : 0, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
   }
 }
 function updateAct(dt) {
   if (!A) return; A.t += dt;
   if (A.k === 'dig') {
+    A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up
+    if (A.d <= 0) return;
     A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); }
-    if (A.t >= A.dur) {
+    if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth); recordFind(res); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y; endAct();
       showFind(res, hx, hy);
     }
@@ -101,7 +103,7 @@ function updateAct(dt) {
 }
 function actState() {
   if (!A) return null;
-  if (A.k === 'dig') return { icon: 'beach', prog: A.t / A.dur, alert: false, hint: 'Digging...' };
+  if (A.k === 'dig') return { icon: 'beach', prog: (A.d || 0) / A.dur, alert: false, hint: 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
   if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
@@ -124,8 +126,8 @@ function drawHoles(cx, cy) {
     g.fillStyle = '#9a7248'; g.fillRect(x + 1, y + 12, 4, 2); g.fillRect(x + 11, y + 11, 4, 2); g.fillRect(x + 6, y + 13, 5, 1);   // the spoil heaps
     g.globalAlpha = 1;
   }
-  if (A && A.k === 'dig') {   // the hole opening up while you dig
-    const x = Math.round(A.x - cx), y = Math.round(A.y - cy + A.depth * PIT_U), u = clamp(A.t / A.dur, 0, 1), w = 2 + Math.round(u * 8);
+  if (A && A.k === 'dig' && A.d > 0) {   // the hole opening up while you dig
+    const x = Math.round(A.x - cx), y = Math.round(A.y - cy + A.depth * PIT_U), u = clamp((A.d || 0) / A.dur, 0, 1), w = 2 + Math.round(u * 8);
     g.fillStyle = '#2e1c10'; g.fillRect(x - w / 2, y - 2, w, 4 + Math.round(u * 3));
   }
 }
