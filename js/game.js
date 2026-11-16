@@ -73,6 +73,7 @@ function footstep() {
   if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
   try { STEPS[k](); } catch (e) { }
 }
+function brushSfx(l) { if (!S.sound || !AC) return; try { nz(0, { color: 'pink', filter: 'bandpass', f: 1900, fTo: 1100, q: 0.7, a: 0.025, dur: 0.16, gain: 0.22 * l, wet: 0.05 }); } catch (e) { } }   // a soft brushing swish while you press
 const NSFX = { rustle: () => {   // walking onto a bush: three soft pink-noise rustles that sweep down, with a gentle low whump
   for (let i = 0; i < 3; i++) { const j = rj(0.1); nz(i * 0.06, { color: 'pink', filter: 'bandpass', f: 2200 * j, fTo: 1000 * j, q: 0.7, a: 0.02, dur: 0.12 + Math.random() * 0.04, gain: 0.22 * rj(0.2), wet: 0.06 }); }
   tn(0, { freq: 130, to: 75, glide: 0.09, a: 0.006, d: 0.13, lp: 400, gain: 0.07, wet: 0.05 });
@@ -149,7 +150,7 @@ function updateMe(dt) {
   if (ME.wave) { ME.wave.t += dt; if (ME.wave.t > 1.3 || mag > 0.3) ME.wave = null; }
   if (ME.hold) { const h = ME.hold; h.t += dt; if (h.t > h.dur || (h.t > 0.6 && mag > 0.3)) ME.hold = null; else if (h.t < 0.6) return; }
   if (UI.isOpen) return;
-  if (A) { if (mag > 0.4) endAct(); else return; }   // digging: you stand still; pushing the stick stops it
+  if (A) { if (mag > 0.4) cancelAct(); else return; }   // digging: you stand still; pushing the stick stops it
   if (mag > 0.05) {
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
@@ -195,7 +196,7 @@ function drawChar(e, cx, cy, now) {
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
     g.drawImage(digSprite(dd, fi), Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy));
-    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.bt / A.bdur), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
+    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
   } else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
   if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);

@@ -32,13 +32,13 @@ const MATTOCKS = [   // spd: dig speed. tier: the deepest dig site tier it can w
   { n: 'Iron Mattock', tier: 2, spd: 1.4, col: '#8a919c' },
   { n: 'Steel Mattock', tier: 3, spd: 1.9, col: '#cfd9e6' }];
 const BRUSHES = [    // pres: percentage points added to how intact finds are
-  { n: 'Brush', pres: 0, spd: 1, col: '#c9a46a' },
-  { n: 'Specialty Brush', pres: 14, spd: 1.7, col: '#e8d9a2' }];
+  { n: 'Brush', pres: 0, spd: 1, wide: 1, col: '#c9a46a' },
+  { n: 'Specialty Brush', pres: 14, spd: 1.7, wide: 1.25, col: '#e8d9a2' }];
 const RECIPES = [    // unlocked by finding the artifact named in `unlock` (first find of it)
   { id: 'brush2', kind: 'brush', to: 1, name: 'Specialty Brush', d: 'Finds come up 14% more intact.', cost: { fabric: 3, scrap: 2 }, unlock: 'jug' },
   { id: 'mattock2', kind: 'mattock', to: 1, name: 'Iron Mattock', d: 'Digs faster and opens tier 2 sites.', cost: { nails: 5, boot: 1, scrap: 3 }, unlock: 'bowl' },
   { id: 'mattock3', kind: 'mattock', to: 2, name: 'Steel Mattock', d: 'Digs fastest and opens tier 3 sites.', cost: { nails: 8, boot: 2, fabric: 3, scrap: 5 }, unlock: 'coin' }];
-const SITES = [null,   // painted onto the map (SITE layer); a site opens when your mattock tier reaches its tier
+const SITES = [{ id: 'wild', n: 'Open ground', tier: 0 },   // 0 = ordinary ground: you can dig almost anywhere, but only the marked sites below (painted onto the map, SITE layer) have good odds; a site opens when your mattock tier reaches its tier
   { id: 'meadow', n: 'Meadow Dig', tier: 1, col: '#7a5a3a' },
   { id: 'hillside', n: 'Hillside Dig', tier: 2, col: '#6e5238' },
   { id: 'deep', n: 'Deep Dig', tier: 3, col: '#5e4632' }];

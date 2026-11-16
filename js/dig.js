@@ -12,30 +12,32 @@ const found = id => !!(S.col[id] && S.col[id].n > 0);
 const pctCol = p => p >= 70 ? '#8fe09a' : p >= 40 ? '#ffd877' : '#ff9a8a';
 
 // ---- what a dig turns up ------------------------------------------------------------------------------------------------------------------
-const DIG_FINDS = { artifact: 0.45, salvage: 0.40 };   // the rest is dirt and pebbles
-const ART_W = { 1: [60, 28, 12], 2: [42, 36, 22], 3: [28, 40, 32] };   // common / uncommon / rare, by dig site tier
+const DIG_FINDS = { artifact: 0.45, salvage: 0.40 }, WILD_FINDS = { artifact: 0.07, salvage: 0.33 };   // marked sites: nearly half the digs turn up an artifact. Open ground: rarely (the rest is dirt and pebbles)
+const ART_W = { 1: [60, 28, 12], 2: [42, 36, 22], 3: [28, 40, 32] }, ART_WILD = [86, 13, 1];   // common / uncommon / rare, by dig site tier (open ground is almost all commons)
 const SALV_IDS = ['nails', 'fabric', 'boot'], SALV_W = [45, 30, 25];
-function rollDig(tier, depth) {   // depth: how far down the dug spot is (units): deeper strata give rarer finds that are better preserved
+function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (units): deeper strata give rarer finds that are better preserved. wild: ordinary ground, not a marked site
   depth = depth || 0;
-  const st = S.stats; let kind;
-  if (st.digs === 0 || st.dry >= 3) kind = 'artifact';   // the very first dig, and every fourth dry one, always turns up an artifact
-  else { const r = Math.random(); kind = r < DIG_FINDS.artifact ? 'artifact' : r < DIG_FINDS.artifact + DIG_FINDS.salvage ? 'salvage' : 'dirt'; }
+  const st = S.stats, F = wild ? WILD_FINDS : DIG_FINDS; let kind;
+  if (!wild && (!st.sdigs || st.dry >= 3)) kind = 'artifact';   // at a marked site the very first dig, and every fourth dry one, always turns up an artifact
+  else { const r = Math.random(); kind = r < F.artifact ? 'artifact' : r < F.artifact + F.salvage ? 'salvage' : 'dirt'; }
   if (kind === 'artifact') {
-    const w = (ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
-    const a = st.digs === 0 ? ARTIFACTS[0] : ARTIFACTS[pickW(w)];
-    return { kind, id: a.id, pct: clamp(Math.round(rnd(40, 88) - a.r * 4 + brush().pres + depth * 6), 5, 100) };   // rarer things are a little more fragile; brushes help
+    const w = (wild ? ART_WILD : ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
+    const a = !wild && !st.sdigs ? ARTIFACTS[0] : ARTIFACTS[pickW(w)];
+    const potential = clamp(Math.round((wild ? rnd(28, 66) : rnd(40, 88)) - a.r * 4 + brush().pres + depth * 6), 5, 100);   // the best this find could be: rarer things are a little more fragile, brushes help. How well you brush decides how much of it you keep
+    return { kind, id: a.id, pct: potential, potential, wild };
   }
-  if (kind === 'salvage') return { kind, id: SALV_IDS[pickW(SALV_W)], n: 1 + (Math.random() < 0.4 ? 1 : 0) };
-  return { kind };
+  if (kind === 'salvage') return { kind, id: SALV_IDS[pickW(SALV_W)], n: 1 + (Math.random() < 0.4 ? 1 : 0), wild };
+  return { kind, wild };
 }
+const finalPct = (potential, P) => clamp(Math.round(potential * (0.5 + 0.5 * P) + (P > 0.9 ? (P - 0.9) * 100 : 0)), 5, 100);   // careful brushing keeps the find intact (P is 0 to 1); a near perfect brush adds a little extra
 function recordFind(res) {
-  const st = S.stats; st.digs++;
+  const st = S.stats; st.digs++; if (!res.wild) st.sdigs = (st.sdigs | 0) + 1;
   if (res.kind === 'artifact') {
-    st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
+    if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
     S.arts.push({ id: res.id, pct: res.pct });
     res.unlocks = res.isNew ? RECIPES.filter(r => r.unlock === res.id) : [];
-  } else { st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; S.mats[res.id] = (S.mats[res.id] | 0) + res.n; } }
+  } else { if (!res.wild) st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; S.mats[res.id] = (S.mats[res.id] | 0) + res.n; } }
 }
 
 // ---- targets and actions ----------------------------------------------------------------------------------------------------------------------
@@ -46,6 +48,10 @@ function targetInfo(t) {
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
   return { icon: 'beach', hint: 'Press to dig' };
+}
+function wildOk(x, y) {   // ordinary ground you could dig: land that is clear to stand on (not water, a deck, a tree trunk or a pit wall)
+  const t = typeAt(x, y); if (t < 2 || t > 5) return false; const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
+  return !blockedAt((tx + 0.5) * TS, (ty + 0.5) * TS + 4, 6, 6);
 }
 function findTarget() {
   if (A || UI.isOpen) return null;
@@ -64,16 +70,16 @@ function findTarget() {
     const v = DV[dn];
     for (let dd = 4; dd <= 22; dd += 2) {
       const sx = px + v[0] * dd, sy = py - 2 + v[1] * dd, z = siteAt(sx, sy);
-      if (z && !(pitV(Math.floor(sx / TS), Math.floor(sy / TS)) & 1) && Math.abs(pitZ(sx, sy) - pitZ(px, py)) < 0.6) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z, tx: Math.floor(sx / TS), ty: Math.floor(sy / TS) }; break; }
+      if ((z || wildOk(sx, sy)) && !(pitV(Math.floor(sx / TS), Math.floor(sy / TS)) & 1) && Math.abs(pitZ(sx, sy) - pitZ(px, py)) < 0.6) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z, tx: Math.floor(sx / TS), ty: Math.floor(sy / TS) }; break; }
     }
   }
   if (sb && (!best || sb.sc < best.sc + 2)) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z, tx: sb.tx, ty: sb.ty };
   return best;
 }
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
-function endAct(msg) { A = null; if (msg) UI.toast(msg, 'info'); }
-const DIG_TIME = 6;   // seconds of digging at base speed (long for now, so the dig animation can be watched)
-const BRUSH_TIME = 3;   // seconds of brushing at base brush speed before a find is revealed (a better brush is faster)
+function endAct(msg) { A = null; UI.gauge(null); if (msg) UI.toast(msg, 'info'); }
+const DIG_TIME = 3.5;   // seconds of digging at base speed (a better mattock is quicker)
+const BRUSH_TIME = 6;   // seconds of the careful brushing game when a dig turns something up
 // The dig animation sheet (assets/chars/dig_sheet.png): 12 rows (one per animation frame), 20 columns of 32x48 cells: body, hair, brush, the find, mattock, each with 4 directions (down, right, up, left).
 const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
 const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
@@ -136,9 +142,15 @@ function updateAct(dt) {
   if (!A) return; A.t += dt;
   if (A.k === 'dig') {
     if (A.rise != null) { A.rise += dt; if (A.rise >= 3 / DIGE.fps) endAct(); return; }   // standing back up: frames 3-2-1 played in reverse
-    if (A.ph === 'brush') {   // brush the find clear: a better brush finishes sooner
-      A.bt += dt; A.fx -= dt; if (A.fx <= 0) { A.fx = 0.3; burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 2, 20, 0.5, 60, 1); }
-      if (A.bt >= A.bdur) { A.ph = 'reward'; A.rt = 0; }
+    if (A.ph === 'brush') {   // the careful brushing game: hold to press the brush down, let go to ease off, and keep the needle in the sliding green band
+      const pg = A.pg, hold = held && !UI.isOpen; A.bt += dt;
+      pg.m += ((hold ? 1 : 0) - pg.m) * Math.min(1, dt / 0.5);   // the pressure follows your finger slowly, so there is no point in twitching
+      pg.c = 0.5 + 0.27 * Math.sin(A.bt * 0.9 + pg.ph) + 0.1 * Math.sin(A.bt * 2.2 + pg.ph2);   // the sweet spot drifts smoothly
+      const d = Math.abs(pg.m - pg.c), half = pg.w / 2; pg.cr = d <= half ? 1 : Math.pow(Math.max(0, 1 - (d - half) / (pg.w * 0.7)), 1.5);   // full credit inside the band, partial just outside it
+      pg.sc += pg.cr * dt; A.rv = clamp(0.4 * A.bt / A.bdur + 0.6 * pg.sc / A.bdur, 0, 1);   // the dirt blob clears faster the better you brush
+      A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; if (hold) { burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 1 + Math.round(pg.cr * 2), 20, 0.5, 60, 1); brushSfx(0.4 + 0.6 * pg.m); } }
+      UI.gauge(pg);
+      if (A.bt >= A.bdur) { finishBrush(A, false); A.ph = 'reward'; A.rt = 0; }
       return;
     }
     if (A.ph === 'reward') {   // stand and hold the find up; it is revealed when the last frame lands
@@ -151,16 +163,25 @@ function updateAct(dt) {
     if (digAnim(A.dir)) { const fr = digFrameE(A); if (fr === 4 && A.lf !== 4) strike(); A.lf = fr; }   // the dig sound and dust happen only as the mattock lands (frame 5 of the animation)
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
-      const res = rollDig(SITES[A.zone].tier, A.depth); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
-      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME / brush().spd; A.fx = 0; return; }   // something is in the hole: brush it clear, then hold it up
+      const res = rollDig(SITES[A.zone].tier, A.depth, !A.zone); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
+      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { m: 0, c: 0.5, w: 0.15 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
   }
 }
+function finishBrush(a, cancelled) {   // how well you brushed sets how intact an artifact is (or a bonus piece of salvage); walking away counts as a rough job
+  const pg = a.pg, P = clamp((pg.sc + (cancelled ? 0.2 * Math.max(0, a.bdur - a.bt) : 0)) / a.bdur, 0, 1), r = a.res; r.P = P;
+  if (r.kind === 'artifact') r.pct = finalPct(r.potential, P); else if (r.kind === 'salvage' && P >= 0.85) r.n += 1;
+  UI.gauge(null);
+}
+function cancelAct() {   // pushing the stick walks away: before something turns up it just stops, after that you take the find with a rough brush job
+  if (A && A.k === 'dig' && A.res && (A.ph === 'brush' || A.ph === 'reward')) { if (A.ph === 'brush') finishBrush(A, true); const r = A.res, hx = A.x, hy = A.y; endAct(); recordFind(r); showFind(r, hx, hy); return; }
+  endAct();
+}
 function actState() {
   if (!A) return null;
-  if (A.k === 'dig') return { icon: 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph ? 'Brushing...' : 'Digging...' };
+  if (A.k === 'dig') return { icon: A.ph ? 'brush' + S.gear.brush : 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph === 'brush' ? 'Hold to press, let go to ease off. Keep the needle in the green' : A.ph ? 'Nice!' : 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
   if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
@@ -369,8 +390,8 @@ UI.openGear = function () {
   const m = mattock(), b = brush();
   const sites = SITES.slice(1).map((s, i) => `<div class="row"><div class="grow"><b>${esc(s.n)}</b><small>Tier ${s.tier}</small></div><span class="${siteOpen(i + 1) ? 'okt' : 'lockt'}">${siteOpen(i + 1) ? 'Open' : 'Needs ' + toolFor(i + 1)}</span></div>`).join('');
   UI.open('gear', `${head('Gear')}<div class="list"><div class="row"><img src="${itemURL('mattock' + S.gear.mattock)}" alt=""><div class="grow"><b>${esc(m.n)}</b><small>Tier ${m.tier} · dig speed ×${m.spd}</small></div></div>
-    <div class="row"><img src="${itemURL('brush' + S.gear.brush)}" alt=""><div class="grow"><b>${esc(b.n)}</b><small>Finds are ${b.pres}% more intact</small></div></div></div>
-    <h3 class="sub">Dig sites</h3><div class="list">${sites}</div><p class="note">Craft better tools at the camp tent.</p><div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="testmenu">Test tools</button></div>`);
+    <div class="row"><img src="${itemURL('brush' + S.gear.brush)}" alt=""><div class="grow"><b>${esc(b.n)}</b><small>Finds are ${b.pres}% more intact${b.wide > 1 ? ' · wider sweet spot' : ''}</small></div></div></div>
+    <h3 class="sub">Dig sites</h3><p class="note">You can dig almost anywhere, but only these marked sites have good odds of real artifacts.</p><div class="list">${sites}</div><p class="note">Craft better tools at the camp tent.</p><div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="testmenu">Test tools</button></div>`);
 };
 UI.openCamp = function (tab) { UI.open('camp', '<div id="campbox"></div>'); UI.cur = 'camp'; UI.renderCamp(tab || 'process'); sfx('pop'); };
 UI.renderCamp = function (tab) {
