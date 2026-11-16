@@ -32,9 +32,9 @@ UI.note = function (label, name) {   // a small line in the top left, no box: "R
 UI.banner = function (t, sub) {
   const el = $('#banner'); el.innerHTML = `<b>${esc(t)}</b><span>${esc(sub || '')}</span>`; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 };
-UI.gauge = function (pg) {   // the careful-brushing meter, just above the action button where your thumb is
+UI.gauge = function (pg) {   // the careful-brushing meter: a tall bar next to the action button, within thumb reach; the needle rises while you hold
   const el = document.getElementById('bgame'); if (!el) return; if (!pg) { el.classList.add('hidden'); return; }
-  el.classList.remove('hidden'); document.getElementById('bgband').style.cssText = `left:${((pg.c - pg.w / 2) * 100).toFixed(1)}%;width:${(pg.w * 100).toFixed(1)}%`; document.getElementById('bgneedle').style.left = (pg.m * 100).toFixed(1) + '%'; el.classList.toggle('good', pg.cr > 0.8);
+  el.classList.remove('hidden'); document.getElementById('bgband').style.cssText = `bottom:${((pg.c - pg.w / 2) * 100).toFixed(1)}%;height:${(pg.w * 100).toFixed(1)}%`; document.getElementById('bgneedle').style.bottom = (pg.m * 100).toFixed(1) + '%'; el.classList.toggle('good', pg.cr > 0.8);
 };
 UI.setAct = function (icon, prog, alert) {
   const a = $('#act');

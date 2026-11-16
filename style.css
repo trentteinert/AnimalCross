@@ -195,11 +195,11 @@ h3.sub{margin:14px 0 6px;font-size:14px;color:var(--amber);font-weight:600}.mats
 .nt b{color:var(--amber);font-weight:600}.nt.out{opacity:0;transition:opacity .6s}
 @keyframes ntin{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 
-/* the careful-brushing meter above the action button */
-#bgame{position:absolute;right:calc(var(--sar) + 22px);bottom:calc(var(--sab) + 30px + 84px + 14px);width:190px;padding:2px 6px 6px;text-align:center;pointer-events:none}
-body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px)}
-#bgame small{display:block;font-size:11px;color:#7d6a56;margin-bottom:3px}
-#bgame .bgt{position:relative;height:16px;background:#cdc6b0;box-shadow:inset 0 2px 0 rgba(90,70,50,.3);overflow:hidden}
-#bgband{position:absolute;top:0;bottom:0;background:#7fc47a;box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -2px 0 rgba(0,0,0,.18)}
+/* the careful-brushing meter: a tall bar just left of the action button (right of it for left-handed play), so it never covers the menu */
+#bgame{position:absolute;right:calc(var(--sar) + 22px + 84px + 14px);bottom:calc(var(--sab) + 30px);width:48px;height:min(190px,58vh);padding:2px 8px 8px;text-align:center;pointer-events:none;display:flex;flex-direction:column}
+body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
+#bgame small{display:block;font-size:10px;color:#7d6a56;margin:0 0 3px;white-space:nowrap}
+#bgame .bgt{position:relative;flex:1;width:100%;background:#cdc6b0;box-shadow:inset 0 2px 0 rgba(90,70,50,.3);overflow:visible}
+#bgband{position:absolute;left:0;right:0;background:#7fc47a;box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -2px 0 rgba(0,0,0,.18)}
 #bgame.good #bgband{background:#9fe58f}
-#bgneedle{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#4a3326}
+#bgneedle{position:absolute;left:-4px;right:-4px;height:4px;margin-bottom:-2px;background:#4a3326}

@@ -142,10 +142,11 @@ function updateAct(dt) {
   if (!A) return; A.t += dt;
   if (A.k === 'dig') {
     if (A.rise != null) { A.rise += dt; if (A.rise >= 3 / DIGE.fps) endAct(); return; }   // standing back up: frames 3-2-1 played in reverse
-    if (A.ph === 'brush') {   // the careful brushing game: hold to press the brush down, let go to ease off, and keep the needle in the sliding green band
+    if (A.ph === 'brush') {   // the careful brushing game: hold to press the brush up the meter, let go to let it sink, and keep the needle in the drifting green band
       const pg = A.pg, hold = held && !UI.isOpen; A.bt += dt;
-      pg.m += ((hold ? 1 : 0) - pg.m) * Math.min(1, dt / 0.5);   // the pressure follows your finger slowly, so there is no point in twitching
-      pg.c = 0.5 + 0.27 * Math.sin(A.bt * 0.9 + pg.ph) + 0.1 * Math.sin(A.bt * 2.2 + pg.ph2);   // the sweet spot drifts smoothly
+      pg.v += (hold ? 0.62 : -0.5) * dt; pg.v *= Math.exp(-1.15 * dt); pg.m += pg.v * dt;   // pressing slowly lifts the needle, which builds speed and then floats; letting go lets it drift down just as gently
+      if (pg.m < 0) { pg.m = 0; pg.v = Math.max(0, pg.v); } else if (pg.m > 1) { pg.m = 1; pg.v = Math.min(0, pg.v); }
+      pg.c = 0.5 + 0.27 * Math.sin(A.bt * 0.7 + pg.ph) + 0.08 * Math.sin(A.bt * 1.6 + pg.ph2);   // the sweet spot drifts smoothly
       const d = Math.abs(pg.m - pg.c), half = pg.w / 2; pg.cr = d <= half ? 1 : Math.pow(Math.max(0, 1 - (d - half) / (pg.w * 0.7)), 1.5);   // full credit inside the band, partial just outside it
       pg.sc += pg.cr * dt; A.rv = clamp(0.4 * A.bt / A.bdur + 0.6 * pg.sc / A.bdur, 0, 1);   // the dirt blob clears faster the better you brush
       A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; if (hold) { burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 1 + Math.round(pg.cr * 2), 20, 0.5, 60, 1); brushSfx(0.4 + 0.6 * pg.m); } }
@@ -164,7 +165,7 @@ function updateAct(dt) {
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth, !A.zone); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
-      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { m: 0, c: 0.5, w: 0.15 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
+      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { m: 0, v: 0, c: 0.5, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
@@ -181,7 +182,7 @@ function cancelAct() {   // pushing the stick walks away: before something turns
 }
 function actState() {
   if (!A) return null;
-  if (A.k === 'dig') return { icon: A.ph ? 'brush' + S.gear.brush : 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph === 'brush' ? 'Hold to press, let go to ease off. Keep the needle in the green' : A.ph ? 'Nice!' : 'Digging...' };
+  if (A.k === 'dig') return { icon: A.ph ? 'brush' + S.gear.brush : 'beach', prog: A.ph === 'brush' ? A.bt / A.bdur : A.ph === 'reward' ? 1 : (A.d || 0) / A.dur, alert: false, hint: A.ph === 'brush' ? 'Hold to lift, let go to sink. Stay in the green' : A.ph ? 'Nice!' : 'Digging...' };
 }
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
   if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
