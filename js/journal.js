@@ -14,8 +14,8 @@ JR.load = function () {
 };
 JR.fit = function () {   // spread or single page, and how many screen pixels one art pixel gets
   const vw = innerWidth, vh = innerHeight; JR.mode = vw >= 560 && vw / vh >= 1.1 ? 'spread' : 'single';
-  const b = JR.mode === 'spread' ? { x0: 6, y0: 9, x1: 242, y1: 149 } : { x0: 6, y0: 9, x1: 143, y1: 149 }; JR.box = b;
-  const fit = Math.min(vw * 0.96 / (b.x1 - b.x0), vh * 0.92 / (b.y1 - b.y0)); JR.u = Math.min(6, fit >= 3 ? Math.floor(fit) : Math.max(1, Math.floor(fit * 2) / 2));
+  const b = JR.mode === 'spread' ? { x0: 6, y0: 9, x1: 242, y1: 149 } : { x0: 119, y0: 9, x1: 243, y1: 149 }; JR.box = b;   // single: the right page and its ribbons fill the screen; the rest of the book runs off the left edge
+  const fit = Math.min(vw * (JR.mode === 'spread' ? 0.96 : 0.99) / (b.x1 - b.x0), vh * 0.92 / (b.y1 - b.y0)); JR.u = Math.min(6, fit >= 3 ? Math.floor(fit) : Math.max(1, Math.floor(fit * 2) / 2));
 };
 const jp = n => JR.man.pieces[n];
 function jx(x) { return jc(x - JR.box.x0); } function jy(y) { return jc(y - JR.box.y0); }
@@ -143,18 +143,18 @@ JR.render = function () {
   el.style.setProperty('--u', JR.u + 'px'); el.classList.toggle('single', !spread);
   const stage = document.getElementById('jrstage'); stage.style.width = jc(b.x1 - b.x0); stage.style.height = jc(b.y1 - b.y0);
   const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r']; let h = '';
-  const ribs = JR_PAGES.map(p => {
-    const rp = jp(p[2]), ip = jp(p[3]), left = p[0] === 'set', sel = JR.page === p[0] || (JR.page === 'edit' && p[0] === 'bag'), x = spread || left ? rp.x : 111 + (rp.x - 210), dx = x - rp.x, off = (left ? -3 : 3) * (sel ? 1 : 0);
-    return `<button class="jrib ${sel ? 'on' : ''}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(rp.y)};width:${jc(rp.w)};height:${jc(rp.h)};transform:translateX(${jc(off)})"><img src="assets/ui/journal/${p[2]}.png" alt="" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
+  const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
+    const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, left = gear && spread, sel = JR.page === p[0] || (JR.page === 'edit' && p[0] === 'bag'), x = mirror ? 209 : rp.x, y = mirror ? 112 : rp.y, off = (left ? -3 : 3) * (sel ? 1 : 0), flip = mirror ? ' scaleX(-1)' : '';
+    return `<button class="jrib ${sel ? 'on' : ''}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)};transform:translateX(${jc(off)})${flip}"><img src="assets/ui/journal/${p[2]}.png" alt="" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
   }).join('');
-  h += L.map(n => jimg(n)).join('') + (spread ? R.map(n => jimg(n)).join('') : '');
-  h += jimg('tab_left') + (spread ? jimg('tab_time') + jimg('tab_dot') : '');
+  h += L.concat(R).map(n => jimg(n)).join('');
+  h += (spread ? jimg('tab_left') + jimg('tab_dot') : '') + jimg('tab_time');
   h += ribs;
-  h += (spread ? '' : '') + jimg('lines_l') + (spread ? jimg('lines_r') : '') + jimg('page_l') + (spread ? jimg('page_r') : '');
-  h += jbox(38, 11, 52, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jl2');
-  if (spread) h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2');
-  if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.l);
-  if (!spread) { const bk = jp('bookmark'); h += `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(bk.x)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" style="width:${jc(bk.w)}"></button>`; }
+  h += jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r');
+  if (spread) { h += jbox(38, 11, 52, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jl2'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
+  else h += jbox(152, 12, 54, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
+  if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r);   // on a tall screen both halves of a section take turns on the right page
+  if (!spread) { const bk = jp('bookmark'); h += `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(193)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" style="width:${jc(bk.w)}"></button>`; }
   stage.innerHTML = h;
   JR.drawHero();
 };
