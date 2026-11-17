@@ -52,7 +52,7 @@ function pageLog(side, sx) {
 function pageBag(side, sx) {
   if (side === 'l') {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
-    h += jbox(sx + 25, 69, 13, 13, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(1)};top:${jc(1)};width:${jc(11)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a pixel edit icon in the corner of the portrait
+    h += jbox(sx + 27, 71, 11, 11, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(2)};top:${jc(2)};width:${jc(7)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a small pixel edit icon in the corner of the portrait
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
     items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
     jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });

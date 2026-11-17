@@ -112,11 +112,10 @@ def runs(im, x, y0, y1, colours, minlen=8):
     return out
 
 def pencil():
-    """a pixel edit icon (11x11, one dark brown): a pencil in a corner-notched box, drawn here so it survives re-cutting the book"""
-    cells = [(c, 0) for c in range(6)] + [(0, r) for r in range(1, 11)] + [(c, 10) for c in range(1, 11)] + [(10, r) for r in range(5, 10)]   # the box, open at the top right and right
-    cells += [(8, 0), (9, 0), (7, 1), (10, 1), (6, 2), (8, 2), (10, 2), (5, 3), (9, 3), (4, 4), (8, 4), (7, 5), (6, 6)]                        # the pencil's outline
-    cells += [(3, 5), (3, 6), (4, 6), (3, 7), (4, 7), (5, 7)]                                                                                    # its solid point
-    im = Image.new('RGBA', (11, 11), (0, 0, 0, 0)); px = im.load()
+    """a small pixel edit icon (7x7, one dark brown): a pencil crossing a corner-notched box, drawn here so it survives re-cutting the book"""
+    cells = [(c, 0) for c in range(4)] + [(0, r) for r in range(1, 6)] + [(c, 6) for c in range(7)] + [(6, 4), (6, 5)]   # the box, open at the top right
+    cells += [(5, 0), (6, 0), (4, 1), (5, 1), (3, 2), (4, 2), (2, 3), (3, 3), (2, 4)]                                  # the pencil and its point
+    im = Image.new('RGBA', (7, 7), (0, 0, 0, 0)); px = im.load()
     for x, y in cells: px[x, y] = TEXT + (255,)
     return im
 
