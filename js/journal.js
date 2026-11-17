@@ -63,11 +63,20 @@ function pageBag(side, sx) {
   rows.filter(r => r[0] !== 'SALVAGE').forEach((s, k) => { h += jbox(sx + 4, 40 + k * 10, 69, 10, `<span>${s[0]}</span><b>${s[1]()}</b>`, 'jrow jline'); });
   return h;
 }
-function jhero(sx, click) {   // your character drawn live in the portrait frame (the frame's own painted figure is not used)
-  return `<canvas class="jhero" width="32" height="48" style="left:${jx(sx + 3)};top:${jy(28)};width:${jc(32)};height:${jc(48)}"></canvas>` + (click ? jbox(sx, 28, 38, 54, '', 'jbtn', 'data-act="jturn" title="Turn around"') : '');
+function jhero(sx, click) {   // your character drawn live in the portrait frame (the frame's own painted figure is not used). On the bag page he walks on the spot and turns through all eight directions
+  return `<canvas class="jhero${click ? '' : ' spin'}" width="32" height="48" style="left:${jx(sx + 3)};top:${jy(28)};width:${jc(32)};height:${jc(48)}"></canvas>` + (click ? jbox(sx, 28, 38, 54, '', 'jbtn', 'data-act="jturn" title="Turn around"') : '');
 }
+const JR_SPIN = 0.8;   // seconds he faces each of the eight directions on the bag page (a full turn takes eight times this)
 JR.drawHero = function () {
-  document.querySelectorAll('#jrstage .jhero').forEach(cv => { if (typeof heroSprite !== 'function' || !HERO.base) return; const c = cv.getContext('2d'); c.clearRect(0, 0, 32, 48); c.imageSmoothingEnabled = false; c.drawImage(heroSprite([0, 2, 4, 6][JR.dir || 0], 0), 0, 0); });
+  const t = performance.now() / 1000;
+  document.querySelectorAll('#jrstage .jhero').forEach(cv => {
+    if (typeof heroSprite !== 'function' || !HERO.base) return; const spin = cv.classList.contains('spin'), c = cv.getContext('2d');
+    const face = spin ? Math.floor(t / JR_SPIN) % 8 : [0, 2, 4, 6][JR.dir || 0], frame = spin ? 1 + Math.floor(t * WALK_FPS) % 4 : 0;   // walk frames 1 to 4, or the idle pose when he is standing for the editor
+    c.clearRect(0, 0, 32, 48); c.imageSmoothingEnabled = false; c.drawImage(heroSprite(face, frame), 0, 0);
+  });
+  const need = !!document.querySelector('#jrstage .jhero.spin');
+  if (need && !JR.spinTimer) JR.spinTimer = setInterval(() => { if (UI.cur !== 'journal') { clearInterval(JR.spinTimer); JR.spinTimer = null; return; } JR.drawHero(); }, 80);
+  else if (!need && JR.spinTimer) { clearInterval(JR.spinTimer); JR.spinTimer = null; }
 };
 function pageEdit(side, sx) {   // the character page: the left page holds the portrait, name and hair; the right page the colours
   if (side === 'l') {
@@ -156,7 +165,7 @@ UI.openJournal = function (page) {
   clearInterval(JR.clock); JR.clock = setInterval(() => { const c = document.getElementById('jclock'); if (c) c.textContent = jrTime(); }, 20000);
 };
 JR.keepName = function () { const i = document.getElementById('jname'); if (i) JR.name = i.value; };
-UI.journalClosed = function () { JR.name = null; const el = document.getElementById('jr'); if (el) el.classList.add('hidden'); clearInterval(JR.clock); };
+UI.journalClosed = function () { JR.name = null; clearInterval(JR.spinTimer); JR.spinTimer = null; const el = document.getElementById('jr'); if (el) el.classList.add('hidden'); clearInterval(JR.clock); };
 UI.journalClick = function (a, p1, p2) {   // returns true when the click was for the journal
   switch (a) {
     case 'jpage': JR.page = p1; JR.side = 0; JR.sel = 0; JR.render(); sfx('ui'); return true;
