@@ -191,13 +191,14 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-20, -10, 39, 10]], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-20, -10, 39, 10]], bench: [[-13, -7, 27, 7]], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
     case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree.trunk, crown: SPR.tree.crown, shadow: SPR.tree.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break;
     case 'shop': if (!SPR.shop) return; o = { k: 'shop', spr: SPR.shop }; break;
+    case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;
   }

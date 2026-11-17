@@ -105,6 +105,7 @@ function buildSprites() {
     const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const c = mk(64, 64); c.g.drawImage(ASSET.img['shop_' + k], 0, 0); c.ax = 30; c.ay = 59; L[k] = c; }
     SPR.shop = L.stall; SPR.shop.merchant = L.merchant; SPR.shop.shadow = L.shadow;
   }
+  if (ASSET.img.workbench) { const c = mk(64, 64); c.g.drawImage(ASSET.img.workbench, 0, 0); c.ax = 23; c.ay = 59; SPR.bench = c; }   // the workbench: a 64x64 canvas, the painted table sits at its lower left; anchored at the bottom centre of the table
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells
