@@ -161,11 +161,19 @@ JR.ribbons = function () {   // the chosen ribbon slides out a little; nothing e
   const spread = JR.mode === 'spread';
   document.querySelectorAll('#jrrib .jrib').forEach(r => { const sel = JR.page === r.dataset.page || (JR.page === 'edit' && r.dataset.page === 'bag'); r.classList.toggle('on', sel); r.style.transform = `translateX(${jc((r.dataset.left === '1' ? -3 : 3) * (sel ? 1 : 0))})${r.dataset.mirror === '1' ? ' scaleX(-1)' : ''}`; });
 };
+function jarrow(dir, on) {   // a little pixel arrow: rows of one to five squares, pointing right (turned round for the left one)
+  let r = ''; for (let y = 0; y < 7; y++) r += `<rect x="0" y="${y}" width="${Math.min(y, 6 - y) + 1}" height="1"/>`;
+  return `<button class="jarr ${dir} ${on ? 'on' : 'off'}" ${on ? 'data-act="jflip"' : 'disabled'} aria-label="${dir === 'l' ? 'Previous page' : 'Next page'}"><svg viewBox="0 0 4 7" shape-rendering="crispEdges" style="width:${jc(4)};height:${jc(7)}" fill="currentColor">${r}</svg></button>`;
+}
+function jarrows() {   // on a tall screen: arrows and two dots at the foot of the page, so nobody has to guess that it can be swiped
+  const dots = [0, 1].map(i => `<i class="jdot ${JR.side === i ? 'on' : ''}"></i>`).join('');
+  return jbox(136, 125, 16, 9, jarrow('l', JR.side === 1), 'jc') + jbox(194, 125, 16, 9, jarrow('r', JR.side === 0), 'jc') + jbox(160, 125, 24, 9, dots, 'jc jdots');
+}
 JR.content = function (instant) {
   const spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page]; let h = '';
   if (spread) { h += jbox(38, 11, 52, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jl2'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
   else h += jbox(152, 12, 54, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
-  if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r);   // on a tall screen both halves of a section take turns on the right page
+  if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r) + jarrows();   // on a tall screen both halves of a section take turns on the right page
   const tmp = document.createElement('div'), token = JR.token = (JR.token || 0) + 1; tmp.innerHTML = h;
   const swap = () => { if (token !== JR.token) return; const cont = document.getElementById('jrcont'); if (!cont) return; cont.replaceChildren(...tmp.childNodes); JR.drawHero(); };
   const imgs = [...tmp.querySelectorAll('img')]; if (!imgs.length) return swap();
