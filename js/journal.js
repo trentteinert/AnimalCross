@@ -1,7 +1,7 @@
 // ---- the journal: one book for the collection log, bag, community, tasks and settings -----------------------------------------------------------------
 // The art is a 256x160 open book (assets/ui/journal/*.png, cut by tools/journal_export.py). Every piece is placed in book units and scaled by one number, --u (screen pixels
 // per art pixel), so it fits any screen. All text is real text on top of the art. Wide screens show both pages; tall screens show one page and a bookmark flips to the other.
-const JR = { man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, clock: null, tasks: 'day', dir: 0, name: null };
+const JR = { cat: 'hair', man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, clock: null, tasks: 'day', dir: 0, name: null };
 const JR_PAGES = [['log', 'COLLECTION', 'rib_log', 'icon_log'], ['bag', 'BAG', 'rib_bag', 'icon_bag'], ['com', 'COMMUNITY', 'rib_com', 'icon_com'], ['tasks', 'TASKS', 'rib_tasks', 'icon_tasks'], ['set', 'SETTINGS', 'rib_gear', 'icon_gear']];
 const JR_ORG = { l: 35, r: 134 }, JR_TOP = 28;   // where the content area of the left and right page starts, in book units (each page's area is 77 x 97)
 const jc = n => `calc(var(--u)*${+n.toFixed(2)})`;
@@ -81,7 +81,28 @@ JR.drawHero = function () {
   if (need && !JR.spinTimer) JR.spinTimer = setInterval(() => { if (UI.cur !== 'journal') { clearInterval(JR.spinTimer); JR.spinTimer = null; return; } JR.drawHero(); }, 80);
   else if (!need && JR.spinTimer) { clearInterval(JR.spinTimer); JR.spinTimer = null; }
 };
+function jroles() { return LOOK_ROLES.filter(r => r[0] === 'hair' ? (HERO.tint.hairStyle || HAIR_STYLES[0]) !== 'none' : (HERO.roles[r[0]] || []).length); }
+function jcur(r) { return HERO.tint[r] || nearestIn(PALETTE[r], '#' + (r === 'hair' ? ((HERO.hair[HERO.tint.hairStyle || HAIR_STYLES[0]] || { main: [136, 96, 75] }).main.map(v => v.toString(16).padStart(2, '0')).join('')) : heroRoleColor(r).map(v => v.toString(16).padStart(2, '0')).join(''))); }
+function pageEditSingle(side, sx) {   // on a tall screen: one page has the portrait with a category picker and its swatches (so you watch him change while you choose), the other has the name, hair style and Save
+  if (side === 'l') {
+    const roles = jroles(); if (!roles.some(r => r[0] === JR.cat)) JR.cat = roles[0][0];
+    let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true) + jeditIcon(sx, true);
+    roles.forEach(([r, n], k) => { h += jbox(sx + 41 + (k % 2) * 18, 30 + Math.floor(k / 2) * 17, 17, 16, `<button class="jcat ${JR.cat === r ? 'on' : ''}" data-act="jcat:${r}"><i class="jchip" style="background:${jcur(r)}"></i><span>${n.toUpperCase()}</span></button>`, ''); });
+    const nm = (roles.find(r => r[0] === JR.cat) || ['', ''])[1];
+    h += jbox(sx + 3, 86, 71, 6, `<span class="jh jsm">${nm.toUpperCase()} COLOUR</span>`, 'jc');
+    h += jbox(sx + 3, 94, 71, 27, PALETTE[JR.cat].map(c => `<button class="jsw big ${c === jcur(JR.cat) ? 'on' : ''}" style="background:${c}" data-act="jcol:${JR.cat}:${c}" aria-label="${nm} ${c}"></button>`).join(''), 'jsws wrap');
+    return h;
+  }
+  const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = jart('com_right', sx) + jhead('DETAILS', sx);
+  h += jbox(sx + 4, 39, 69, 5, '<span class="jh jsm">NAME</span>', 'jc') + jbox(sx + 4, 45, 69, 10, `<input id="jname" class="jin" maxlength="14" value="${esc(JR.name != null ? JR.name : S.name)}" autocomplete="off" spellcheck="false">`, '');
+  h += jbox(sx + 4, 59, 69, 5, '<span class="jh jsm">HAIR STYLE</span>', 'jc');
+  ['none', ...HAIR_STYLES].slice(0, 3).forEach((id, k) => { h += jbox(sx + 4, 65 + k * 10, 69, 9, `<button class="jtog sm ${hs === id ? 'on' : ''}" data-act="jhair:${id}" style="min-width:0;width:100%">${id === 'none' ? 'BALD' : id.toUpperCase()}</button>`, ''); });
+  h += jbox(sx + 4, 97, 33, 9, '<button class="jtog sm" data-act="jrand" style="min-width:0;width:100%">RANDOM</button>', '') + jbox(sx + 40, 97, 33, 9, '<button class="jtog sm" data-act="jreset" style="min-width:0;width:100%">RESET</button>', '');
+  h += jbox(sx + 4, 108, 69, 11, '<button class="jtog on" data-act="jdone" style="width:100%">SAVE</button>', '') + jbox(sx + 4, 120, 69, 4, '<span class="jh jerr" id="jerr"></span>', 'jc');
+  return h;
+}
 function pageEdit(side, sx) {   // the character page: the left page holds the portrait, name and hair; the right page the colours
+  if (JR.mode === 'single') return pageEditSingle(side, sx);
   if (side === 'l') {
     const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true) + jeditIcon(sx, true);
     h += jbox(sx + 41, 30, 36, 6, '<span class="jh jsm">HAIR</span>', 'jc');
@@ -202,7 +223,8 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
     case 'jturn': JR.dir = ((JR.dir || 0) + 1) % 4; JR.drawHero(); return true;
     case 'jtasks': JR.tasks = p1; JR.render(); return true;
     case 'jhair': JR.keepName(); HERO.tint.hairStyle = p1; heroApply(); JR.render(); return true;
-    case 'jcol': HERO.tint[p1] = p2; heroApply(); JR.drawHero(); document.querySelectorAll(`#jrstage .jsw[data-act^="jcol:${p1}:"]`).forEach(b => b.classList.toggle('on', b.dataset.act === 'jcol:' + p1 + ':' + p2)); return true;
+    case 'jcol': HERO.tint[p1] = p2; heroApply(); JR.drawHero(); document.querySelectorAll(`#jrstage .jsw[data-act^="jcol:${p1}:"]`).forEach(b => b.classList.toggle('on', b.dataset.act === 'jcol:' + p1 + ':' + p2)); if (JR.mode === 'single') document.querySelectorAll('#jrstage .jcat').forEach(b => { if (b.dataset.act === 'jcat:' + p1) b.querySelector('.jchip').style.background = p2; }); return true;
+    case 'jcat': JR.cat = p1; JR.content(); return true;
     case 'jrand': JR.keepName(); Object.assign(HERO.tint, randLook()); heroApply(); JR.render(); return true;
     case 'jreset': JR.keepName(); for (const k in HERO.tint) delete HERO.tint[k]; heroApply(); JR.render(); return true;
     case 'jdone': { const n = (document.getElementById('jname') || { value: S.name }).value.trim(), err = badName(n); if (err) { const e = document.getElementById('jerr'); if (e) e.textContent = err; sfx('no'); return true; } S.name = n; JR.name = null; saveState(); UI.refresh(); JR.page = 'bag'; JR.render(); UI.toast('Saved', 'info'); return true; }
