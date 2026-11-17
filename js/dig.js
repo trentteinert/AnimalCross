@@ -170,7 +170,7 @@ function updateAct(dt) {
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth, !A.zone); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
-      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; const ph0 = rnd(0, 6.28), ph1 = rnd(0, 6.28), c0 = 0.5 + 0.27 * Math.sin(ph0) + 0.08 * Math.sin(ph1); A.pg = { pr: PR.start, tout: 0, m: c0, v: 0, c: c0, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: ph0, ph2: ph1 }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
+      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; const ph0 = rnd(0, 6.28), ph1 = rnd(0, 6.28), c0 = 0.5 + 0.27 * Math.sin(ph0) + 0.08 * Math.sin(ph1); A.pg = { pr: PR.start, tout: 0, m: 0.5, v: 0, c: c0, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: ph0, ph2: ph1 }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
