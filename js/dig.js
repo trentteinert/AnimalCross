@@ -81,7 +81,7 @@ function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; UI.gauge(null); if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 3.5;   // seconds of digging at base speed (a better mattock is quicker)
 const BRUSH_TIME = 8;   // the most seconds the careful brushing game lasts when a dig turns something up (it ends sooner when you win or lose)
-const PR = { start: 0.3, up: 0.2, down: 0.05, grow: 1.3, cap: 1.1, calm: 2.5 };   // the progress bar: it starts a third full, climbs steadily while the needle is in the green, and drains faster and faster the longer it stays outside
+const PR = { start: 0.3, up: 0.2, down: 0.05, grow: 1.3, cap: 1.1, calm: 2.5, grace: 1.5 };   // the progress bar: it starts a third full, climbs steadily while the needle is in the green, and drains faster and faster the longer it stays outside
 // The dig animation sheet (assets/chars/dig_sheet.png): 12 rows (one per animation frame), 20 columns of 32x48 cells: body, hair, brush, the find, mattock, each with 4 directions (down, right, up, left).
 const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
 const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
@@ -151,7 +151,7 @@ function updateAct(dt) {
       pg.c = 0.5 + 0.27 * Math.sin(A.bt * 0.7 + pg.ph) + 0.08 * Math.sin(A.bt * 1.6 + pg.ph2);   // the sweet spot drifts smoothly
       const d = Math.abs(pg.m - pg.c), half = pg.w / 2; pg.cr = d <= half ? 1 : Math.pow(Math.max(0, 1 - (d - half) / (pg.w * 0.7)), 1.5);   // full credit inside the band, partial just outside it
       pg.sc += pg.cr * dt;
-      if (d <= half) { pg.pr += PR.up * dt; pg.tout = Math.max(0, pg.tout - PR.calm * dt); } else { pg.tout += dt; pg.pr -= Math.min(PR.cap, PR.down * Math.exp(PR.grow * pg.tout)) * dt; }   // in the green it climbs a little at a time; outside it falls exponentially faster
+      if (d <= half) { pg.pr += PR.up * dt; pg.tout = Math.max(0, pg.tout - PR.calm * dt); } else if (A.bt > PR.grace) { pg.tout += dt; pg.pr -= Math.min(PR.cap, PR.down * Math.exp(PR.grow * pg.tout)) * dt; }   // in the green it climbs a little at a time; outside it falls exponentially faster
       pg.pr = clamp(pg.pr, 0, 1); A.rv = Math.max(A.rv, pg.pr);   // the dirt blob clears as the progress bar fills
       A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; if (hold) { burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 1 + Math.round(pg.cr * 2), 20, 0.5, 60, 1); brushSfx(0.4 + 0.6 * pg.m); } }
       UI.gauge(pg);
@@ -170,7 +170,7 @@ function updateAct(dt) {
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth, !A.zone); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
-      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { pr: PR.start, tout: 0, m: 0, v: 0, c: 0.5, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
+      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; const ph0 = rnd(0, 6.28), ph1 = rnd(0, 6.28), c0 = 0.5 + 0.27 * Math.sin(ph0) + 0.08 * Math.sin(ph1); A.pg = { pr: PR.start, tout: 0, m: c0, v: 0, c: c0, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: ph0, ph2: ph1 }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
