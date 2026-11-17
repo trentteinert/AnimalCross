@@ -102,10 +102,10 @@ function buildSprites() {
     SPR.tree = { trunk, crown, shadow };
   }
   if (ASSET.img.shop_stall) {   // the merchant's stall is three same-size layers sharing one anchor (bottom of the counter): ground shadow, shopkeeper (behind the counter) and the stall itself
-    const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const c = mk(64, 64); c.g.drawImage(ASSET.img['shop_' + k], 0, 0); c.ax = 30; c.ay = 59; L[k] = c; }
+    const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const c = mk(64, 64); c.g.drawImage(ASSET.img['shop_' + k], 0, 0); c.ax = 30; c.ay = 57; L[k] = c; }
     SPR.shop = L.stall; SPR.shop.merchant = L.merchant; SPR.shop.shadow = L.shadow;
   }
-  if (ASSET.img.workbench) { const c = mk(64, 64); c.g.drawImage(ASSET.img.workbench, 0, 0); c.ax = 23; c.ay = 59; SPR.bench = c; }   // the workbench: a 64x64 canvas, the painted table sits at its lower left; anchored at the bottom centre of the table
+  if (ASSET.img.workbench) { const c = mk(64, 64); c.g.drawImage(ASSET.img.workbench, 0, 0); c.ax = 32; c.ay = 54; SPR.bench = c; const sh = mk(64, 64); sh.g.drawImage(ASSET.img.workbench_shadow, 0, 0); sh.ax = 32; sh.ay = 54; c.shadow = sh; }   // the workbench: table and paper, plus its own ground shadow (same origin, anchored at the bottom of the legs)
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells

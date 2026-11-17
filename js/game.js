@@ -242,7 +242,7 @@ function render(now) {
     const u = r.t / r.max, rx = 2 + u * (r.big ? 10 : 7), ry = rx * 0.5; g.fillStyle = `rgba(235,248,252,${(1 - u) * 0.8})`;
     for (let i = 0; i < 16; i++) { const a = i * 0.3927; g.fillRect(Math.round(r.x + Math.cos(a) * rx - cx), Math.round(r.y + Math.sin(a) * ry - cy), 1, 1); }
   }
-  for (const o of W.objs) if (o.k === 'shop' && o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) { const sh = o.spr.shadow, a = shadowStrength(); if (a > 0.01) { g.globalAlpha = a; g.drawImage(sh, Math.round(o.x - sh.ax - cx), Math.round(o.y - sh.ay - cy)); g.globalAlpha = 1; } }   // the stall's shadow lies flat on the ground, under everything that stands
+  for (const o of W.objs) if (o.spr && o.spr.shadow && (o.k === 'shop' || o.k === 'bench') && o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) { const sh = o.spr.shadow, a = shadowStrength(); if (a > 0.01) { g.globalAlpha = a; g.drawImage(sh, Math.round(o.x - sh.ax - cx), Math.round(o.y - sh.ay - cy)); g.globalAlpha = 1; } }   // the stall's shadow lies flat on the ground, under everything that stands
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   for (const l of LEAVES) if (l.x > cx - 10 && l.x < cx + VW + 10 && l.y > cy - 10 && l.y < cy + VH + 10) L.push({ k: 'leaf', x: l.x, y: l.gy, l });   // leaves sort with everything else by where they will land, so they pass behind you or in front like anything on the ground

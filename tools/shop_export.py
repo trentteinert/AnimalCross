@@ -13,12 +13,12 @@ for _ in range(n):
         li, x, y, op, ctype, z = struct.unpack_from('<HhhBHh', d, b); w, h = struct.unpack_from('<HH', d, b + 16)
         ims[li] = Image.frombytes('RGBA', (w, h), zlib.decompressobj().decompress(d[b + 20:p + csz]))
     p += csz
-# layers (bottom to top): 3 shadow, 4 merchant, 5 counter, 6 goblet, 7 ink pot, 8 awning and posts, 9 coins, 10 SHOP lettering. Layers 0-2 are hidden sketches.
+# layers (bottom to top): 1 shadow, 4 merchant, 5 counter, 6 goblet, 7 ink pot, 8 awning and posts, 9 coins, 10 SHOP lettering. Layers 0, 2 and 3 are hidden sketches.
 def stack(ids):
     o = Image.new('RGBA', (64, 64))
     for i in ids: o.alpha_composite(ims[i])
     return o
-sh = ims[3].copy(); px = sh.load()
+sh = ims[1].copy(); px = sh.load()
 for y in range(64):
     for x in range(64):
         if px[x, y][3]: px[x, y] = (47, 56, 48, px[x, y][3])   # a flat tint, keeping your alpha: the game scales it with the time of day
