@@ -256,3 +256,6 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jin{font:inherit;font-size:calc(var(--u)*4.4);width:100%;height:100%;box-sizing:border-box;padding:0 calc(var(--u)*2);background:#e9d4c4;color:#594237;border:calc(var(--u)*1) solid #594237;user-select:text;-webkit-user-select:text;touch-action:auto}
 #jrstage .jtog.sm{font-size:calc(var(--u)*3.4);height:100%;padding:0}
 #jrstage .jerr{color:#a03020;font-size:calc(var(--u)*3.2);white-space:normal;font-weight:600}
+
+#jrstage .jlayer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#jrstage .jlayer>*{pointer-events:auto}
+#jrstage .jlayer>.jl{pointer-events:none}

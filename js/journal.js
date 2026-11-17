@@ -19,7 +19,7 @@ JR.fit = function () {   // spread or single page, and how many screen pixels on
 };
 const jp = n => JR.man.pieces[n];
 function jx(x) { return jc(x - JR.box.x0); } function jy(y) { return jc(y - JR.box.y0); }
-function jimg(name, dx = 0, dy = 0, cls = '') { const p = jp(name); return `<img class="jl ${cls}" src="assets/ui/journal/${name}.png" alt="" style="left:${jx(p.x + dx)};top:${jy(p.y + dy)};width:${jc(p.w)};height:${jc(p.h)}">`; }
+function jimg(name, dx = 0, dy = 0, cls = '') { const p = jp(name); return `<img class="jl ${cls}" src="assets/ui/journal/${name}.png" alt="" decoding="sync" style="left:${jx(p.x + dx)};top:${jy(p.y + dy)};width:${jc(p.w)};height:${jc(p.h)}">`; }
 function jbox(x, y, w, h, html, cls = '', attrs = '') { return `<div class="jb ${cls}" ${attrs} style="left:${jx(x)};top:${jy(y)};width:${jc(w)};height:${jc(h)}">${html}</div>`; }
 
 // ---- the pages ------------------------------------------------------------------------------------------------------------------------------------
@@ -138,25 +138,37 @@ function pageSet(side, sx) {
 const JR_FN = { log: pageLog, bag: pageBag, edit: pageEdit, com: pageCom, tasks: pageTasks, set: pageSet };
 
 // ---- the book ------------------------------------------------------------------------------------------------------------------------------------
-JR.render = function () {
-  const el = document.getElementById('jr'); if (!el || !JR.ready) return; JR.fit(); const b = JR.box, spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page];
+// The book is built once per screen size: the art that never changes (the book, its pages, the ribbons) stays in place, and a click only swaps the page content on top.
+// Swapping happens after the new pictures have decoded, in a single frame, so nothing blinks.
+JR.render = function (force) {
+  const el = document.getElementById('jr'); if (!el || !JR.ready) return; JR.fit(); const b = JR.box, spread = JR.mode === 'spread', stage = document.getElementById('jrstage'), key = JR.mode + ':' + JR.u;
   el.style.setProperty('--u', JR.u + 'px'); el.classList.toggle('single', !spread);
-  const stage = document.getElementById('jrstage'); stage.style.width = jc(b.x1 - b.x0); stage.style.height = jc(b.y1 - b.y0);
-  const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r']; let h = '';
-  const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
-    const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, left = gear && spread, sel = JR.page === p[0] || (JR.page === 'edit' && p[0] === 'bag'), x = mirror ? 209 : rp.x, y = mirror ? 112 : rp.y, off = (left ? -3 : 3) * (sel ? 1 : 0), flip = mirror ? ' scaleX(-1)' : '';
-    return `<button class="jrib ${sel ? 'on' : ''}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)};transform:translateX(${jc(off)})${flip}"><img src="assets/ui/journal/${p[2]}.png" alt="" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
-  }).join('');
-  h += L.concat(R).map(n => jimg(n)).join('');
-  h += (spread ? jimg('tab_left') + jimg('tab_dot') : '') + jimg('tab_time');
-  h += ribs;
-  h += jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r');
+  if (force || JR.key !== key || !document.getElementById('jrcont')) {
+    JR.key = key; stage.style.width = jc(b.x1 - b.x0); stage.style.height = jc(b.y1 - b.y0);
+    const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r'];
+    const b1 = L.concat(R).map(n => jimg(n)).join('') + (spread ? jimg('tab_left') : '') + jimg('tab_time') + (spread ? jimg('tab_dot') : '');
+    const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
+      const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 209 : rp.x, y = mirror ? 112 : rp.y;
+      return `<button class="jrib" data-page="${p[0]}" data-mirror="${mirror ? 1 : 0}" data-left="${gear && spread ? 1 : 0}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)}"><img src="assets/ui/journal/${p[2]}.png" alt="" decoding="sync" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" decoding="sync" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
+    }).join('');
+    const b2 = jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r') + (!spread ? (() => { const bk = jp('bookmark'); return `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(193)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" decoding="sync" style="width:${jc(bk.w)}"></button>`; })() : '');
+    stage.innerHTML = `<div class="jlayer">${b1}</div><div class="jlayer" id="jrrib">${ribs}</div><div class="jlayer">${b2}</div><div class="jlayer" id="jrcont"></div>`;
+  }
+  JR.ribbons(); JR.content(!!force);
+};
+JR.ribbons = function () {   // the chosen ribbon slides out a little; nothing else about them changes
+  const spread = JR.mode === 'spread';
+  document.querySelectorAll('#jrrib .jrib').forEach(r => { const sel = JR.page === r.dataset.page || (JR.page === 'edit' && r.dataset.page === 'bag'); r.classList.toggle('on', sel); r.style.transform = `translateX(${jc((r.dataset.left === '1' ? -3 : 3) * (sel ? 1 : 0))})${r.dataset.mirror === '1' ? ' scaleX(-1)' : ''}`; });
+};
+JR.content = function (instant) {
+  const spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page]; let h = '';
   if (spread) { h += jbox(38, 11, 52, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jl2'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
   else h += jbox(152, 12, 54, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
   if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r);   // on a tall screen both halves of a section take turns on the right page
-  if (!spread) { const bk = jp('bookmark'); h += `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(193)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" style="width:${jc(bk.w)}"></button>`; }
-  stage.innerHTML = h;
-  JR.drawHero();
+  const tmp = document.createElement('div'), token = JR.token = (JR.token || 0) + 1; tmp.innerHTML = h;
+  const swap = () => { if (token !== JR.token) return; const cont = document.getElementById('jrcont'); if (!cont) return; cont.replaceChildren(...tmp.childNodes); JR.drawHero(); };
+  const imgs = [...tmp.querySelectorAll('img')]; if (!imgs.length) return swap();
+  Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => { }) : 0)).then(swap);
 };
 function jrTime() { const d = new Date(), h = d.getHours() % 12 || 12, m = String(d.getMinutes()).padStart(2, '0'); return h + ':' + m + (d.getHours() < 12 ? 'AM' : 'PM'); }
 UI.openJournal = function (page) {
