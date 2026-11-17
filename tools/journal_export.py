@@ -126,7 +126,12 @@ def main():
         if idx is None: continue   # cut out of another piece below
         im = full(cels[idx], W, H); extra = {}
         if name == 'tab_left': recolour(im, TEXT, (209, 161, 122))                                    # the baked-in "TASKS" label
-        elif name == 'clog_grid': clear(im, (0, 0, W, 36))                                              # the painted SITE tabs and page glyphs above the grid
+        elif name == 'clog_grid':                                                                       # the painted SITE tabs above the grid are kept as two pieces (their words erased: the game writes its own); stray glyph bits above them go
+            tabs = im.crop((34, 28, 100, 36)); erase_text(tabs, TEXT2); tp = tabs.load(); cols = [x for x in range(tabs.width) if any(tp[x, y][3] for y in range(7))]
+            groups = []; [groups.append([x]) if not groups or x - groups[-1][-1] > 1 else groups[-1].append(x) for x in cols]
+            for nm, g in zip(('clog_tab_a', 'clog_tab_b'), groups[:2]):
+                t = tabs.crop((g[0], 0, g[-1] + 1, 8)); t.save(os.path.join(OUT, nm + '.png')); man['pieces'][nm] = {'x': 34 + g[0], 'y': 28, 'w': t.width, 'h': 8, 'side': 'l'}
+            clear(im, (0, 0, W, 36))
         elif name in ('clog_right', 'com_left', 'com_right'): clear(im, (0, 0, W, 28))                  # stray glyph bits above the panels
         elif name == 'tasks_panel':
             spots = erase_text(im, TEXT2); extra['labels'] = [r for r in clusters(spots) if r[1] < 52]   # TODAY and WEEK: the game writes them (rectangles are where the painted words were)
@@ -157,7 +162,7 @@ def main():
         if name == 'cal_grid': ent['cells'] = cells(im, (196, 154, 128), 8, 20)
         man['pieces'][name] = ent
     for f in os.listdir(OUT):   # drop pieces from earlier versions of the file that no longer exist
-        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle', 'edit_pencil', 'task_sel'): os.remove(os.path.join(OUT, f))
+        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle', 'edit_pencil', 'task_sel', 'clog_tab_a', 'clog_tab_b'): os.remove(os.path.join(OUT, f))
     pencil().save(os.path.join(OUT, 'edit_pencil.png'))
     json.dump(man, open(os.path.join(OUT, 'journal.json'), 'w'), indent=1)
     print('wrote', len(man['pieces']), 'pieces to', OUT)

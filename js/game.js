@@ -83,9 +83,9 @@ const vib = ms => { try { if (navigator.vibrate && (!navigator.userActivation ||
 
 // ---- canvas ---------------------------------------------------------------
 function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 3); const w = innerWidth, h = innerHeight;
-  cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
-  Z = Math.max(2, Math.round(Math.min(w, h * 0.62) / 190)); VW = w / Z; VH = h / Z;
+  DPR = Math.min(window.devicePixelRatio || 1, 3); const r = cv.getBoundingClientRect(), w = r.width || innerWidth, h = r.height || innerHeight;   // the canvas fills the page by CSS; its size is read back from the page, so it matches exactly on phones with browser bars, notches and folding screens
+  cv.width = Math.ceil(w * DPR); cv.height = Math.ceil(h * DPR);   // rounded up, and the world is drawn over the whole buffer, so no strip at the edge is left unpainted
+  Z = Math.max(2, Math.round(Math.min(w, h * 0.62) / 190)); VW = cv.width / (DPR * Z); VH = cv.height / (DPR * Z);
 }
 
 // ---- input ----------------------------------------------------------------
@@ -166,7 +166,8 @@ function tick(dt) {
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
   const st = actState();
-  if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
+  if (UI.isOpen) { }   // while a book or window is open, the action button and hint stay exactly as they were (they used to pop away and back)
+  else if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { const ti = targetInfo(target); UI.setAct(ti.icon, 0, false); UI.setHint(ti.hint); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
   tickHoles(dt); tickTrees(dt);
@@ -316,7 +317,7 @@ function loadMapData(cb) {
 const LOAD_MIN = 1600;   // the loading screen stays up at least this long (ms), so the title can be seen; add ?loadhold to the address to keep it up for design work
 function loadProgress(p) { const b = document.getElementById('lbar'); if (b) b.style.width = Math.round(p * 100) + '%'; }
 function boot() {
-  const t0 = performance.now(); loadState(); resize(); addEventListener('resize', resize);
+  const t0 = performance.now(); loadState(); resize(); addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 150)); if (window.visualViewport) visualViewport.addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
   loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); if (!EDIT) UI.init(); loadProgress(0.9);

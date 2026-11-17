@@ -49,7 +49,7 @@ const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.sta
 function pageLog(side, sx) {
   if (side === 'l') {
     const list = jlist(JR.tab.log), cs = jp('clog_grid').cells; let h = jart('clog_grid', sx);
-    h += [['art', 'ARTIFACTS'], ['salv', 'SALVAGE']].map((t, i) => jbox(sx + i * 38, 29, 37, 7, `<span>${t[1]}</span>`, 'jtab' + (JR.tab.log === t[0] ? ' on' : ''), `data-act="jtab:${t[0]}"`)).join('');
+    h += [['art', 'ARTIFACTS', 'clog_tab_a'], ['salv', 'SALVAGE', 'clog_tab_b']].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]); return jimg(t[2], sx - JR_ORG.l, 0, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l, pc.y, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
     cs.forEach((c, k) => { const it = list[k], r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${k}"` : ''); });
     return h;
   }
