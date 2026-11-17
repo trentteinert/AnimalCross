@@ -101,6 +101,10 @@ function buildSprites() {
     const shadow = cut(im, T.shadow); shadow.g.globalCompositeOperation = 'source-in'; shadow.g.fillStyle = '#0c1a0c'; shadow.g.fillRect(0, 0, shadow.width, shadow.height); shadow.ax = -T.shadow.ox; shadow.ay = -T.shadow.oy;
     SPR.tree = { trunk, crown, shadow };
   }
+  if (ASSET.img.shop_stall) {   // the merchant's stall is three same-size layers sharing one anchor (bottom of the counter): ground shadow, shopkeeper (behind the counter) and the stall itself
+    const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const c = mk(64, 64); c.g.drawImage(ASSET.img['shop_' + k], 0, 0); c.ax = 30; c.ay = 59; L[k] = c; }
+    SPR.shop = L.stall; SPR.shop.merchant = L.merchant; SPR.shop.shadow = L.shadow;
+  }
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells
