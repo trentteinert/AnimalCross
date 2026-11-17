@@ -248,7 +248,7 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jtask b{font-weight:600;font-size:calc(var(--u)*3.8)}#jrstage .jtask.done span{opacity:.55;text-decoration:line-through}
 #jrstage .jtick{font-size:calc(var(--u)*6);font-weight:700;color:#2f7f4a;line-height:1}
 #jrstage .jbtn.on{filter:brightness(.9)}
-#jrstage .jcell{align-items:flex-start;justify-content:flex-start;padding:calc(var(--u)*1) calc(var(--u)*1.5);font-size:calc(var(--u)*3.8);font-weight:600}
+#jrstage .jcell{align-items:center;justify-content:center;padding:0;font-size:calc(var(--u)*4.2);font-weight:600}
 #jrstage .jcell.today{outline:calc(var(--u)*1) solid #a85a16;outline-offset:calc(var(--u)*-1);background:rgba(255,236,200,.35)}
 #jrstage .jsws{display:flex;gap:calc(var(--u)*1);align-items:center}
 #jrstage .jsw{flex:none;width:calc(var(--u)*8);height:calc(var(--u)*8);padding:0;border:calc(var(--u)*1) solid #594237;cursor:pointer}
@@ -267,3 +267,4 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 @keyframes jnudgel{0%,100%{transform:scaleX(-1) translateX(0)}50%{transform:scaleX(-1) translateX(calc(var(--u)*1.5))}}
 #jrstage .jdots{gap:calc(var(--u)*3)}#jrstage .jdot{display:block;width:calc(var(--u)*3);height:calc(var(--u)*3);border:calc(var(--u)*.5) solid #594237;box-sizing:border-box;border-radius:50%}#jrstage .jdot.on{background:#594237}
 #jrstage .jdark{filter:brightness(.6)}
+#jrstage .jsws{justify-content:center}

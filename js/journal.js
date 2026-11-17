@@ -84,7 +84,7 @@ JR.drawHero = function () {
 function pageEdit(side, sx) {   // the character page: the left page holds the portrait, name and hair; the right page the colours
   if (side === 'l') {
     const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true) + jeditIcon(sx, true);
-    h += jbox(sx + 41, 30, 36, 6, '<span class="jh jsm">HAIR</span>', 'jl2');
+    h += jbox(sx + 41, 30, 36, 6, '<span class="jh jsm">HAIR</span>', 'jc');
     ['none', ...HAIR_STYLES].slice(0, 5).forEach((id, k) => { h += jbox(sx + 42, 38 + k * 9, 34, 8, `<button class="jtog sm ${hs === id ? 'on' : ''}" data-act="jhair:${id}" style="min-width:0;width:100%">${id === 'none' ? 'BALD' : id.toUpperCase()}</button>`, ''); });
     h += jbox(sx + 3, 87, 71, 9, `<input id="jname" class="jin" maxlength="14" value="${esc(JR.name != null ? JR.name : S.name)}" autocomplete="off" spellcheck="false">`, '');
     h += jbox(sx + 3, 98, 34, 9, '<button class="jtog sm" data-act="jrand" style="min-width:0;width:100%">RANDOM</button>', '') + jbox(sx + 40, 98, 34, 9, '<button class="jtog sm" data-act="jreset" style="min-width:0;width:100%">RESET</button>', '');
@@ -95,13 +95,13 @@ function pageEdit(side, sx) {   // the character page: the left page holds the p
   let h = jhead('COLOURS', sx); const roles = LOOK_ROLES.filter(r => r[0] === 'hair' ? (HERO.tint.hairStyle || HAIR_STYLES[0]) !== 'none' : (HERO.roles[r[0]] || []).length);
   roles.forEach(([r, n], k) => {
     const cur = HERO.tint[r] || nearestIn(PALETTE[r], '#' + (r === 'hair' ? ((HERO.hair[HERO.tint.hairStyle || HAIR_STYLES[0]] || { main: [136, 96, 75] }).main.map(v => v.toString(16).padStart(2, '0')).join('')) : heroRoleColor(r).map(v => v.toString(16).padStart(2, '0')).join('')));
-    h += jbox(sx + 2, 38 + k * 15, 73, 5, `<span class="jh jsm">${n.toUpperCase()}</span>`, 'jl2');
+    h += jbox(sx + 2, 38 + k * 15, 73, 5, `<span class="jh jsm">${n.toUpperCase()}</span>`, 'jc');
     h += jbox(sx + 2, 43 + k * 15, 73, 9, PALETTE[r].map(c => `<button class="jsw ${c === cur ? 'on' : ''}" style="background:${c}" data-act="jcol:${r}:${c}" aria-label="${n} ${c}"></button>`).join(''), 'jsws');
   });
   return h;
 }
 function pageCom(side, sx) {
-  if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 3, 84, 55 + 8, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
+  if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 46 - 35, 84, 55, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
   return ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT', sx);
 }
 const JR_TASKS = { day: [['DIG 5 SPOTS', 'digs', 5], ['DIG AT A SITE', 'sdigs', 3], ['FIND 2 ARTIFACTS', 'afound', 2], ['A FIND OVER 80%', 'great', 1], ['COLLECT 3 SALVAGE', 'salv', 3]],
@@ -174,7 +174,7 @@ function jarrows() {   // on a tall screen: arrows and two dots at the foot of t
 }
 JR.content = function (instant) {
   const spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page]; let h = '';
-  if (spread) { h += jbox(38, 11, 52, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jl2'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
+  if (spread) { h += jbox(34, 11, 48, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jc'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
   else h += jbox(152, 12, 54, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
   if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r) + jarrows();   // on a tall screen both halves of a section take turns on the right page
   const tmp = document.createElement('div'), token = JR.token = (JR.token || 0) + 1; tmp.innerHTML = h;
