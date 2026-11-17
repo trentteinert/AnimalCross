@@ -148,7 +148,7 @@ JR.render = function (force) {
     const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r'];
     const b1 = L.concat(R).map(n => jimg(n)).join('') + (spread ? jimg('tab_left') : '') + jimg('tab_time') + (spread ? jimg('tab_dot') : '');
     const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
-      const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 209 : rp.x, y = mirror ? 112 : rp.y;
+      const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 213 : rp.x, y = mirror ? 112 : rp.y;
       return `<button class="jrib" data-page="${p[0]}" data-mirror="${mirror ? 1 : 0}" data-left="${gear && spread ? 1 : 0}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)}"><img src="assets/ui/journal/${p[2]}.png" alt="" decoding="sync" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" decoding="sync" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
     }).join('');
     const b2 = jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r');
