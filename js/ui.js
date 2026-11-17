@@ -52,7 +52,7 @@ UI.close = function () {
 const head = (t, x) => `<div class="mh"><h2>${t}</h2>${x === false ? '' : '<button class="x" data-act="close" aria-label="Close">✕</button>'}</div>`;
 
 UI.onClick = function (e) {
-  const b = e.target.closest('[data-act]'); if (!b) { if ((e.target.id === 'modal' || e.target.id === 'jr' || e.target.id === 'jrstage') && UI.cur !== 'creator') UI.close(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) { if ((e.target.id === 'modal' || e.target.id === 'jr') && UI.cur !== 'creator') UI.close(); return; }
   const [a, p1, p2, p3] = b.dataset.act.split(':'); sfx('ui'); if (UI.journalClick && UI.journalClick(a, p1, p2)) return;
   switch (a) {
     case 'close': UI.close(); break;

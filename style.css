@@ -207,10 +207,10 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 /* ---- the journal ---- */
 #jr{position:fixed;inset:0;overflow:hidden;z-index:30;display:grid;place-items:center;background:rgba(10,14,24,.66);--u:3px;color:#594237;font-size:calc(var(--u)*4.6);pointer-events:auto;touch-action:pan-y}
 #jr.hidden{display:none}
-#jr .jrx{position:absolute;right:calc(var(--sar) + 14px);top:calc(var(--sat) + 14px);z-index:5;width:44px;height:44px;padding:0;font:inherit;font-size:18px;cursor:pointer}
+#jr .jrx{position:absolute;right:calc(var(--sar) + 14px);top:calc(var(--sat) + 20px);z-index:5;width:56px;height:56px;padding:0;font:inherit;font-size:24px;cursor:pointer}   /* sits exactly where the journal button is, so that button seems to turn into an X */
 #jrstage{position:relative;animation:jin .24s ease-out;image-rendering:pixelated}
 @keyframes jin{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
-#jrstage .jl{position:absolute;image-rendering:pixelated;pointer-events:none;max-width:none}
+#jrstage .jl{position:absolute;image-rendering:pixelated;pointer-events:auto;max-width:none}
 #jrstage .jb{position:absolute;display:flex;box-sizing:border-box;line-height:1.1}
 #jrstage .jc{justify-content:center;align-items:center;text-align:center}
 #jrstage .jl2{align-items:center}
@@ -258,4 +258,3 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jerr{color:#a03020;font-size:calc(var(--u)*3.2);white-space:normal;font-weight:600}
 
 #jrstage .jlayer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#jrstage .jlayer>*{pointer-events:auto}
-#jrstage .jlayer>.jl{pointer-events:none}
