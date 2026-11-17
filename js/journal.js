@@ -52,7 +52,7 @@ function pageLog(side, sx) {
 function pageBag(side, sx) {
   if (side === 'l') {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
-    h += jbox(sx + 29, 73, 9, 9, `<img class="jl" src="assets/ui/journal/bag_edit.png" alt="" style="left:${jc(2)};top:${jc(2)};width:${jc(5)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');
+    h += jbox(sx + 28, 71, 11, 11, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(1)};top:${jc(1)};width:${jc(8)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a pixel pencil in the corner of the portrait
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
     items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
     jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });
@@ -167,7 +167,7 @@ function jarrow(dir, on) {   // a little pixel arrow, five rows tall, pointing r
 }
 function jarrows() {   // on a tall screen: arrows and two dots at the foot of the page, so nobody has to guess that it can be swiped
   const dots = [0, 1].map(i => `<i class="jdot ${JR.side === i ? 'on' : ''}"></i>`).join('');
-  return jbox(136, 125, 16, 9, jarrow('l', JR.side === 1), 'jc') + jbox(194, 125, 16, 9, jarrow('r', JR.side === 0), 'jc') + jbox(160, 125, 24, 9, dots, 'jc jdots');
+  return jbox(136, 124, 16, 9, jarrow('l', JR.side === 1), 'jc') + jbox(194, 124, 16, 9, jarrow('r', JR.side === 0), 'jc') + jbox(160, 124, 24, 9, dots, 'jc jdots');
 }
 JR.content = function (instant) {
   const spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page]; let h = '';

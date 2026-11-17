@@ -111,6 +111,16 @@ def runs(im, x, y0, y1, colours, minlen=8):
             start = None
     return out
 
+def pencil():
+    """a little pixel pencil (8x8) for the edit button on the character portrait, drawn here so it survives re-cutting the book"""
+    pal = {'O': (89, 66, 55), 'E': (217, 115, 138), 'Y': (224, 180, 58), 'S': (176, 128, 30), 'W': (225, 198, 180), 'G': (58, 42, 30)}
+    rows = ['......OO', '.....OEEO', '....OEEO.', '...OYYO..', '..OYSYO..', '.OYSYO...', '.OWYO....', 'OGWO.....']
+    im = Image.new('RGBA', (8, 8), (0, 0, 0, 0)); px = im.load()
+    for y, r in enumerate(rows):
+        for x, c in enumerate(r[:8]):
+            if c in pal: px[x, y] = pal[c] + (255,)
+    return im
+
 def main():
     W, H, names, cels = read_layers(SRC); os.makedirs(OUT, exist_ok=True); man = {'size': [W, H], 'pieces': {}}
     for name, idx in PIECES.items():
@@ -138,7 +148,8 @@ def main():
         if name == 'cal_grid': ent['cells'] = cells(im, (196, 154, 128), 8, 20)
         man['pieces'][name] = ent
     for f in os.listdir(OUT):   # drop pieces from earlier versions of the file that no longer exist
-        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle'): os.remove(os.path.join(OUT, f))
+        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle', 'edit_pencil'): os.remove(os.path.join(OUT, f))
+    pencil().save(os.path.join(OUT, 'edit_pencil.png'))
     json.dump(man, open(os.path.join(OUT, 'journal.json'), 'w'), indent=1)
     print('wrote', len(man['pieces']), 'pieces to', OUT)
     for k, v in man['pieces'].items():
