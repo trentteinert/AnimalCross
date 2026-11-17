@@ -139,6 +139,16 @@ def main():
             for nm, cs in (('tab_sel', a), ('tab_idle', b)):
                 t = im.crop((min(cs), strip[0], max(cs) + 1, strip[1])); t.save(os.path.join(OUT, nm + '.png')); man['pieces'][nm] = {'x': min(cs), 'y': strip[0], 'w': t.width, 'h': t.height}
             clear(im, (0, 0, W, strip[1]))
+            # every task row gets the round bubble (the file draws it only on the first, chosen row, and square boxes on the rest). The chosen row's look is cut out as task_sel for the game to lay over whichever row is picked
+            LIGHT, MID, DARK = (225, 198, 180, 255), (214, 178, 153, 255), (196, 154, 128, 255); rr = extra['rows']; px = im.load()
+            r0 = rr[0]; sel_box = [x for x in range(r0[0], r0[0] + r0[2]) for y in range(r0[1], r0[1] + r0[3]) if px[x, y] == MID]
+            sx0, sx1 = min(sel_box), max(sel_box) + 1; sel = im.crop((sx0, r0[1], sx1, r0[1] + r0[3])); sel.save(os.path.join(OUT, 'task_sel.png')); man['pieces']['task_sel'] = {'x': sx0, 'y': r0[1], 'w': sel.width, 'h': sel.height, 'side': 'l'}
+            ring = [(x - r0[0], y - r0[1]) for x in range(r0[0] + 4, r0[0] + 15) for y in range(r0[1], r0[1] + 11) if px[x, y] == LIGHT and (x - r0[0] - 9) ** 2 + (y - r0[1] - 5) ** 2 > 12]   # the bubble's outline, without the clock hand
+            r1 = rr[1]; tmpl = im.crop((r1[0], r1[1], r1[0] + r1[2], r1[1] + r1[3])); tp = tmpl.load()
+            for x in range(4, 15):
+                for y in range(0, 11): tp[x, y] = LIGHT
+            for x, y in ring: tp[x, y] = DARK
+            for r in rr: im.paste(tmpl, (r[0], r[1]))
         elif name == 'cal_grid': erase_text(im, TEXT2)                                                   # the numbers 1 to 30
         bb = im.getbbox(); crop = im.crop(bb); crop.save(os.path.join(OUT, name + '.png'))
         ent = {'x': bb[0], 'y': bb[1], 'w': crop.width, 'h': crop.height}; ent.update(extra)
@@ -147,7 +157,7 @@ def main():
         if name == 'cal_grid': ent['cells'] = cells(im, (196, 154, 128), 8, 20)
         man['pieces'][name] = ent
     for f in os.listdir(OUT):   # drop pieces from earlier versions of the file that no longer exist
-        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle', 'edit_pencil'): os.remove(os.path.join(OUT, f))
+        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle', 'edit_pencil', 'task_sel'): os.remove(os.path.join(OUT, f))
     pencil().save(os.path.join(OUT, 'edit_pencil.png'))
     json.dump(man, open(os.path.join(OUT, 'journal.json'), 'w'), indent=1)
     print('wrote', len(man['pieces']), 'pieces to', OUT)

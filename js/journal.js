@@ -137,7 +137,7 @@ function pageEdit(side, sx) {   // the character page: the left page holds the p
 }
 function pageCom(side, sx) {
   if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 46 - 35, 84, 55, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
-  return ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT', sx);
+  return ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT EXHIBIT', sx);
 }
 const JR_TASKS = { day: [['DIG 5 SPOTS', 'digs', 5], ['DIG AT A SITE', 'sdigs', 3], ['FIND 2 ARTIFACTS', 'afound', 2], ['A FIND OVER 80%', 'great', 1], ['COLLECT 3 SALVAGE', 'salv', 3]],
   week: [['DIG 30 SPOTS', 'digs', 30], ['DIG AT SITES 15', 'sdigs', 15], ['FIND 10 ARTIFACTS', 'afound', 10], ['FIND 4 OVER 80%', 'great', 4], ['COLLECT 15 SALVAGE', 'salv', 15]] };
@@ -150,13 +150,13 @@ function jrTrack() {   // tasks count what you do from the start of today (or th
 function pageTasks(side, sx) {
   const tp = jp('tasks_panel'), tr = jrTrack();
   if (side === 'l') {
-    let h = jart('tasks_panel', sx);
+    let h = jart('tasks_panel', sx); const pick = Math.min(JR.task | 0, tp.rows.length - 1); h += jimg('task_sel', sx - JR_ORG.l, tp.rows[pick][1] - tp.rows[0][1]);   // the picked task's row takes the darker inside colour
     const A = jp('tab_sel'), B = jp('tab_idle'), slots = [[A.x, A.y, 'day', 'TODAY'], [B.x, B.y, 'week', 'WEEK']];   // the chosen tab is the dark one, so the two swap places' looks
     slots.forEach(([x, y, key, label]) => { const on = JR.tasks === key, pc = on ? A : B; h += jbox(sx + x - 35, y, pc.w, pc.h, `<img class="jl" src="assets/ui/journal/${on ? 'tab_sel' : 'tab_idle'}.png" alt="" style="left:0;top:0;width:${jc(pc.w)}"><span class="jh jsm" style="position:relative;opacity:1;color:${on ? '#e9d4c4' : '#594237'}">${label}</span>`, 'jc jbtn', `data-act="jtasks:${key}"`); });
     h += jbox(sx + 3, 30, 71, 8, `<span class="jh jsm">${JR.tasks === 'day' ? 'RESETS AT MIDNIGHT' : 'RESETS ON MONDAY'}</span>`, 'jc');
     const list = JR_TASKS[JR.tasks]; tp.rows.forEach((r, k) => {
       const t = list[k]; if (!t) return; const base = tr[JR.tasks][t[1]], v = Math.min(t[2], tr.cur[t[1]] - base), done = v >= t[2];
-      h += jbox(sx + r[0] - 35 + 15, r[1], r[2] - 19, r[3], `<span>${t[0]}</span><b>${done ? 'DONE' : v + '/' + t[2]}</b>`, 'jrow jtask' + (done ? ' done' : ''));
+      h += jbox(sx + r[0] - 35 + 15, r[1], r[2] - 19, r[3], `<span>${t[0]}</span><b>${done ? 'DONE' : v + '/' + t[2]}</b>`, 'jrow jtask jpick' + (done ? ' done' : ''), `data-act="jtask:${k}"`);
       if (done) h += jbox(sx + r[0] - 35 + 4, r[1] + 1, 9, 9, '<span class="jtick">✓</span>', 'jc');
     });
     return h;
@@ -236,6 +236,7 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
     case 'jedit': JR.page = 'edit'; JR.side = 0; JR.name = null; JR.render(); return true;
     case 'jturn': JR.dir = ((JR.dir || 0) + 1) % 4; JR.drawHero(); return true;
     case 'jtasks': JR.tasks = p1; JR.render(); return true;
+    case 'jtask': JR.task = +p1; JR.render(); sfx('ui'); return true;
     case 'jhair': JR.keepName(); HERO.tint.hairStyle = p1; heroApply(); JR.render(); return true;
     case 'jcol': HERO.tint[p1] = p2; heroApply(); JR.drawHero(); document.querySelectorAll(`#jrstage .jsw[data-act^="jcol:${p1}:"]`).forEach(b => b.classList.toggle('on', b.dataset.act === 'jcol:' + p1 + ':' + p2)); if (JR.mode === 'single') document.querySelectorAll('#jrstage .jcat').forEach(b => { if (b.dataset.act === 'jcat:' + p1) b.querySelector('.jchip').style.background = p2; }); return true;
     case 'jcat': JR.cat = p1; JR.content(); return true;
