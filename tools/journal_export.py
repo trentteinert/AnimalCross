@@ -9,7 +9,7 @@ from PIL import Image
 SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), 'src', 'Journal.aseprite')
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), '..', 'assets', 'ui', 'journal')
 TEXT = (89, 66, 55)        # the dark brown of the painted text: the same shade the game's text now uses
-PANEL, PAGE, LINE, CELL = (225, 198, 180), (214, 178, 153), (196, 154, 128), (214, 178, 153)
+CELL = (214, 178, 153)
 
 def read_layers(path):
     d = open(path, 'rb').read(); _, magic, nframes, W, H, depth = struct.unpack_from('<IHHHHH', d, 0)
@@ -62,33 +62,87 @@ PIECES = {
     'back_r': 0, 'back_l': 1, 'edge_r': 2, 'edge_l': 3, 'block_r': 4, 'block_l': 5, 'tab_left': 6, 'tab_time': 8, 'tab_dot': 9,
     'rib_gear': 12, 'icon_gear': 13, 'bookmark': 14, 'rib_log': 15, 'icon_log': 16, 'rib_bag': 17, 'icon_bag': 23, 'rib_com': 18, 'icon_com': 20, 'rib_tasks': 21, 'icon_tasks': 22,
     'lines_r': 25, 'lines_l': 26, 'page_r': 27, 'page_l': 28,
-    'bag_left': 61, 'bag_portrait': 62, 'bag_clouds': 63, 'bag_slots': 64, 'bag_equip': 65, 'bag_edit': 66, 'bag_inv': 60, 'bag_right': 56,
-    'clog_grid': 69, 'clog_right': 70, 'clog_box': 71, 'clog_card': 72,
-    'com_left': 36, 'com_right': 37, 'com_bg': 38, 'com_plaque': 40, 'com_slots': 43, 'com_plaques': 44, 'com_prog': 45, 'com_runes': 46, 'dino0': 48, 'dino1': 49, 'dino2': 50, 'dino3': 51, 'dino4': 52,
+    'cal_nameplate': 31, 'cal_grid': 33, 'tasks_panel': 34, 'tab_sel': None, 'tab_idle': None,
+    'com_left': 36, 'com_right': 37, 'com_bg': 38, 'com_plaque': 39, 'com_slots': 42, 'com_plaques': 43, 'com_prog': 44, 'com_runes': 45,
+    'dino0': 47, 'dino1': 48, 'dino2': 49, 'dino3': 50, 'dino4': 51,
+    'bag_inv': 54, 'edit_panel': 55, 'bag_portrait': 56, 'bag_clouds': 57, 'bag_slots': 58, 'bag_equip': 59, 'bag_edit': 60,
+    'clog_grid': 63, 'clog_right': 64, 'clog_box': 65, 'clog_card': 66,
 }
-SIDE = {'bag_left': 'l', 'bag_portrait': 'l', 'bag_clouds': 'l', 'bag_slots': 'l', 'bag_equip': 'l', 'bag_edit': 'l', 'bag_inv': 'l', 'bag_right': 'r', 'clog_grid': 'l', 'clog_right': 'r', 'clog_box': 'r', 'clog_card': 'r',
-        'com_left': 'l', 'com_bg': 'l', 'com_plaque': 'l', 'com_prog': 'l', 'com_runes': 'l', 'dino0': 'l', 'dino1': 'l', 'dino2': 'l', 'dino3': 'l', 'dino4': 'l', 'com_right': 'r', 'com_slots': 'r', 'com_plaques': 'r'}
+SIDE = {'bag_portrait': 'l', 'bag_clouds': 'l', 'bag_slots': 'l', 'bag_equip': 'l', 'bag_edit': 'l', 'bag_inv': 'l', 'edit_panel': 'l', 'clog_grid': 'l', 'clog_right': 'r', 'clog_box': 'r', 'clog_card': 'r',
+        'com_left': 'l', 'com_bg': 'l', 'com_plaque': 'l', 'com_prog': 'l', 'com_runes': 'l', 'dino0': 'l', 'dino1': 'l', 'dino2': 'l', 'dino3': 'l', 'dino4': 'l', 'com_right': 'r', 'com_slots': 'r', 'com_plaques': 'r',
+        'tasks_panel': 'l', 'cal_grid': 'r', 'cal_nameplate': 'r'}
+TEXT2 = (96, 70, 62)   # the dark brown of the painted text in the calendar and task layers
+
+def erase_text(im, colour, box=None):
+    """paints out every pixel of `colour` with the most common neighbouring colour that is not text, and returns the rectangles the text covered (before it was removed)"""
+    px = im.load(); W, H = im.size; x0, y0, x1, y1 = box or (0, 0, W, H); todo = [(x, y) for y in range(y0, y1) for x in range(x0, x1) if px[x, y][:3] == colour and px[x, y][3]]
+    spots = list(todo)
+    for _ in range(4):
+        left = []
+        for x, y in todo:
+            n = {}
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    xx, yy = x + dx, y + dy
+                    if 0 <= xx < W and 0 <= yy < H and px[xx, yy][3] and px[xx, yy][:3] != colour: n[px[xx, yy]] = n.get(px[xx, yy], 0) + 1
+            if n: px[x, y] = max(n, key=n.get)
+            else: left.append((x, y))
+        todo = left
+        if not todo: break
+    return spots
+
+def clusters(spots, gap=3):
+    """groups text pixels that sit close together into rectangles (x, y, w, h): one per word"""
+    pts = sorted(spots); out = []
+    for x, y in pts:
+        for r in out:
+            if r[0] - gap <= x <= r[2] + gap and r[1] - gap <= y <= r[3] + gap: r[0] = min(r[0], x); r[1] = min(r[1], y); r[2] = max(r[2], x); r[3] = max(r[3], y); break
+        else: out.append([x, y, x, y])
+    return [[r[0], r[1], r[2] - r[0] + 1, r[3] - r[1] + 1] for r in out]
+
+def runs(im, x, y0, y1, colours, minlen=8):
+    """vertical runs at column x whose colour is in `colours` and are at least minlen tall: (start, length)"""
+    px = im.load(); out = []; start = None
+    for y in range(y0, y1 + 1):
+        ok = y < y1 and px[x, y][3] and px[x, y][:3] in colours
+        if ok and start is None: start = y
+        if not ok and start is not None:
+            if y - start >= minlen: out.append((start, y - start))
+            start = None
+    return out
 
 def main():
     W, H, names, cels = read_layers(SRC); os.makedirs(OUT, exist_ok=True); man = {'size': [W, H], 'pieces': {}}
     for name, idx in PIECES.items():
-        im = full(cels[idx], W, H)
-        if name == 'tab_left': recolour(im, TEXT, (209, 161, 122))                                   # the baked-in "TASKS" label
-        elif name in ('clog_grid',): clear(im, (0, 0, W, 36))                                           # the painted SITE tabs and page glyphs above the grid
+        if idx is None: continue   # cut out of another piece below
+        im = full(cels[idx], W, H); extra = {}
+        if name == 'tab_left': recolour(im, TEXT, (209, 161, 122))                                    # the baked-in "TASKS" label
+        elif name == 'clog_grid': clear(im, (0, 0, W, 36))                                              # the painted SITE tabs and page glyphs above the grid
         elif name in ('clog_right', 'com_left', 'com_right'): clear(im, (0, 0, W, 28))                  # stray glyph bits above the panels
-        elif name == 'bag_right':
-            clear(im, (0, 0, W, 36)); recolour(im, TEXT, PANEL, (0, 36, W, H))                          # the "STATS:" label, and the three painted example rows
-            px = im.load(); xs = [x for x in range(W) if px[x, 98][:3] == LINE and px[x, 98][3]]
-            for x in range(min(xs), max(xs) + 1): px[x, 108] = LINE + (255,)                            # a seventh row line, to match the others
+        elif name == 'tasks_panel':
+            spots = erase_text(im, TEXT2); extra['labels'] = [r for r in clusters(spots) if r[1] < 52]   # TODAY and WEEK: the game writes them (rectangles are where the painted words were)
+            fills = {(214, 178, 153), (225, 198, 180)}; ys = runs(im, 60, 40, 128, fills, 9); xs = [x for x in range(W) if im.getpixel((x, ys[0][0] + 5))[3] and im.getpixel((x, ys[0][0] + 5))[:3] in fills | {(196, 154, 128)}]
+            extra['rows'] = [[min(xs), y, max(xs) - min(xs) + 1, h] for y, h in ys]
+            # the two little tabs (TODAY dark = chosen, WEEK light = not) are cut out as their own pieces so the game can swap which one looks chosen
+            px = im.load(); top = min(y for y in range(H) for x in range(W) if px[x, y][3]); strip = (top, 51)
+            dark = [x for x in range(W) for y in range(*strip) if px[x, y][:3] == (136, 96, 75) and px[x, y][3]]; dx1 = max(dark); cols = sorted({x for x in range(W) for y in range(*strip) if px[x, y][3]})
+            a = [x for x in cols if x <= dx1 + 0]; b = [x for x in cols if x > dx1]
+            for nm, cs in (('tab_sel', a), ('tab_idle', b)):
+                t = im.crop((min(cs), strip[0], max(cs) + 1, strip[1])); t.save(os.path.join(OUT, nm + '.png')); man['pieces'][nm] = {'x': min(cs), 'y': strip[0], 'w': t.width, 'h': t.height}
+            clear(im, (0, 0, W, strip[1]))
+        elif name == 'cal_grid': erase_text(im, TEXT2)                                                   # the numbers 1 to 30
         bb = im.getbbox(); crop = im.crop(bb); crop.save(os.path.join(OUT, name + '.png'))
-        ent = {'x': bb[0], 'y': bb[1], 'w': crop.width, 'h': crop.height}
+        ent = {'x': bb[0], 'y': bb[1], 'w': crop.width, 'h': crop.height}; ent.update(extra)
         if name in SIDE: ent['side'] = SIDE[name]
-        if name in ('clog_grid', 'bag_inv', 'bag_right', 'com_slots', 'com_prog'):
-            ent['cells'] = cells(im, CELL if name != 'com_slots' else (134, 92, 69), 5 if name != 'com_prog' else 3, 40 if name == 'com_slots' else 14)
+        if name in ('clog_grid', 'bag_inv', 'com_prog'): ent['cells'] = cells(im, CELL, 3 if name == 'com_prog' else 5, 14)
+        if name == 'cal_grid': ent['cells'] = cells(im, (196, 154, 128), 8, 20)
         man['pieces'][name] = ent
+    for f in os.listdir(OUT):   # drop pieces from earlier versions of the file that no longer exist
+        if f.endswith('.png') and f[:-4] not in PIECES and f[:-4] not in ('tab_sel', 'tab_idle'): os.remove(os.path.join(OUT, f))
     json.dump(man, open(os.path.join(OUT, 'journal.json'), 'w'), indent=1)
     print('wrote', len(man['pieces']), 'pieces to', OUT)
     for k, v in man['pieces'].items():
-        if 'cells' in v: print(' ', k, len(v['cells']), 'cells', v['cells'][:3])
+        for f in ('cells', 'rows', 'labels'):
+            if f in v: print(' ', k, f, len(v[f]), v[f][:4])
 
 if __name__ == '__main__': main()

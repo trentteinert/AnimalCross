@@ -1,7 +1,7 @@
 // ---- the journal: one book for the collection log, bag, community, tasks and settings -----------------------------------------------------------------
 // The art is a 256x160 open book (assets/ui/journal/*.png, cut by tools/journal_export.py). Every piece is placed in book units and scaled by one number, --u (screen pixels
 // per art pixel), so it fits any screen. All text is real text on top of the art. Wide screens show both pages; tall screens show one page and a bookmark flips to the other.
-const JR = { man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, clock: null };
+const JR = { man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, clock: null, tasks: 'day', dir: 0, name: null };
 const JR_PAGES = [['log', 'COLLECTION', 'rib_log', 'icon_log'], ['bag', 'BAG', 'rib_bag', 'icon_bag'], ['com', 'COMMUNITY', 'rib_com', 'icon_com'], ['tasks', 'TASKS', 'rib_tasks', 'icon_tasks'], ['set', 'SETTINGS', 'rib_gear', 'icon_gear']];
 const JR_ORG = { l: 35, r: 134 }, JR_TOP = 28;   // where the content area of the left and right page starts, in book units (each page's area is 77 x 97)
 const jc = n => `calc(var(--u)*${+n.toFixed(2)})`;
@@ -51,26 +51,73 @@ function pageLog(side, sx) {
 }
 function pageBag(side, sx) {
   if (side === 'l') {
-    let h = ['bag_left', 'bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('');
-    h += `<canvas class="jhero" width="32" height="48" style="left:${jx(sx + 19 - 16 + 0)};top:${jy(76 - 48)};width:${jc(32)};height:${jc(48)}"></canvas>`;
-    h += jbox(sx + 29, 73, 9, 9, `<img class="jl" src="assets/ui/journal/bag_edit.png" alt="" style="left:${jc(2)};top:${jc(2)};width:${jc(5)}">`, 'jbtn', 'data-act="jedit" title="Edit your look"');
+    let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
+    h += jbox(sx + 29, 73, 9, 9, `<img class="jl" src="assets/ui/journal/bag_edit.png" alt="" style="left:${jc(2)};top:${jc(2)};width:${jc(5)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
     items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
     jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });
     return h;
   }
-  let h = jart('bag_right', sx) + jhead('STATS:', sx, 1, 40).replace('jc', 'jl2');
-  jstat.forEach((s, k) => { h += jbox(sx + 4, 38 + k * 10, 69, 9, `<span>${s[0]}</span><b>${s[1]()}</b>`, 'jrow'); });
-  const tools = [['mattock' + S.gear.mattock, mattock().n], ['brush' + S.gear.brush, brush().n]];
-  jp('bag_right').cells.forEach((c, k) => { const r = jrect('bag_right', k, sx), t = tools[k]; h += jbox(r[0], r[1], r[2], r[3], t ? `<img class="ji half" src="${itemURL(t[0])}" alt="" style="width:${jc(9)};height:${jc(9)}">` : '', 'jslot', t ? `title="${t[1]}"` : ''); });
+  let h = jart('com_right', sx) + jhead('STATS', sx);
+  const rows = jstat.concat([['MATTOCK', () => mattock().n.replace(' Mattock', '').toUpperCase()], ['BRUSH', () => brush().n.replace(' Brush', '').toUpperCase() || 'PLAIN']]);
+  rows.filter(r => r[0] !== 'SALVAGE').forEach((s, k) => { h += jbox(sx + 4, 40 + k * 10, 69, 10, `<span>${s[0]}</span><b>${s[1]()}</b>`, 'jrow jline'); });
+  return h;
+}
+function jhero(sx, click) {   // your character drawn live in the portrait frame (the frame's own painted figure is not used)
+  return `<canvas class="jhero" width="32" height="48" style="left:${jx(sx + 3)};top:${jy(28)};width:${jc(32)};height:${jc(48)}"></canvas>` + (click ? jbox(sx, 28, 38, 54, '', 'jbtn', 'data-act="jturn" title="Turn around"') : '');
+}
+JR.drawHero = function () {
+  document.querySelectorAll('#jrstage .jhero').forEach(cv => { if (typeof heroSprite !== 'function' || !HERO.base) return; const c = cv.getContext('2d'); c.clearRect(0, 0, 32, 48); c.imageSmoothingEnabled = false; c.drawImage(heroSprite([0, 2, 4, 6][JR.dir || 0], 0), 0, 0); });
+};
+function pageEdit(side, sx) {   // the character page: the left page holds the portrait, name and hair; the right page the colours
+  if (side === 'l') {
+    const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true);
+    h += jbox(sx + 41, 30, 36, 6, '<span class="jh jsm">HAIR</span>', 'jl2');
+    ['none', ...HAIR_STYLES].slice(0, 5).forEach((id, k) => { h += jbox(sx + 42, 38 + k * 9, 34, 8, `<button class="jtog sm ${hs === id ? 'on' : ''}" data-act="jhair:${id}" style="min-width:0;width:100%">${id === 'none' ? 'BALD' : id.toUpperCase()}</button>`, ''); });
+    h += jbox(sx + 3, 87, 71, 9, `<input id="jname" class="jin" maxlength="14" value="${esc(JR.name != null ? JR.name : S.name)}" autocomplete="off" spellcheck="false">`, '');
+    h += jbox(sx + 3, 98, 34, 9, '<button class="jtog sm" data-act="jrand" style="min-width:0;width:100%">RANDOM</button>', '') + jbox(sx + 40, 98, 34, 9, '<button class="jtog sm" data-act="jreset" style="min-width:0;width:100%">RESET</button>', '');
+    h += jbox(sx + 3, 110, 71, 11, '<button class="jtog on" data-act="jdone" style="width:100%">SAVE</button>', '');
+    h += jbox(sx + 3, 122, 71, 3, `<span class="jh jerr" id="jerr"></span>`, 'jl2');
+    return h;
+  }
+  let h = jhead('COLOURS', sx); const roles = LOOK_ROLES.filter(r => r[0] === 'hair' ? (HERO.tint.hairStyle || HAIR_STYLES[0]) !== 'none' : (HERO.roles[r[0]] || []).length);
+  roles.forEach(([r, n], k) => {
+    const cur = HERO.tint[r] || nearestIn(PALETTE[r], '#' + (r === 'hair' ? ((HERO.hair[HERO.tint.hairStyle || HAIR_STYLES[0]] || { main: [136, 96, 75] }).main.map(v => v.toString(16).padStart(2, '0')).join('')) : heroRoleColor(r).map(v => v.toString(16).padStart(2, '0')).join('')));
+    h += jbox(sx + 2, 38 + k * 15, 73, 5, `<span class="jh jsm">${n.toUpperCase()}</span>`, 'jl2');
+    h += jbox(sx + 2, 43 + k * 15, 73, 9, PALETTE[r].map(c => `<button class="jsw ${c === cur ? 'on' : ''}" style="background:${c}" data-act="jcol:${r}:${c}" aria-label="${n} ${c}"></button>`).join(''), 'jsws');
+  });
   return h;
 }
 function pageCom(side, sx) {
   if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 3, 84, 55 + 8, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
   return ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT', sx);
 }
+const JR_TASKS = { day: [['DIG 5 SPOTS', 'digs', 5], ['DIG AT A SITE', 'sdigs', 3], ['FIND 2 ARTIFACTS', 'afound', 2], ['A FIND OVER 80%', 'great', 1], ['COLLECT 3 SALVAGE', 'salv', 3]],
+  week: [['DIG 30 SPOTS', 'digs', 30], ['DIG AT SITES 15', 'sdigs', 15], ['FIND 10 ARTIFACTS', 'afound', 10], ['FIND 4 OVER 80%', 'great', 4], ['COLLECT 15 SALVAGE', 'salv', 15]] };
+function jrTrack() {   // tasks count what you do from the start of today (or this week), so each day and each week begins fresh
+  const st = S.stats, cur = { digs: st.digs | 0, sdigs: st.sdigs | 0, afound: st.afound | 0, great: st.great | 0, salv: st.salv | 0 }, d = new Date(), pad = n => String(n).padStart(2, '0');
+  const dayKey = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const wkKey = mon.getFullYear() + '-' + pad(mon.getMonth() + 1) + '-' + pad(mon.getDate());
+  S.track = S.track || {}; if (!S.track.day || S.track.day.k !== dayKey) S.track.day = { k: dayKey, b: Object.assign({}, cur) }; if (!S.track.week || S.track.week.k !== wkKey) S.track.week = { k: wkKey, b: Object.assign({}, cur) };
+  return { cur, day: S.track.day.b, week: S.track.week.b };
+}
 function pageTasks(side, sx) {
-  return jart(side === 'l' ? 'com_left' : 'com_right', sx) + jhead(side === 'l' ? 'TASKS' : 'CALENDAR', sx) + jbox(sx + 4, 50, 69, 30, '<span class="jh jsm">COMING SOON</span>', 'jc');
+  const tp = jp('tasks_panel'), tr = jrTrack();
+  if (side === 'l') {
+    let h = jart('tasks_panel', sx);
+    const A = jp('tab_sel'), B = jp('tab_idle'), slots = [[A.x, A.y, 'day', 'TODAY'], [B.x, B.y, 'week', 'WEEK']];   // the chosen tab is the dark one, so the two swap places' looks
+    slots.forEach(([x, y, key, label]) => { const on = JR.tasks === key, pc = on ? A : B; h += jbox(sx + x - 35, y, pc.w, pc.h, `<img class="jl" src="assets/ui/journal/${on ? 'tab_sel' : 'tab_idle'}.png" alt="" style="left:0;top:0;width:${jc(pc.w)}"><span class="jh jsm" style="position:relative;opacity:1;color:${on ? '#e9d4c4' : '#594237'}">${label}</span>`, 'jc jbtn', `data-act="jtasks:${key}"`); });
+    h += jbox(sx + 3, 30, 71, 8, `<span class="jh jsm">${JR.tasks === 'day' ? 'RESETS AT MIDNIGHT' : 'RESETS ON MONDAY'}</span>`, 'jc');
+    const list = JR_TASKS[JR.tasks]; tp.rows.forEach((r, k) => {
+      const t = list[k]; if (!t) return; const base = tr[JR.tasks][t[1]], v = Math.min(t[2], tr.cur[t[1]] - base), done = v >= t[2];
+      h += jbox(sx + r[0] - 35 + 15, r[1], r[2] - 19, r[3], `<span>${t[0]}</span><b>${done ? 'DONE' : v + '/' + t[2]}</b>`, 'jrow jtask' + (done ? ' done' : ''));
+      if (done) h += jbox(sx + r[0] - 35 + 4, r[1] + 1, 9, 9, '<span class="jtick">✓</span>', 'jc');
+    });
+    return h;
+  }
+  const d = new Date(), np = jp('cal_nameplate'), cg = jp('cal_grid'), months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  let h = jart('cal_nameplate', sx) + jart('cal_grid', sx) + jbox(sx + np.x - 134 + 8, np.y, np.w - 16, np.h, `<span class="jh">${months[d.getMonth()]}</span>`, 'jc');
+  cg.cells.forEach((c, k) => { const r = jrect('cal_grid', k, sx), today = k + 1 === Math.min(30, d.getDate()); h += jbox(r[0], r[1], r[2], r[3], `<span class="jday">${k + 1}</span>`, 'jcell' + (today ? ' today' : '')); });
+  return h;
 }
 function jtoggle(label, on, act, y, sx) { return jbox(sx + 4, y, 69, 11, `<span>${label}</span><button class="jtog ${on ? 'on' : ''}" data-act="${act}">${on ? 'ON' : 'OFF'}</button>`, 'jrow'); }
 function pageSet(side, sx) {
@@ -79,16 +126,16 @@ function pageSet(side, sx) {
   return jart('com_right', sx) + jhead('TESTING', sx) + jbox(sx + 4, 40, 69, 11, '<span>PROGRESS</span><button class="jtog" id="tr1" data-act="testreset">RESET</button>', 'jrow') + jbox(sx + 4, 54, 69, 11, '<span>ALL DATA</span><button class="jtog bad" id="tr2" data-act="testwipe">ERASE</button>', 'jrow')
     + jbox(sx + 4, 72, 69, 24, '<span class="jh jsm">ARCHIVE THE WEB</span>', 'jc');
 }
-const JR_FN = { log: pageLog, bag: pageBag, com: pageCom, tasks: pageTasks, set: pageSet };
+const JR_FN = { log: pageLog, bag: pageBag, edit: pageEdit, com: pageCom, tasks: pageTasks, set: pageSet };
 
 // ---- the book ------------------------------------------------------------------------------------------------------------------------------------
 JR.render = function () {
-  const el = document.getElementById('jr'); if (!el || !JR.ready) return; JR.fit(); const b = JR.box, spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page), fn = JR_FN[JR.page];
+  const el = document.getElementById('jr'); if (!el || !JR.ready) return; JR.fit(); const b = JR.box, spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page];
   el.style.setProperty('--u', JR.u + 'px'); el.classList.toggle('single', !spread);
   const stage = document.getElementById('jrstage'); stage.style.width = jc(b.x1 - b.x0); stage.style.height = jc(b.y1 - b.y0);
   const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r']; let h = '';
   const ribs = JR_PAGES.map(p => {
-    const rp = jp(p[2]), ip = jp(p[3]), left = p[0] === 'set', sel = JR.page === p[0], x = spread || left ? rp.x : 111 + (rp.x - 210), dx = x - rp.x, off = (left ? -3 : 3) * (sel ? 1 : 0);
+    const rp = jp(p[2]), ip = jp(p[3]), left = p[0] === 'set', sel = JR.page === p[0] || (JR.page === 'edit' && p[0] === 'bag'), x = spread || left ? rp.x : 111 + (rp.x - 210), dx = x - rp.x, off = (left ? -3 : 3) * (sel ? 1 : 0);
     return `<button class="jrib ${sel ? 'on' : ''}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(rp.y)};width:${jc(rp.w)};height:${jc(rp.h)};transform:translateX(${jc(off)})"><img src="assets/ui/journal/${p[2]}.png" alt="" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
   }).join('');
   h += L.map(n => jimg(n)).join('') + (spread ? R.map(n => jimg(n)).join('') : '');
@@ -100,7 +147,7 @@ JR.render = function () {
   if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.l);
   if (!spread) { const bk = jp('bookmark'); h += `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(bk.x)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" style="width:${jc(bk.w)}"></button>`; }
   stage.innerHTML = h;
-  const cv = stage.querySelector('.jhero'); if (cv && typeof heroSprite === 'function' && HERO.base) { const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(heroSprite(0, 0), 0, 0); }
+  JR.drawHero();
 };
 function jrTime() { const d = new Date(), h = d.getHours() % 12 || 12, m = String(d.getMinutes()).padStart(2, '0'); return h + ':' + m + (d.getHours() < 12 ? 'AM' : 'PM'); }
 UI.openJournal = function (page) {
@@ -108,7 +155,8 @@ UI.openJournal = function (page) {
   if (page) JR.page = page; const el = document.getElementById('jr'); el.classList.remove('hidden'); UI.isOpen = true; UI.cur = 'journal'; JR.render(); sfx('pop');
   clearInterval(JR.clock); JR.clock = setInterval(() => { const c = document.getElementById('jclock'); if (c) c.textContent = jrTime(); }, 20000);
 };
-UI.journalClosed = function () { const el = document.getElementById('jr'); if (el) el.classList.add('hidden'); clearInterval(JR.clock); };
+JR.keepName = function () { const i = document.getElementById('jname'); if (i) JR.name = i.value; };
+UI.journalClosed = function () { JR.name = null; const el = document.getElementById('jr'); if (el) el.classList.add('hidden'); clearInterval(JR.clock); };
 UI.journalClick = function (a, p1, p2) {   // returns true when the click was for the journal
   switch (a) {
     case 'jpage': JR.page = p1; JR.side = 0; JR.sel = 0; JR.render(); sfx('ui'); return true;
@@ -117,7 +165,14 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
     case 'jsel': JR.sel = +p1; if (JR.mode === 'single') JR.side = 1; JR.render(); sfx('ui'); return true;
     case 'jsnd': S.sound = !S.sound; if (S.sound) audioInit(); saveState(); JR.render(); return true;
     case 'jlefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); saveState(); JR.render(); return true;
-    case 'jedit': UI.close(); UI.openMe(false); return true;
+    case 'jedit': JR.page = 'edit'; JR.side = 0; JR.name = null; JR.render(); return true;
+    case 'jturn': JR.dir = ((JR.dir || 0) + 1) % 4; JR.drawHero(); return true;
+    case 'jtasks': JR.tasks = p1; JR.render(); return true;
+    case 'jhair': JR.keepName(); HERO.tint.hairStyle = p1; heroApply(); JR.render(); return true;
+    case 'jcol': HERO.tint[p1] = p2; heroApply(); JR.drawHero(); document.querySelectorAll(`#jrstage .jsw[data-act^="jcol:${p1}:"]`).forEach(b => b.classList.toggle('on', b.dataset.act === 'jcol:' + p1 + ':' + p2)); return true;
+    case 'jrand': JR.keepName(); Object.assign(HERO.tint, randLook()); heroApply(); JR.render(); return true;
+    case 'jreset': JR.keepName(); for (const k in HERO.tint) delete HERO.tint[k]; heroApply(); JR.render(); return true;
+    case 'jdone': { const n = (document.getElementById('jname') || { value: S.name }).value.trim(), err = badName(n); if (err) { const e = document.getElementById('jerr'); if (e) e.textContent = err; sfx('no'); return true; } S.name = n; JR.name = null; saveState(); UI.refresh(); JR.page = 'bag'; JR.render(); UI.toast('Saved', 'info'); return true; }
   }
   return false;
 };

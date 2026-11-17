@@ -32,6 +32,7 @@ function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (
 const finalPct = (potential, P) => clamp(Math.round(potential * (0.5 + 0.5 * P) + (P > 0.9 ? (P - 0.9) * 100 : 0)), 5, 100);   // careful brushing keeps the find intact (P is 0 to 1); a near perfect brush adds a little extra
 function recordFind(res) {
   const st = S.stats; st.digs++; if (!res.wild) st.sdigs = (st.sdigs | 0) + 1;
+  if (res.kind === 'artifact') { st.afound = (st.afound | 0) + 1; if (res.pct >= 80) st.great = (st.great | 0) + 1; } else if (res.kind === 'salvage') st.salv = (st.salv | 0) + res.n;   // counters for the journal's tasks
   if (res.kind === 'artifact') {
     if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
