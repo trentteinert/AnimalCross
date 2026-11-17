@@ -265,4 +265,4 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jarr.on.r svg{animation:jnudge 1.4s ease-in-out infinite}#jrstage .jarr.on.l svg{animation:jnudgel 1.4s ease-in-out infinite}
 @keyframes jnudge{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--u)*1.5))}}
 @keyframes jnudgel{0%,100%{transform:scaleX(-1) translateX(0)}50%{transform:scaleX(-1) translateX(calc(var(--u)*1.5))}}
-#jrstage .jdots{gap:calc(var(--u)*3)}#jrstage .jdot{display:block;width:calc(var(--u)*3);height:calc(var(--u)*3);border:calc(var(--u)*.5) solid #594237;box-sizing:border-box}#jrstage .jdot.on{background:#594237}
+#jrstage .jdots{gap:calc(var(--u)*3)}#jrstage .jdot{display:block;width:calc(var(--u)*3);height:calc(var(--u)*3);border:calc(var(--u)*.5) solid #594237;box-sizing:border-box;border-radius:50%}#jrstage .jdot.on{background:#594237}

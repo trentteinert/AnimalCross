@@ -161,9 +161,9 @@ JR.ribbons = function () {   // the chosen ribbon slides out a little; nothing e
   const spread = JR.mode === 'spread';
   document.querySelectorAll('#jrrib .jrib').forEach(r => { const sel = JR.page === r.dataset.page || (JR.page === 'edit' && r.dataset.page === 'bag'); r.classList.toggle('on', sel); r.style.transform = `translateX(${jc((r.dataset.left === '1' ? -3 : 3) * (sel ? 1 : 0))})${r.dataset.mirror === '1' ? ' scaleX(-1)' : ''}`; });
 };
-function jarrow(dir, on) {   // a little pixel arrow: rows of one to five squares, pointing right (turned round for the left one)
-  let r = ''; for (let y = 0; y < 7; y++) r += `<rect x="0" y="${y}" width="${Math.min(y, 6 - y) + 1}" height="1"/>`;
-  return `<button class="jarr ${dir} ${on ? 'on' : 'off'}" ${on ? 'data-act="jflip"' : 'disabled'} aria-label="${dir === 'l' ? 'Previous page' : 'Next page'}"><svg viewBox="0 0 4 7" shape-rendering="crispEdges" style="width:${jc(4)};height:${jc(7)}" fill="currentColor">${r}</svg></button>`;
+function jarrow(dir, on) {   // a little pixel arrow, five rows tall, pointing right (turned round for the left one)
+  let r = ''; for (let y = 0; y < 5; y++) r += `<rect x="0" y="${y}" width="${Math.min(y, 4 - y) + 1}" height="1"/>`;
+  return `<button class="jarr ${dir} ${on ? 'on' : 'off'}" ${on ? 'data-act="jflip"' : 'disabled'} aria-label="${dir === 'l' ? 'Previous page' : 'Next page'}"><svg viewBox="0 0 3 5" shape-rendering="crispEdges" style="width:${jc(3)};height:${jc(5)}" fill="currentColor">${r}</svg></button>`;
 }
 function jarrows() {   // on a tall screen: arrows and two dots at the foot of the page, so nobody has to guess that it can be swiped
   const dots = [0, 1].map(i => `<i class="jdot ${JR.side === i ? 'on' : ''}"></i>`).join('');
