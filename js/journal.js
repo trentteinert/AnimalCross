@@ -8,9 +8,23 @@ const jc = n => `calc(var(--u)*${+n.toFixed(2)})`;
 JR.load = function () {
   if (JR.loading) return; JR.loading = true;
   fetch('assets/ui/journal/journal.json').then(r => r.json()).then(m => {
-    JR.man = m; let left = Object.keys(m.pieces).length; const done = () => { if (--left === 0) { JR.ready = true; if (JR.wantOpen) UI.openJournal(); } };
-    for (const k in m.pieces) { const im = new Image(); im.onload = im.onerror = done; im.src = `assets/ui/journal/${k}.png`; }
+    JR.man = m; let left = Object.keys(m.pieces).length; const done = () => { if (--left === 0) { JR.ready = true; if (JR.wantOpen) UI.openJournal(); setTimeout(JR.warm, 400); } };
+    JR.imgs = []; for (const k in m.pieces) { const im = new Image(); JR.imgs.push(im); im.onload = im.onerror = done; im.src = `assets/ui/journal/${k}.png`; }
   }).catch(() => { JR.loading = false; });
+};
+JR.warm = function () {   // the first time the book opens (and each page the first time) everything is decoded, drawn and laid out for the first time: do that work early, in small idle steps, so opening is instant
+  if (JR.warmed) return; JR.warmed = true; const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 800 }) : setTimeout(f, 60)), steps = [];
+  steps.push(() => { if (document.fonts) { document.fonts.load('400 14px "Pixelify Sans"'); document.fonts.load('600 14px "Pixelify Sans"'); } });
+  (JR.imgs || []).forEach(im => steps.push(() => { if (im.decode) im.decode().catch(() => { }); }));   // every piece of the book decoded now, not when it is first on screen
+  steps.push(() => { ARTIFACTS.concat(SALVAGE).forEach(i => { const u = itemURL(i.id), im = new Image(); im.src = u; if (im.decode) im.decode().catch(() => { }); }); });   // the item icons are drawn and turned into pictures once
+  steps.push(() => { if (typeof heroSprite === 'function' && HERO.base) for (let f = 0; f < 8; f++) for (let fr = 0; fr < 5; fr++) heroSprite(f, fr); });   // all the portrait's turning frames
+  steps.push(() => {   // draw every page once, invisibly, so the layout and the first paint are done too
+    const el = document.getElementById('jr'); if (!el || UI.cur === 'journal') return; const keep = [JR.page, JR.side, JR.sel], pages = JR_PAGES.map(p => p[0]).concat('edit');
+    el.classList.remove('hidden'); el.style.opacity = '0'; el.style.pointerEvents = 'none';
+    const undo = () => { el.style.opacity = ''; el.style.pointerEvents = ''; if (UI.cur !== 'journal') el.classList.add('hidden'); JR.page = keep[0]; JR.side = keep[1]; JR.sel = keep[2]; clearInterval(JR.spinTimer); JR.spinTimer = null; };
+    let i = 0; const go = () => { if (UI.cur === 'journal') { undo(); return; } if (i >= pages.length) { undo(); return; } JR.page = pages[i++]; JR.side = 0; JR.sel = 0; JR.render(); setTimeout(go, 90); }; go();
+  });
+  const next = () => { const f = steps.shift(); if (!f) return; try { f(); } catch (e) { } idle(next); }; idle(next);
 };
 JR.fit = function () {   // spread or single page, and how many screen pixels one art pixel gets
   const vw = innerWidth, vh = innerHeight; JR.mode = vw >= 560 && vw / vh >= 1.1 ? 'spread' : 'single';
