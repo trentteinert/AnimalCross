@@ -82,7 +82,7 @@ function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; UI.gauge(null); if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 3.5;   // seconds of digging at base speed (a better mattock is quicker)
 const BRUSH_TIME = 8;   // the most seconds the careful brushing game lasts when a dig turns something up (it ends sooner when you win or lose)
-const PR = { start: 0.3, up: 0.2, down: 0.05, grow: 1.3, cap: 1.1, calm: 2.5, grace: 1.5 };   // the progress bar: it starts a third full, climbs steadily while the needle is in the green, and drains faster and faster the longer it stays outside
+const PR = { start: 0.3, up: 0.2, down: 0.13, grow: 2.2, cap: 1.8, calm: 2.5, grace: 0.6 };   // the progress bar: it starts a third full, climbs steadily while the needle is in the green, and drains faster and faster the longer it stays outside
 // The dig animation sheet (assets/chars/dig_sheet.png): 12 rows (one per animation frame), 20 columns of 32x48 cells: body, hair, brush, the find, mattock, each with 4 directions (down, right, up, left).
 const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
 const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
