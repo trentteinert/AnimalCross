@@ -29,7 +29,7 @@ function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).s
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
 function jitemIcon(id, big) { const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
 function jlist(tab) { return tab === 'salv' ? SALVAGE : ARTIFACTS; }
-const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.stats.sdigs | 0], ['OPEN GROUND', () => (S.stats.digs | 0) - (S.stats.sdigs | 0)], ['ARTIFACTS', () => S.arts.length],
+const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.stats.sdigs | 0], ['BAG', () => bagUsed() + '/' + bagCap()], ['COINS', () => S.coins | 0],
   ['COLLECTION', () => ARTIFACTS.filter(a => found(a.id)).length + '/' + ARTIFACTS.length], ['BEST FIND', () => (S.arts.reduce((m, a) => Math.max(m, a.pct), 0) || '-') + (S.arts.length ? '%' : '')], ['SALVAGE', () => Object.values(S.mats).reduce((a, b) => a + (b | 0), 0)]];
 
 function pageLog(side, sx) {
@@ -54,8 +54,8 @@ function pageBag(side, sx) {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
     h += jeditIcon(sx, false);
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
-    items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
-    jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });
+    items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name }))); const cap = bagCap();
+    jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot' + (k >= cap ? ' jlk' : ''), k >= cap ? 'title="Locked: buy a bigger pack from the merchant"' : it ? `title="${it.name}"` : ''); });
     return h;
   }
   let h = jart('com_right', sx) + jhead('STATS', sx);

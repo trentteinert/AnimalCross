@@ -36,16 +36,17 @@ function recordFind(res) {
   if (res.kind === 'artifact') {
     if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
-    S.arts.push({ id: res.id, pct: res.pct });
+    if (bagFits(res.id)) S.arts.push({ id: res.id, pct: res.pct }); else res.lost = true;   // a full bag leaves the find behind (it still counts in your collection)
     res.unlocks = res.isNew ? RECIPES.filter(r => r.unlock === res.id) : [];
-  } else { if (!res.wild) st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; S.mats[res.id] = (S.mats[res.id] | 0) + res.n; } }
+  } else { if (!res.wild) st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; if (bagFits(res.id)) S.mats[res.id] = (S.mats[res.id] | 0) + res.n; else res.lost = true; } }
 }
 
 // ---- targets and actions ----------------------------------------------------------------------------------------------------------------------
-const SHOPK = ['camp'];
+const SHOPK = ['camp', 'shop'];
 const ICON = { camp: 'camp', dig: 'beach' };
 function targetInfo(t) {
   if (t.kind === 'camp') return { icon: 'camp', hint: 'Press to open camp' };
+  if (t.kind === 'shop') return { icon: 'bag', hint: 'Press to browse the shop' };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
   return { icon: 'beach', hint: 'Press to dig' };
@@ -64,7 +65,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
-    if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia);
+    if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia, -14);   // stations win over the ground right beside them
   }
   let sb = null;   // the dig spot: the site tile just in front of you
   for (const dn of ['u', 'd', 'l', 'r']) {
@@ -133,6 +134,7 @@ function digFrameE(a) {
 function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.face = FACE_OF_DIR[ME.dir]; ME.faceDir = ME.dir; ME.hold = null;
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
+  if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
   if (t.kind === 'dig') {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
@@ -198,6 +200,7 @@ function showFind(res, hx, hy) {   // the find is held up over your head with it
   const rr = res.kind === 'artifact' ? ARTIFACTS.find(a => a.id === res.id).r : 0;
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
+  if (res.lost) { setTimeout(() => { floater(ME.x, ME.y - 46, 'Bag full!', '#ff9a8a'); sfx('no'); }, 700); UI.toast('Your bag is full. Sell something to the merchant', 'info'); }
   if (res.unlocks && res.unlocks.length) setTimeout(() => UI.note('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
 }
@@ -460,12 +463,15 @@ UI.onClick2 = function (a, p1) {
   switch (a) {
     case 'testmenu': UI.openTest(); break;
     case 'testreset': UI.testConfirm('tr1', 'Reset', () => {
-      S.col = {}; S.arts = []; S.mats = { nails: 0, boot: 0, fabric: 0, scrap: 0 }; S.gear = { mattock: 0, brush: 0 }; S.stats = { digs: 0, dry: 0 }; HOLES.length = 0; ME.hold = null; A = null; saveState(); UI.refresh(); UI.close(); UI.toast('Progress reset', 'info');
+      S.col = {}; S.arts = []; S.mats = { nails: 0, boot: 0, fabric: 0, scrap: 0 }; S.gear = { mattock: 0, brush: 0 }; S.stats = { digs: 0, dry: 0 }; S.coins = 0; S.bag = 0; HOLES.length = 0; ME.hold = null; A = null; saveState(); UI.refresh(); UI.close(); UI.toast('Progress reset', 'info');
     }); break;
     case 'testwipe': UI.testConfirm('tr2', 'Erase', () => { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem('littledig.proto.v1'); } catch (e) { } S = defaultState(); location.reload(); }); break;
     case 'ctab': UI.renderCamp(p1); break;
     case 'process': processExtras(p1); break;
     case 'craft': craft(p1); break;
+    case 'stab': UI.renderShop(p1); break;
+    case 'shopbuy': shopBuy(p1); break;
+    case 'shopsell': shopSell(p1); break;
   }
 };
 

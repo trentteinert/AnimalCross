@@ -282,3 +282,8 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #bgame.low .bgp{animation:bglow .35s steps(2) infinite}
 @keyframes bglow{50%{box-shadow:inset 0 0 0 2px #c0503f}}
 #bgame.full .bgp{box-shadow:0 0 0 3px #9fe58f}
+
+#jrstage .jslot.jlk{background:rgba(70,48,36,.42);cursor:default}
+.row.soon{opacity:.55}
+.coins{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.coins:before{content:"";width:10px;height:10px;background:#e0a93a;box-shadow:inset -2px -2px 0 #a8741e,inset 1px 1px 0 #f6d27a}

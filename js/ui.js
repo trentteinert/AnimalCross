@@ -16,6 +16,7 @@ UI.init = function () {
 UI.refresh = function () {
   const m = $('#mats'); if (m) m.innerHTML = UI.matsHTML();
   if (UI.cur === 'camp') UI.renderCamp();
+  if (UI.cur === 'shop' && UI.renderShop) UI.renderShop();
   saveState();
 };
 

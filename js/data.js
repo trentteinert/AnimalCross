@@ -34,6 +34,16 @@ const MATTOCKS = [   // spd: dig speed. tier: the deepest dig site tier it can w
 const BRUSHES = [    // pres: percentage points added to how intact finds are
   { n: 'Brush', pres: 0, spd: 1, wide: 1, col: '#c9a46a' },
   { n: 'Specialty Brush', pres: 14, spd: 1.7, wide: 1.25, col: '#e8d9a2' }];
+const BAG_BASE = 6;   // inventory slots you start with. Each artifact you hold takes a slot, and each kind of salvage takes one slot however many you carry
+const BAGS = [        // backpack upgrades sold by the merchant, bought in order; `add` slots on top of the one before
+  { n: 'Satchel', add: 4, cost: 40, d: '+4 inventory slots' },
+  { n: 'Rucksack', add: 8, cost: 120, d: '+8 inventory slots' }];
+const bagCap = () => BAG_BASE + BAGS.slice(0, S.bag | 0).reduce((a, b) => a + b.add, 0);
+const bagUsed = () => S.arts.length + Object.keys(S.mats).filter(k => (S.mats[k] | 0) > 0).length;
+const bagFits = id => bagUsed() < bagCap() || (id in S.mats && (S.mats[id] | 0) > 0);   // room for one more of this: a new artifact or a new kind of salvage needs a free slot; more of a salvage you already carry does not
+const SELL_ART = [6, 20, 50];   // what the merchant pays for an artifact by rarity, scaled by how intact it is
+const sellArt = a => Math.max(1, Math.round(SELL_ART[ITEM[a.id].r] * (0.4 + 0.6 * a.pct / 100)));
+const BUY_MAT = { nails: 5, fabric: 6, boot: 10, scrap: 8 }, SELL_MAT = { nails: 2, fabric: 3, boot: 5, scrap: 4 };   // general supplies: what one costs, and what the merchant pays for one
 const RECIPES = [    // unlocked by finding the artifact named in `unlock` (first find of it)
   { id: 'brush2', kind: 'brush', to: 1, name: 'Specialty Brush', d: 'Finds come up 14% more intact.', cost: { fabric: 3, scrap: 2 }, unlock: 'jug' },
   { id: 'mattock2', kind: 'mattock', to: 1, name: 'Iron Mattock', d: 'Digs faster and opens tier 2 sites.', cost: { nails: 5, boot: 1, scrap: 3 }, unlock: 'bowl' },
@@ -62,7 +72,9 @@ function defaultState() {
     arts: [],                                            // artifacts you hold: { id, pct }
     col: {},                                             // collection record: id -> { n: found, best: best % intact }
     gear: { mattock: 0, brush: 0 },                      // indexes into MATTOCKS / BRUSHES
-    stats: { digs: 0, dry: 0 }
+    stats: { digs: 0, dry: 0 },
+    coins: 0,                                            // money, from selling finds to the merchant
+    bag: 0                                               // how many backpack upgrades you own (index into BAGS)
   };
 }
 let S = defaultState();
@@ -75,6 +87,7 @@ function loadState() {
     S = Object.assign(d, o);
     S.mats = Object.assign(d.mats, o.mats || {}); S.gear = Object.assign(d.gear, o.gear || {});
     S.look = Object.assign(d.look, o.look || {});
+    S.coins = Math.max(0, o.coins | 0); S.bag = clamp(o.bag | 0, 0, BAGS.length);
     S.stats = Object.assign(d.stats, o.stats || {}); if (!Array.isArray(S.arts)) S.arts = []; if (!S.col || typeof S.col !== 'object') S.col = {};
     if (/^digger#/.test(S.name)) S.name = 'trent';   // old auto-generated names
   } catch (e) { }
