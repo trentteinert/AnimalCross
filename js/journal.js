@@ -175,7 +175,7 @@ function jarrows() {   // on a tall screen: arrows and two dots at the foot of t
 JR.content = function (instant) {
   const spread = JR.mode === 'spread', pg = JR_PAGES.find(p => p[0] === JR.page) || ['edit', 'CHARACTER'], fn = JR_FN[JR.page]; let h = '';
   if (spread) { h += jbox(34, 11, 48, 8, `<span class="jh jtl">${pg[1]}</span>`, 'jc'); h += jbox(168, 12, 36, 7, `<span class="jh jtl" id="jclock">${jrTime()}</span>`, 'jl2'); }
-  else h += jbox(152, 12, 54, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
+  else h += jbox(151, 12, 52, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
   if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r) + jarrows();   // on a tall screen both halves of a section take turns on the right page
   const tmp = document.createElement('div'), token = JR.token = (JR.token || 0) + 1; tmp.innerHTML = h;
   const swap = () => { if (token !== JR.token) return; const cont = document.getElementById('jrcont'); if (!cont) return; cont.replaceChildren(...tmp.childNodes); JR.drawHero(); };
