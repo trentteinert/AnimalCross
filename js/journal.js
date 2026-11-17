@@ -151,8 +151,9 @@ JR.render = function (force) {
       const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 209 : rp.x, y = mirror ? 112 : rp.y;
       return `<button class="jrib" data-page="${p[0]}" data-mirror="${mirror ? 1 : 0}" data-left="${gear && spread ? 1 : 0}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)}"><img src="assets/ui/journal/${p[2]}.png" alt="" decoding="sync" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" decoding="sync" style="left:${jc(ip.x - rp.x)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
     }).join('');
-    const b2 = jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r') + (!spread ? (() => { const bk = jp('bookmark'); return `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(193)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" decoding="sync" style="width:${jc(bk.w)}"></button>`; })() : '');
-    stage.innerHTML = `<div class="jlayer">${b1}</div><div class="jlayer" id="jrrib">${ribs}</div><div class="jlayer">${b2}</div><div class="jlayer" id="jrcont"></div>`;
+    const b2 = jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r');
+    const bk = jp('bookmark'), mark = spread ? jimg('bookmark') : `<button class="jmark" data-act="jflip" aria-label="Turn the page" style="left:${jx(193)};top:${jy(bk.y)};width:${jc(bk.w)};height:${jc(bk.h)}"><img src="assets/ui/journal/bookmark.png" alt="" decoding="sync" style="width:${jc(bk.w)}"></button>`;   // the bookmark sits behind the front page with only its tail showing; on a tall screen it turns the page
+    stage.innerHTML = `<div class="jlayer">${b1}</div><div class="jlayer" id="jrrib">${ribs}${mark}</div><div class="jlayer">${b2}</div><div class="jlayer" id="jrcont"></div>`;
   }
   JR.ribbons(); JR.content(!!force);
 };
