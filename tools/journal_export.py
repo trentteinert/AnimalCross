@@ -112,11 +112,12 @@ def runs(im, x, y0, y1, colours, minlen=8):
     return out
 
 def pencil():
-    """a small pixel edit icon (7x7, one dark brown): a pencil crossing a corner-notched box, drawn here so it survives re-cutting the book"""
-    cells = [(c, 0) for c in range(4)] + [(0, r) for r in range(1, 6)] + [(c, 6) for c in range(7)] + [(6, 4), (6, 5)]   # the box, open at the top right
-    cells += [(5, 0), (6, 0), (4, 1), (5, 1), (3, 2), (4, 2), (2, 3), (3, 3), (2, 4)]                                  # the pencil and its point
-    im = Image.new('RGBA', (7, 7), (0, 0, 0, 0)); px = im.load()
-    for x, y in cells: px[x, y] = TEXT + (255,)
+    """the edit icon (5x5): a pencil stroke crossing a corner-notched box, in the tan of the book's lines. Drawn here so it survives re-cutting the book"""
+    rows = ['.#..#', '#..#.', '#.#..', '#...#', '.###.']
+    im = Image.new('RGBA', (5, 5), (0, 0, 0, 0)); px = im.load()
+    for y, r in enumerate(rows):
+        for x, c in enumerate(r):
+            if c == '#': px[x, y] = (196, 154, 128, 255)
     return im
 
 def main():

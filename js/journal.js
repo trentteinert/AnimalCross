@@ -52,7 +52,7 @@ function pageLog(side, sx) {
 function pageBag(side, sx) {
   if (side === 'l') {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
-    h += jbox(sx + 27, 71, 11, 11, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(2)};top:${jc(2)};width:${jc(7)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a small pixel edit icon in the corner of the portrait
+    h += jeditIcon(sx, false);
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
     items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
     jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });
@@ -62,6 +62,9 @@ function pageBag(side, sx) {
   const rows = jstat.concat([['MATTOCK', () => mattock().n.replace(' Mattock', '').toUpperCase()], ['BRUSH', () => brush().n.replace(' Brush', '').toUpperCase() || 'PLAIN']]);
   rows.filter(r => r[0] !== 'SALVAGE').forEach((s, k) => { h += jbox(sx + 4, 40 + k * 10, 69, 10, `<span>${s[0]}</span><b>${s[1]()}</b>`, 'jrow jline'); });
   return h;
+}
+function jeditIcon(sx, open) {   // the edit icon in the corner of the portrait: tan while you are on the bag page, darker while the character page is open (and then it takes you back)
+  return jbox(sx + 29, 73, 9, 9, `<img class="jl${open ? ' jdark' : ''}" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(2)};top:${jc(2)};width:${jc(5)}">`, 'jbtn', open ? 'data-act="jpage:bag" title="Back to the bag"' : 'data-act="jedit" title="Edit your character"');
 }
 function jhero(sx, click) {   // your character drawn live in the portrait frame (the frame's own painted figure is not used). On the bag page he walks on the spot and turns through all eight directions
   return `<canvas class="jhero${click ? '' : ' spin'}" width="32" height="48" style="left:${jx(sx + 3)};top:${jy(28)};width:${jc(32)};height:${jc(48)}"></canvas>` + (click ? jbox(sx, 28, 38, 54, '', 'jbtn', 'data-act="jturn" title="Turn around"') : '');
@@ -80,7 +83,7 @@ JR.drawHero = function () {
 };
 function pageEdit(side, sx) {   // the character page: the left page holds the portrait, name and hair; the right page the colours
   if (side === 'l') {
-    const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true);
+    const hs = HERO.tint.hairStyle || HAIR_STYLES[0]; let h = ['edit_panel', 'bag_portrait', 'bag_clouds'].map(n => jart(n, sx)).join('') + jhero(sx, true) + jeditIcon(sx, true);
     h += jbox(sx + 41, 30, 36, 6, '<span class="jh jsm">HAIR</span>', 'jl2');
     ['none', ...HAIR_STYLES].slice(0, 5).forEach((id, k) => { h += jbox(sx + 42, 38 + k * 9, 34, 8, `<button class="jtog sm ${hs === id ? 'on' : ''}" data-act="jhair:${id}" style="min-width:0;width:100%">${id === 'none' ? 'BALD' : id.toUpperCase()}</button>`, ''); });
     h += jbox(sx + 3, 87, 71, 9, `<input id="jname" class="jin" maxlength="14" value="${esc(JR.name != null ? JR.name : S.name)}" autocomplete="off" spellcheck="false">`, '');
