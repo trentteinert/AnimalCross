@@ -52,7 +52,7 @@ function pageLog(side, sx) {
 function pageBag(side, sx) {
   if (side === 'l') {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
-    h += jbox(sx + 28, 71, 11, 11, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(1)};top:${jc(1)};width:${jc(8)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a pixel pencil in the corner of the portrait
+    h += jbox(sx + 25, 69, 13, 13, `<img class="jl" src="assets/ui/journal/edit_pencil.png" alt="" decoding="sync" style="left:${jc(1)};top:${jc(1)};width:${jc(11)}">`, 'jbtn', 'data-act="jedit" title="Edit your character"');   // a pixel edit icon in the corner of the portrait
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
     items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name })));
     jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot', it ? `title="${it.name}"` : ''); });
@@ -148,7 +148,7 @@ JR.render = function (force) {
     const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r'];
     const b1 = L.concat(R).map(n => jimg(n)).join('') + (spread ? jimg('tab_left') : '') + jimg('tab_time') + (spread ? jimg('tab_dot') : '');
     const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
-      const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 211 : rp.x, y = mirror ? 112 : rp.y, il = ip.x - rp.x - (mirror ? 3 : 0);   // the turned-around gear ribbon: tucked two pixels back under the book, its icon three pixels further out in its own frame (so one pixel further right on screen)
+      const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 211 : rp.x, y = mirror ? 112 : rp.y, il = ip.x - rp.x - (mirror ? 2 : 0);   // the turned-around gear ribbon: tucked two pixels back under the book, its icon two pixels further out in its own frame (so the same position on screen as the other ribbons' icons)
       return `<button class="jrib" data-page="${p[0]}" data-mirror="${mirror ? 1 : 0}" data-left="${gear && spread ? 1 : 0}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)}"><img src="assets/ui/journal/${p[2]}.png" alt="" decoding="sync" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" decoding="sync" style="left:${jc(il)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
     }).join('');
     const b2 = jimg('lines_l') + jimg('lines_r') + jimg('page_l') + jimg('page_r');

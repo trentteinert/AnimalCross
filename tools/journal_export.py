@@ -112,13 +112,12 @@ def runs(im, x, y0, y1, colours, minlen=8):
     return out
 
 def pencil():
-    """a little pixel pencil (8x8) for the edit button on the character portrait, drawn here so it survives re-cutting the book"""
-    pal = {'O': (89, 66, 55), 'E': (217, 115, 138), 'Y': (224, 180, 58), 'S': (176, 128, 30), 'W': (225, 198, 180), 'G': (58, 42, 30)}
-    rows = ['......OO', '.....OEEO', '....OEEO.', '...OYYO..', '..OYSYO..', '.OYSYO...', '.OWYO....', 'OGWO.....']
-    im = Image.new('RGBA', (8, 8), (0, 0, 0, 0)); px = im.load()
-    for y, r in enumerate(rows):
-        for x, c in enumerate(r[:8]):
-            if c in pal: px[x, y] = pal[c] + (255,)
+    """a pixel edit icon (11x11, one dark brown): a pencil in a corner-notched box, drawn here so it survives re-cutting the book"""
+    cells = [(c, 0) for c in range(6)] + [(0, r) for r in range(1, 11)] + [(c, 10) for c in range(1, 11)] + [(10, r) for r in range(5, 10)]   # the box, open at the top right and right
+    cells += [(8, 0), (9, 0), (7, 1), (10, 1), (6, 2), (8, 2), (10, 2), (5, 3), (9, 3), (4, 4), (8, 4), (7, 5), (6, 6)]                        # the pencil's outline
+    cells += [(3, 5), (3, 6), (4, 6), (3, 7), (4, 7), (5, 7)]                                                                                    # its solid point
+    im = Image.new('RGBA', (11, 11), (0, 0, 0, 0)); px = im.load()
+    for x, y in cells: px[x, y] = TEXT + (255,)
     return im
 
 def main():
