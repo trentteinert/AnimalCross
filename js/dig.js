@@ -49,6 +49,7 @@ function targetInfo(t) {
   if (t.kind === 'shop') return { icon: 'bag', hint: 'Press to browse the shop' };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
+  if (bagUsed() >= bagCap()) return { icon: 'beach', hint: 'Bag full. Sell or donate some finds' };
   return { icon: 'beach', hint: 'Press to dig' };
 }
 function wildOk(x, y) {   // ordinary ground you could dig: land that is clear to stand on (not water, a deck, a tree trunk or a pit wall)
@@ -138,6 +139,7 @@ function startAction() {
   if (t.kind === 'dig') {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
+    if (bagUsed() >= bagCap()) { UI.toast('Bag full. Sell or donate some finds', 'info'); sfx('no'); return; }
     const v = DV[t.dir];
     A = { k: 'dig', t: 0, dur: DIG_TIME / mattock().spd, tx: t.tx, ty: t.ty, zone: t.zone, dir: t.dir, hit: digAnim(t.dir) ? 4 / DIGE.fps : 0, x: (t.tx + 0.5) * TS, y: (t.ty + 0.5) * TS, fx: 0, depth: pitZ((t.tx + 0.5) * TS, (t.ty + 0.5) * TS) };
   }
