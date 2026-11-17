@@ -203,3 +203,43 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #bgband{position:absolute;left:0;right:0;background:#7fc47a;box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -2px 0 rgba(0,0,0,.18)}
 #bgame.good #bgband{background:#9fe58f}
 #bgneedle{position:absolute;left:-4px;right:-4px;height:4px;margin-bottom:-2px;background:#4a3326}
+
+/* ---- the journal ---- */
+#jr{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(10,14,24,.66);--u:3px;color:#594237;font-size:calc(var(--u)*4.6);pointer-events:auto;touch-action:pan-y}
+#jr.hidden{display:none}
+#jr .jrx{position:absolute;right:calc(var(--sar) + 14px);top:calc(var(--sat) + 14px);z-index:5;width:44px;height:44px;padding:0;font:inherit;font-size:18px;cursor:pointer}
+#jrstage{position:relative;animation:jin .24s ease-out;image-rendering:pixelated}
+@keyframes jin{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+#jrstage .jl{position:absolute;image-rendering:pixelated;pointer-events:none;max-width:none}
+#jrstage .jb{position:absolute;display:flex;box-sizing:border-box;line-height:1.1}
+#jrstage .jc{justify-content:center;align-items:center;text-align:center}
+#jrstage .jl2{align-items:center}
+#jrstage .jh{font-weight:600;letter-spacing:.04em;font-size:calc(var(--u)*5.2);white-space:nowrap}
+#jrstage .jsm{font-size:calc(var(--u)*4.4);opacity:.75}
+#jrstage .jtl{font-size:calc(var(--u)*5.4)}
+#jrstage .jrow{align-items:center;justify-content:space-between;padding:0 calc(var(--u)*1);font-size:calc(var(--u)*4.4);white-space:nowrap}
+#jrstage .jrow b{font-weight:600}
+#jrstage .jslot{align-items:center;justify-content:center;position:absolute;cursor:pointer;padding:0;border:0;background:none;color:inherit;font:inherit}
+#jrstage .jslot.on{outline:calc(var(--u)*1) solid #a85a16;outline-offset:calc(var(--u)*-1)}
+#jrstage .jslot em{position:absolute;right:calc(var(--u)*1);bottom:0;font-style:normal;font-size:calc(var(--u)*3.4);font-weight:600;color:#594237;text-shadow:calc(var(--u)*.5) calc(var(--u)*.5) 0 #e1c6b4}
+#jrstage .ji{image-rendering:pixelated;display:block}
+#jrstage .jdim .ji{filter:brightness(0);opacity:.35}
+#jrstage .jtab{align-items:center;justify-content:center;background:#d1a17a;border:calc(var(--u)*1) solid #292f32;border-bottom:0;font-size:calc(var(--u)*4);cursor:pointer;letter-spacing:.03em}
+#jrstage .jtab.on{background:#e1c6b4}
+#jrstage .jfill{padding:0}
+#jrstage .jcard{display:flex;flex-direction:column;align-items:center;width:100%;padding:calc(var(--u)*2) calc(var(--u)*2) 0;text-align:center}
+#jrstage .jcard b{font-size:calc(var(--u)*5);margin-top:calc(var(--u)*1)}
+#jrstage .jcard i{font-style:normal;font-size:calc(var(--u)*3.8);opacity:.8}
+#jrstage .jcard p{margin:calc(var(--u)*1) 0 0;font-size:calc(var(--u)*3.6);line-height:1.2}
+#jrstage .jstat{display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*2);width:100%;padding:0 calc(var(--u)*4);font-size:calc(var(--u)*4.2)}
+#jrstage .jstat span{display:flex;justify-content:space-between}#jrstage .jstat b{font-weight:600}
+#jrstage .jbar{height:calc(var(--u)*2);background:#c49a80}#jrstage .jbar i{display:block;height:100%;background:#a85a16}
+#jrstage .jrib{position:absolute;border:0;padding:0;background:none;cursor:pointer;transition:transform .12s}
+#jrstage .jrib img{position:absolute;image-rendering:pixelated}
+#jrstage .jmark{position:absolute;border:0;padding:0;background:none;cursor:pointer}
+#jrstage .jmark img{image-rendering:pixelated;display:block}
+#jrstage .jbtn{padding:0;border:0;background:none;cursor:pointer}
+#jrstage .jhero{position:absolute;image-rendering:pixelated;pointer-events:none}
+#jrstage .jtog{font:inherit;font-size:calc(var(--u)*3.8);font-weight:600;min-width:calc(var(--u)*20);height:calc(var(--u)*8);padding:0 calc(var(--u)*2);background:#d1a17a;color:#594237;border:calc(var(--u)*1) solid #594237;cursor:pointer}
+#jrstage .jtog.on{background:#594237;color:#e1c6b4}
+#jrstage .jtog.bad{background:#e6b8ae}

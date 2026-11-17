@@ -4,9 +4,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 UI.init = function () {
   $('#act').insertAdjacentHTML('afterbegin', '<img id="acticon" alt="">');
-  $('#menu').innerHTML = [['book', 'Collection', 'book'], ['gear', 'Gear', 'bag'], ['me', 'You', 'wave']].map(m =>
+  $('#menu').innerHTML = [['journal', 'Journal', 'book']].map(m =>
     `<button class="mbtn px" data-act="open:${m[0]}" aria-label="${m[1]}"><img src="${actURL(m[2])}" alt=""></button>`).join('');
-  if (UI.refreshPortrait) UI.refreshPortrait();
+  if (UI.refreshPortrait) UI.refreshPortrait(); if (typeof JR !== 'undefined') JR.load();
   document.addEventListener('click', UI.onClick);
   addEventListener('keydown', e => { if (e.code === 'Escape' && UI.isOpen && UI.cur !== 'creator') UI.close(); });
   document.body.classList.toggle('lefty', !!S.lefty);
@@ -47,13 +47,13 @@ UI.open = function (type, html) {
   UI.cur = type; UI.isOpen = true; const m = $('#modal'); m.innerHTML = `<div class="sheet px" data-type="${type}">${html}</div>`; m.classList.remove('hidden');
 };
 UI.close = function () {
-  if (!UI.isOpen) return; clearInterval(UI.crTimer); UI.isOpen = false; UI.cur = null; $('#modal').classList.add('hidden'); $('#modal').innerHTML = ''; saveState();
+  if (!UI.isOpen) return; if (UI.journalClosed) UI.journalClosed(); clearInterval(UI.crTimer); UI.isOpen = false; UI.cur = null; $('#modal').classList.add('hidden'); $('#modal').innerHTML = ''; saveState();
 };
 const head = (t, x) => `<div class="mh"><h2>${t}</h2>${x === false ? '' : '<button class="x" data-act="close" aria-label="Close">✕</button>'}</div>`;
 
 UI.onClick = function (e) {
-  const b = e.target.closest('[data-act]'); if (!b) { if (e.target.id === 'modal' && UI.cur !== 'creator') UI.close(); return; }
-  const [a, p1, p2, p3] = b.dataset.act.split(':'); sfx('ui');
+  const b = e.target.closest('[data-act]'); if (!b) { if ((e.target.id === 'modal' || e.target.id === 'jr' || e.target.id === 'jrstage') && UI.cur !== 'creator') UI.close(); return; }
+  const [a, p1, p2, p3] = b.dataset.act.split(':'); sfx('ui'); if (UI.journalClick && UI.journalClick(a, p1, p2)) return;
   switch (a) {
     case 'close': UI.close(); break;
     case 'open': UI['open' + p1[0].toUpperCase() + p1.slice(1)](p1 === 'me' ? false : undefined); break;
