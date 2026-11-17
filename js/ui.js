@@ -32,9 +32,10 @@ UI.note = function (label, name) {   // a small line in the top left, no box: "R
 UI.banner = function (t, sub) {
   const el = $('#banner'); el.innerHTML = `<b>${esc(t)}</b><span>${esc(sub || '')}</span>`; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 };
-UI.gauge = function (pg) {   // the careful-brushing meter: a tall bar next to the action button, within thumb reach; the needle rises while you hold
+UI.gauge = function (pg) {   // the careful-brushing meter: a tall bar next to the action button, within thumb reach, with the needle on the left and the progress bar on the right (it turns from red through amber to green as it fills)
   const el = document.getElementById('bgame'); if (!el) return; if (!pg) { el.classList.add('hidden'); return; }
   el.classList.remove('hidden'); document.getElementById('bgband').style.cssText = `bottom:${((pg.c - pg.w / 2) * 100).toFixed(1)}%;height:${(pg.w * 100).toFixed(1)}%`; document.getElementById('bgneedle').style.bottom = (pg.m * 100).toFixed(1) + '%'; el.classList.toggle('good', pg.cr > 0.8);
+  const pr = document.getElementById('bgprog'); if (pr && pg.pr != null) { pr.style.height = (pg.pr * 100).toFixed(1) + '%'; pr.style.background = `hsl(${Math.round(8 + 108 * Math.pow(pg.pr, 1.2))} 55% ${48 + Math.round(6 * pg.pr)}%)`; el.classList.toggle('full', pg.pr > 0.97); el.classList.toggle('low', pg.pr < 0.18); }
 };
 UI.setAct = function (icon, prog, alert) {
   const a = $('#act');

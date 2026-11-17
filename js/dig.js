@@ -80,7 +80,8 @@ function findTarget() {
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
 function endAct(msg) { A = null; UI.gauge(null); if (msg) UI.toast(msg, 'info'); }
 const DIG_TIME = 3.5;   // seconds of digging at base speed (a better mattock is quicker)
-const BRUSH_TIME = 6;   // seconds of the careful brushing game when a dig turns something up
+const BRUSH_TIME = 8;   // the most seconds the careful brushing game lasts when a dig turns something up (it ends sooner when you win or lose)
+const PR = { start: 0.3, up: 0.2, down: 0.05, grow: 1.3, cap: 1.1, calm: 2.5 };   // the progress bar: it starts a third full, climbs steadily while the needle is in the green, and drains faster and faster the longer it stays outside
 // The dig animation sheet (assets/chars/dig_sheet.png): 12 rows (one per animation frame), 20 columns of 32x48 cells: body, hair, brush, the find, mattock, each with 4 directions (down, right, up, left).
 const DIGD = { ax: 16, ay: 48, dirs: { d: 0, r: 1, u: 2, l: 3 }, hands: [-0.5, -37] };   // hands: where the find is held up in the last frame, from his feet
 const digAnim = dir => ASSET.img.dig_sheet && DIGD.dirs[dir] != null ? DIGD : null;
@@ -149,10 +150,13 @@ function updateAct(dt) {
       if (pg.m < 0) { pg.m = 0; pg.v = Math.max(0, pg.v); } else if (pg.m > 1) { pg.m = 1; pg.v = Math.min(0, pg.v); }
       pg.c = 0.5 + 0.27 * Math.sin(A.bt * 0.7 + pg.ph) + 0.08 * Math.sin(A.bt * 1.6 + pg.ph2);   // the sweet spot drifts smoothly
       const d = Math.abs(pg.m - pg.c), half = pg.w / 2; pg.cr = d <= half ? 1 : Math.pow(Math.max(0, 1 - (d - half) / (pg.w * 0.7)), 1.5);   // full credit inside the band, partial just outside it
-      pg.sc += pg.cr * dt; A.rv = clamp(0.4 * A.bt / A.bdur + 0.6 * pg.sc / A.bdur, 0, 1);   // the dirt blob clears faster the better you brush
+      pg.sc += pg.cr * dt;
+      if (d <= half) { pg.pr += PR.up * dt; pg.tout = Math.max(0, pg.tout - PR.calm * dt); } else { pg.tout += dt; pg.pr -= Math.min(PR.cap, PR.down * Math.exp(PR.grow * pg.tout)) * dt; }   // in the green it climbs a little at a time; outside it falls exponentially faster
+      pg.pr = clamp(pg.pr, 0, 1); A.rv = Math.max(A.rv, pg.pr);   // the dirt blob clears as the progress bar fills
       A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; if (hold) { burst(A.x + rnd(-4, 4), A.y + rnd(-3, 1), '#d8c8a8', 1 + Math.round(pg.cr * 2), 20, 0.5, 60, 1); brushSfx(0.4 + 0.6 * pg.m); } }
       UI.gauge(pg);
-      if (A.bt >= A.bdur) { finishBrush(A, false); A.ph = 'reward'; A.rt = 0; }
+      const end = pg.pr >= 1 ? 'win' : pg.pr <= 0 ? 'lose' : A.bt >= A.bdur ? (pg.pr >= 0.5 ? 'win' : 'lose') : null;   // full bar: done. empty bar: missed it. out of time: judged by how full it is
+      if (end) { finishBrush(A, false, end); A.ph = 'reward'; A.rt = 0; }
       return;
     }
     if (A.ph === 'reward') {   // stand and hold the find up; it is revealed when the last frame lands
@@ -166,15 +170,18 @@ function updateAct(dt) {
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
       const res = rollDig(SITES[A.zone].tier, A.depth, !A.zone); HOLES.push({ tx: A.tx, ty: A.ty, t: 0 }); const hx = A.x, hy = A.y;
-      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { m: 0, v: 0, c: 0.5, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
+      if (digAnim(A.dir) && res.kind !== 'dirt') { A.res = res; A.ph = 'brush'; A.bt = 0; A.bdur = BRUSH_TIME; A.fx = 0; A.rv = 0; A.pg = { pr: PR.start, tout: 0, m: 0, v: 0, c: 0.5, w: 0.17 * brush().wide, cr: 0, sc: 0, ph: rnd(0, 6.28), ph2: rnd(0, 6.28) }; sfx('pop'); return; }   // something is in the hole: brush it clear (the careful brushing game), then hold it up
       recordFind(res); if (digAnim(A.dir)) A.rise = 0; else endAct();
       showFind(res, hx, hy);
     }
   }
 }
-function finishBrush(a, cancelled) {   // how well you brushed sets how intact an artifact is (or a bonus piece of salvage); walking away counts as a rough job
-  const pg = a.pg, P = clamp((pg.sc + (cancelled ? 0.2 * Math.max(0, a.bdur - a.bt) : 0)) / a.bdur, 0, 1), r = a.res; r.P = P;
-  if (r.kind === 'artifact') r.pct = finalPct(r.potential, P); else if (r.kind === 'salvage' && P >= 0.85) r.n += 1;
+function finishBrush(a, cancelled, outcome) {   // how well you brushed sets how intact an artifact is (or a bonus piece of salvage). Filling the bar wins the brush bonus; emptying it loses it; walking away counts as a rough job
+  const pg = a.pg; let P = clamp((pg.sc + (cancelled ? 0.2 * Math.max(0, a.bdur - a.bt) : 0)) / Math.max(0.5, cancelled ? a.bdur : a.bt), 0, 1), r = a.res;
+  if (outcome === 'win') P = Math.max(P, 0.85); else if (outcome === 'lose' || cancelled) P = Math.min(P, 0.2);   // a win keeps the find nearly whole; a miss earns no bonus
+  r.P = P; r.win = outcome === 'win';
+  if (r.kind === 'artifact') r.pct = finalPct(r.potential, P); else if (r.kind === 'salvage' && r.win) r.n += 1;
+  if (outcome) { floater(a.x, a.y - 12, r.win ? 'Clean!' : 'Rough job', r.win ? '#8fe09a' : '#ff9a8a'); sfx(r.win ? 'catch' : 'no'); }
   UI.gauge(null);
 }
 function cancelAct() {   // pushing the stick walks away: before something turns up it just stops, after that you take the find with a rough brush job
