@@ -91,6 +91,8 @@ const DIGC = { px: null, lk: '', c: {}, roles: null, obj: {} };
 function lookRoles() {   // which colours in the painted sheets belong to which part of the look, and how bright each shade is compared with its role's main colour
   if (DIGC.roles) return DIGC.roles; DIGC.roles = {};
   for (const role in HERO.roles) { const main = Math.max(1, heroLum(heroRoleColor(role))); HERO.roles[role].forEach((q, k) => { const i = heroPix(role, k), c = [HERO.base[i], HERO.base[i + 1], HERO.base[i + 2]]; DIGC.roles[c[0] << 16 | c[1] << 8 | c[2]] = [role, heroLum(c) / main]; }); }
+  const jm = Math.max(1, heroLum(heroRoleColor('jeans')));   // the two darker blues painted into the digging poses (shadows on the trousers) follow your jeans colour too, as darker shades of it
+  for (const c of [0x464f64, 0x323c4d]) if (!(c in DIGC.roles)) DIGC.roles[c] = ['jeans', heroLum([c >> 16, c >> 8 & 255, c & 255]) / jm];
   return DIGC.roles;
 }
 function lookPix(r, g2, b, y, look, upper) {   // recolour one painted pixel by role; the two browns shared by eyes/collar and boots are told apart by where they sit
