@@ -204,7 +204,8 @@ function jarrow(dir, on) {   // a little pixel arrow, five rows tall, pointing r
   return `<button class="jarr ${dir} ${on ? 'on' : 'off'}" ${on ? 'data-act="jflip"' : 'disabled'} aria-label="${dir === 'l' ? 'Previous page' : 'Next page'}"><svg viewBox="0 0 3 5" shape-rendering="crispEdges" style="width:${jc(3)};height:${jc(5)}" fill="currentColor">${r}</svg></button>`;
 }
 function jarrows() {   // on a tall screen: arrows and two dots at the foot of the page, so nobody has to guess that it can be swiped
-  const dots = [0, 1].map(i => `<i class="jdot ${JR.side === i ? 'on' : ''}"></i>`).join('');
+  const ring = [[1, 0, 3, 1], [0, 1, 1, 3], [4, 1, 1, 3], [1, 4, 3, 1]], fill = [[1, 1, 3, 3]], dot = on => `<svg class="jdot" viewBox="0 0 5 5" shape-rendering="crispEdges" style="width:${jc(5)};height:${jc(5)}" fill="#594237">${(on ? ring.concat(fill) : ring).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}"/>`).join('')}</svg>`;   // a five-pixel round dot, drawn pixel by pixel: hollow, or filled for the page you are on
+  const dots = [0, 1].map(i => dot(JR.side === i)).join('');
   return jbox(136, 124, 16, 9, jarrow('l', JR.side === 1), 'jc') + jbox(194, 124, 16, 9, jarrow('r', JR.side === 0), 'jc') + jbox(160, 124, 24, 9, dots, 'jc jdots');
 }
 JR.content = function (instant) {
