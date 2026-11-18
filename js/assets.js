@@ -16,6 +16,15 @@ function loadAssets(cb) {
   fetch('assets/chars/hero_hairmap.json').then(r => r.json()).then(j => { ASSET.hairMap = j.cell; done(); }).catch(() => { ASSET.hairMap = null; done(); });
   fetch('assets/chars/hero_roles.json').then(r => r.json()).then(j => { ASSET.heroRoles = j; done(); }).catch(() => { ASSET.heroRoles = {}; done(); });
 }
+function rimShade(c) {   // form light without an outline: pixels on a sprite's left edge lean warm and light, pixels on its right edge lean cool and dark. Nothing is added, only the edge pixels' colours shift, so thin arms and legs read as round and stand apart from the ground
+  const w = c.width, h = c.height, id = c.g.getImageData(0, 0, w, h), d = id.data, o = new Uint8ClampedArray(d), A = (x, y) => x >= 0 && x < w && d[(y * w + x) * 4 + 3] > 8;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4; if (d[i + 3] < 8) continue; const left = !A(x - 1, y), right = !A(x + 1, y);
+    if (right && !left) { o[i] = d[i] * 0.66 + 30 * 0.34; o[i + 1] = d[i + 1] * 0.66 + 40 * 0.34; o[i + 2] = d[i + 2] * 0.66 + 82 * 0.34; }   // cool shade
+    else if (left && !right) { o[i] = d[i] * 0.8 + 255 * 0.2; o[i + 1] = d[i + 1] * 0.8 + 226 * 0.2; o[i + 2] = d[i + 2] * 0.8 + 168 * 0.2; }   // warm light
+  }
+  c.g.putImageData(new ImageData(o, w, h), 0, 0); return c;
+}
 function recolorCanvas(c, fn) {
   const id = c.g.getImageData(0, 0, c.width, c.height), d = id.data;
   for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { const o = fn(d[i], d[i + 1], d[i + 2]); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; }
@@ -78,7 +87,7 @@ function heroSprite(face, frame, tint) { // face 0-7 (rows), frame 0 = idle, 1-4
       for (let q = 0; q < 3; q++) o[k + q] = t ? clamp(Math.round(t[q] * f), 0, 255) : hair.data[i + q]; o[k + 3] = 255;
     }
   }
-  c.g.putImageData(id, 0, 0); c.ax = HC.ax; c.ay = HC.ay; return cache[key] = c;
+  c.g.putImageData(id, 0, 0); rimShade(c); c.ax = HC.ax; c.ay = HC.ay; return cache[key] = c;
 }
 const LOOK_ROLES = [['hair', 'Hair'], ['eyes', 'Eyes'], ['skin', 'Skin'], ['shirt', 'Shirt'], ['jeans', 'Jeans'], ['boots', 'Boots']];
 function cleanLook(l) { const o = {}; if (l && typeof l === 'object') { for (const [r] of LOOK_ROLES) if (typeof l[r] === 'string' && /^#[0-9a-fA-F]{6}$/.test(l[r])) o[r] = PALETTE[r] ? nearestIn(PALETTE[r], l[r].toLowerCase()) : l[r].toLowerCase(); if (l.hairStyle === 'none' || HAIR_STYLES.includes(l.hairStyle)) o.hairStyle = l.hairStyle; } return o; }

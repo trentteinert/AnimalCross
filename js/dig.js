@@ -112,7 +112,7 @@ function digSprite(dir, fr) {   // one 32x48 frame with your hair, skin and clot
   put(di, (r, g2, b, y) => lookPix(r, g2, b, y, look, 36));   // body: recoloured by role
   const hs = look.hairStyle; if (hs !== 'none') { const t = look.hair ? hex(look.hair) : null, ml = heroLum([136, 96, 75]); put(4 + di, (r, g2, b) => t ? [0, 1, 2].map(q => clamp(Math.round(t[q] * heroLum([r, g2, b]) / ml), 0, 255)) : [r, g2, b]); }   // hair: recoloured around its main shade
   put(8 + di, (r, g2, b) => [r, g2, b]); put(16 + di, (r, g2, b) => [r, g2, b]);   // the brush and the mattock keep the colours they were drawn in
-  c.g.putImageData(id, 0, 0); return DIGC.c[key] = c;
+  c.g.putImageData(id, 0, 0); rimShade(c); return DIGC.c[key] = c;
 }
 function digBlob(dir, fr, prog) {   // the dirt blob drawn over the find in the sheet, with pixels brushed away at random as `prog` goes from 0 to 1
   const q = Math.min(24, Math.floor(prog * 24)), di = DIGD.dirs[dir], key = (di * 16 + fr) * 32 + q; if (DIGC.bl && DIGC.bl[key]) return DIGC.bl[key]; if (!DIGC.px) digInit(); DIGC.bl = DIGC.bl || {};
