@@ -192,17 +192,20 @@ function lineG(x0, y0, x1, y1, col) {
 }
 const WALK_FPS = 6;   // walk frames per second (the walk is 4 frames per direction)
 const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
+let CHSH = { off: 1, a: 0.36, ground: 1 };   // how the character is lifted off the ground: an offset dark copy of the sprite behind it, and the strength of the ground shadow
+function silh(c) { if (c._sil) return c._sil; const s = mk(c.width, c.height); s.g.drawImage(c, 0, 0); s.g.globalCompositeOperation = 'source-in'; s.g.fillStyle = '#16241a'; s.g.fillRect(0, 0, c.width, c.height); return c._sil = s; }
 function drawChar(e, cx, cy, now) {
   const digging = e === ME && A && A.k === 'dig', holding = e === ME && ME.hold;
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
-  g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
+  g.globalAlpha = CHSH.ground; g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy)); g.globalAlpha = 1;
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
+    if (CHSH.off) { g.globalAlpha = CHSH.a; g.drawImage(silh(digSprite(dd, fi)), Math.round(e.x - anim.ax - cx) + CHSH.off, Math.round(e.y - anim.ay - cy) + CHSH.off); g.globalAlpha = 1; }
     g.drawImage(digSprite(dd, fi), Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy));
     if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
-  } else g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob));
+  } else { if (CHSH.off) { g.globalAlpha = CHSH.a; g.drawImage(silh(spr), Math.round(e.x - spr.ax - cx) + CHSH.off, Math.round(e.y - spr.ay - cy + bob) + CHSH.off); g.globalAlpha = 1; } g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob)); }
   if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
