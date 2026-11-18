@@ -97,7 +97,7 @@ function lookRoles() {   // which colours in the painted sheets belong to which 
 }
 function lookPix(r, g2, b, y, look, upper) {   // recolour one painted pixel by role; the two browns shared by eyes/collar and boots are told apart by where they sit
   let m = lookRoles()[r << 16 | g2 << 8 | b]; const key = r << 16 | g2 << 8 | b;
-  if (key === 0x513b30) m = y < upper ? ['eyes', 1] : ['boots', 1]; else if (key === 0x77543c) m = y < upper ? ['shirt', heroLum([r, g2, b]) / Math.max(1, heroLum(heroRoleColor('shirt')))] : ['boots', m ? m[1] : 1];
+  if (key === 0x513b30) m = y < upper ? ['eyes', 1] : ['boots', 1]; else if (key === 0x77543c) m = y < 43 ? ['shirt', heroLum([r, g2, b]) / Math.max(1, heroLum(heroRoleColor('shirt')))] : ['boots', m ? m[1] : 1];
   if (!m || !look[m[0]]) return [r, g2, b]; const t = [1, 3, 5].map(i => parseInt(look[m[0]].slice(i, i + 2), 16)); return [0, 1, 2].map(q => clamp(Math.round(t[q] * m[1]), 0, 255));
 }
 function digInit() {
