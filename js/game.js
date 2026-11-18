@@ -89,6 +89,7 @@ function resize() {
 }
 
 // ---- input ----------------------------------------------------------------
+// the joystick ring stays where you touched down; the knob inside it slides on whole art pixels (each is 3 screen pixels)
 const joy = { id: null, sx: 0, sy: 0, moved: false, t0: 0, vx: 0, vy: 0, mag: 0 };
 const keys = {};
 const inp = $('#inp'), joyEl = $('#joy'), knob = $('#knob');
@@ -100,7 +101,7 @@ inp.addEventListener('pointerdown', e => {
 inp.addEventListener('pointermove', e => {
   if (EDIT || e.pointerId !== joy.id) return; const dx = e.clientX - joy.sx, dy = e.clientY - joy.sy, d = Math.hypot(dx, dy), R = 46;
   if (d > 12 && !joy.moved) { joy.moved = true; joyEl.style.left = joy.sx + 'px'; joyEl.style.top = joy.sy + 'px'; joyEl.classList.add('on'); }
-  if (joy.moved) { joy.vx = dx / (d || 1); joy.vy = dy / (d || 1); joy.mag = d < 8 ? 0 : Math.min(1, (d - 6) / (R - 6)); const k = Math.min(d, R); knob.style.transform = `translate(${joy.vx * k}px,${joy.vy * k}px)`; }
+  if (joy.moved) { joy.vx = dx / (d || 1); joy.vy = dy / (d || 1); joy.mag = d < 8 ? 0 : Math.min(1, (d - 6) / (R - 6)); const k = Math.min(d, R) / R * 6, qx = Math.round(joy.vx * k) * 3, qy = Math.round(joy.vy * k) * 3; knob.style.transform = `translate(${qx}px,${qy}px)`;  }
 });
 function joyEnd(e) {
   if (EDIT || e.pointerId !== joy.id) return;
