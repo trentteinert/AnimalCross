@@ -272,14 +272,15 @@ function drawHoldText(cx, cy) {   // over the held find: its name in the rarity 
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
 // ---- trees: the crown is drawn over everything and sways; leaves drift down from it ---------------------------------------------------------------------
-const LEAVES = [];
+const LEAVES = [], BUSH_HOLD = 3;   // seconds a bush stays squashed after you step off it
 function tickTrees(dt) {
   if (!W.objs) return; const t = performance.now() / 1000;
   for (const o of W.objs) {
     if (o.k === 'decor' && /^bush/.test(o.src.d)) {   // walk onto a bush and it squashes down; step off and it springs back
       const on = Math.abs(ME.x - o.x) < o.spr.width / 2 && ME.y > o.y - 8 && ME.y < o.y + 5;
-      if (on && !o.on && ME.moving) { for (let i = 0; i < 5; i++) spawnLeaf(o); sfx('rustle'); }
-      o.on = on; o.sq = (o.sq || 0) + ((on ? 1 : 0) - (o.sq || 0)) * Math.min(1, dt * (on ? 14 : 7)); continue;
+      if (on && !o.lock) { o.lock = true; o.hold = BUSH_HOLD; if (ME.moving) { for (let i = 0; i < 5; i++) spawnLeaf(o); sfx('rustle'); } }   // stepping on squashes it, and it stays flat for a few seconds after you leave; until it has sprung back up it cannot be squashed again
+      if (o.lock) { if (on) o.hold = BUSH_HOLD; else o.hold -= dt; if (o.hold <= 0 && (o.sq || 0) < 0.05) o.lock = false; }
+      const down = o.lock && (on || o.hold > 0); o.on = on; o.sq = (o.sq || 0) + ((down ? 1 : 0) - (o.sq || 0)) * Math.min(1, dt * (down ? 14 : 10)); continue;
     }
     if (o.k === 'decor' && /^flower/.test(o.src.d)) {   // flowers bend away as you brush through, then wobble back upright
       const near = Math.abs(ME.x - o.x) < 11 && Math.abs(ME.y - o.y) < 9;
