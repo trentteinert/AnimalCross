@@ -65,7 +65,7 @@ function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools 
 }
 function actIcon(name) {   // buttons: dig, camp, collection book, you
   if (iconCache['a' + name]) return iconCache['a' + name];
-  if (/^brush\d$/.test(name)) return itemIcon(name);
+  if (/^brush\d$/.test(name)) { if (ASSET.img.icon_brush) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_brush, 0, 0); return iconCache['a' + name] = k; } return itemIcon(name); }   // the action button shows the painted brush while you brush
   if (name === 'beach' && ASSET.img.icon_mattock) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_mattock, 0, 0); return iconCache['a' + name] = k; }   // painted mattock for the dig button
   if (name === 'bag' && ASSET.img.icon_bag) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_bag, 0, 0); return iconCache['a' + name] = k; }   // painted 16x16 bag icon
   if (name === 'book' && ASSET.img.icon_log) { const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_log, 0, 0); return iconCache['a' + name] = k; }   // painted 16x16 collection log icon
