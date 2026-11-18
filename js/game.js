@@ -131,6 +131,8 @@ function stepToward(e, tx, ty, sp, dt) {
   const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy); if (d < 1) return false;
   const s = Math.min(d, sp * dt); e.dir = dirOf(dx, dy); e.face = faceOf(dx, dy); e.faceDir = e.dir; return moveEnt(e, dx / d * s, dy / d * s);
 }
+const SHK = { a: 0, t: 0, d: 0.12 };
+function shake(a, d) { if (a >= SHK.a * SHK.t / SHK.d || SHK.t <= 0) { SHK.a = a; SHK.d = d || 0.12; SHK.t = SHK.d; } }   // a short screen thump: whole pixels, fading out
 function burst(x, y, col, n, sp, life, grav, sz) {
   for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = rnd(0.3, 1) * sp; PT.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.4, g: grav == null ? 60 : grav, life: rnd(0.5, 1) * life, max: life, col, sz: sz || 1 }); }
 }
@@ -170,6 +172,8 @@ function tick(dt) {
   else if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { const ti = targetInfo(target); UI.setAct(ti.icon, 0, false); UI.setHint(ti.hint); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
+  if (SHK.t > 0) SHK.t -= dt;
+  if (ME.moving && !A) { ME.dt = (ME.dt || 0) - dt; if (ME.dt <= 0) { ME.dt = 0.17; const ty = typeAt(ME.x, ME.y); if (ty >= 2 && ty <= 5) burst(ME.x + rnd(-2, 2), ME.y - 1, ty === 2 ? '#ead9ae' : ty === 4 ? '#b58a64' : '#c9cfa4', 1, 12, 0.32, -14, 1); } }   // little dust puffs at your feet while you run on land
   tickHoles(dt); tickTrees(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
@@ -230,7 +234,7 @@ function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter 
   g.drawImage(s, bx, by); g.globalAlpha = 1;
 }
 function render(now) {
-  const cx = Math.round(cam.x), cy = Math.round(cam.y), K = DPR * Z;
+  const sk = SHK.t > 0 ? SHK.a * SHK.t / SHK.d : 0, cx = Math.round(cam.x + (sk ? (Math.random() * 2 - 1) * sk : 0)), cy = Math.round(cam.y + (sk ? (Math.random() * 2 - 1) * sk : 0)), K = DPR * Z;
   // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
   g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);

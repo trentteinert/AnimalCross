@@ -171,7 +171,7 @@ function updateAct(dt) {
     }
     A.d = Math.max(0, A.t - A.hit);   // digging only starts when the mattock first lands (frame 5 of the east dig); until then you are just winding up
     if (A.d <= 0) return;
-    const strike = () => { burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 4, 34, 0.5, 90, 1); sfx('dig'); };
+    const strike = () => { burst(A.x + rnd(-3, 3), A.y + rnd(-2, 2), '#8a6a44', 6, 38, 0.55, 90, 1); burst(A.x, A.y, '#b08a58', 3, 26, 0.45, 90, 2); shake(1.6, 0.14); sfx('dig'); };   // each hit of the mattock kicks up dirt and gives the screen a small thump
     if (digAnim(A.dir)) { const fr = digFrameE(A); if (fr === 4 && A.lf !== 4) strike(); A.lf = fr; }   // the dig sound and dust happen only as the mattock lands (frame 5 of the animation)
     else { A.fx -= dt; if (A.fx <= 0) { A.fx = 0.22; strike(); } }
     if (A.d >= A.dur) {
@@ -385,7 +385,7 @@ function drawMattock(e, cx, cy, now) {   // placeholder dig animation: the chara
 
 // ---- UI: materials chip, collection, gear, camp --------------------------------------------------------------------------------------------------
 const chipIcon = id => `<img src="${itemURL(id)}" alt="">`;
-UI.matsHTML = () => ['nails', 'fabric', 'boot', 'scrap'].map(id => `<span class="mt" title="${ITEM[id].name}">${chipIcon(id)}<b>${S.mats[id] | 0}</b></span>`).join('');
+UI.matsHTML = () => ['nails', 'fabric', 'boot', 'scrap'].map(id => `<span class="mt" title="${ITEM[id].name}">${chipIcon(id)}<b>${S.mats[id] | 0}</b></span>`).join('') + `<span class="mt${bagUsed() >= bagCap() ? ' full' : ''}" title="Bag slots"><img src="${actURL('bag')}" alt=""><b>${bagUsed()}/${bagCap()}</b></span><span class="mt coin" title="Coins"><b>${S.coins | 0}</b></span>`;   // materials, bag slots used and coins
 function extrasOf(id) {   // spare copies of a common find: everything except your best one
   const list = S.arts.filter(a => a.id === id).sort((p, q) => q.pct - p.pct); return list.slice(1);
 }

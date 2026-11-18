@@ -290,3 +290,9 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 .coins:before{content:"";width:10px;height:10px;background:#e0a93a;box-shadow:inset -2px -2px 0 #a8741e,inset 1px 1px 0 #f6d27a}
 
 #jrstage .jpick{cursor:pointer}
+
+#act.show:active,#act.show.held{transform:scale(.92)}
+body.brushing #hint{max-width:calc(100% - 290px)}
+.mt.coin:before{content:"";width:10px;height:10px;background:#e0a93a;box-shadow:inset -2px -2px 0 #a8741e,inset 1px 1px 0 #f6d27a;margin-right:1px}
+.mt.full b{color:#c0392b;animation:bagfull .6s steps(2) infinite}
+@keyframes bagfull{50%{opacity:.45}}
