@@ -38,8 +38,9 @@ for f in range(5):
     cell = lambda y0, y1: F.crop((f * 48, y0, f * 48 + 48, y1 + 1))
     fr = Image.new('RGBA', (48, 72), (0, 0, 0, 0))
     fr.alpha_composite(cell(30, 63), (0, 30 + TOP))                  # body: posts, the dark window, the chimney
-    fr.alpha_composite(cell(115, 120), (0, 52 + TOP))                # coals on the floor of the window
-    fr.alpha_composite(cell(177, 184), (0, 47 + TOP))                # flames above them
+    win = (9, 49 + TOP, 31, 57 + TOP)                                # the window's inside (22x8): the coal bed lies on its floor, the flames stand in front of it and are kept inside the frame
+    layer = Image.new('RGBA', (48, 72), (0, 0, 0, 0)); layer.alpha_composite(cell(115, 120), (0, 51 + TOP)); layer.alpha_composite(cell(177, 184), (0, 47 + TOP))   # coals first, flames on top
+    fr.alpha_composite(layer.crop(win), (win[0], win[1]))
     fr.alpha_composite(cell(193, 226), (0, 226 - 193 - 189 + 193 - 226 + 37 + 0 - 0 + 0)) if False else fr.alpha_composite(cell(193, 226), (0, 37 - 33 + 0))   # smoke rising from the chimney top
     frames.alpha_composite(fr, (f * 48, 0))
     if f == 0: bodies.alpha_composite(cell(30, 63), (0, 30 + TOP))

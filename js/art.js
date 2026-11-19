@@ -109,6 +109,8 @@ function buildSprites() {
   const prop = (n, ax, ay) => { const im = ASSET.img[n]; if (!im) return null; const c = mk(im.width, im.height); c.g.drawImage(im, 0, 0); c.ax = ax; c.ay = ay; const sm = ASSET.img[n + '_shadow']; if (sm) { const s = mk(sm.width, sm.height); s.g.drawImage(sm, 0, 0); s.ax = ax; s.ay = ay; c.shadow = s; } return c; };   // a still prop and its cast shadow, sharing one anchor
   SPR.anvil = prop('anvil', 11, 16); SPR.hammer = prop('hammer', 3, 11);
   if (ASSET.img.furnace) { const im = ASSET.img.furnace, sh = ASSET.img.furnace_shadow, frames = []; for (let f = 0; f < 5; f++) { const c = mk(48, 72); c.g.drawImage(im, f * 48, 0, 48, 72, 0, 0, 48, 72); c.ax = 24; c.ay = 72; frames.push(c); } const s = mk(sh.width, sh.height); s.g.drawImage(sh, 0, 0); s.ax = 24; s.ay = 72; frames.forEach(c => c.shadow = s); SPR.furnace = frames; }   // the furnace: five frames of flicker and smoke, one shadow
+  if (ASSET.img.campfire) { const im = ASSET.img.campfire; SPR.campfire = [0, 1, 2, 3].map(f => { const c = mk(16, 22); c.g.drawImage(im, f * 16, 0, 16, 22, 0, 0, 16, 22); c.ax = 8; c.ay = 21; return c; }); }   // a placeholder campfire: four flame frames (swap the picture for your own any time)
+  if (typeof lightInit === 'function') lightInit();
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells
