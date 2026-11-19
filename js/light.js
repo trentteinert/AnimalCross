@@ -135,3 +135,6 @@ function emissive(s) {   // only the bright orange and yellow pixels of a sprite
   for (let i = 0; i < d.length; i += 4) if (!(d[i + 3] > 200 && d[i] > 190 && d[i + 1] > 80 && d[i + 2] < 150 && d[i] > d[i + 2] * 1.6)) d[i + 3] = 0;
   c.g.putImageData(id, 0, 0); return c;
 }
+function tintHex(col, tc) {   // a particle's colour in the night tint
+  const m = /^#([0-9a-f]{6})$/i.exec(col); if (!m) return col; const n = parseInt(m[1], 16); return `rgb(${Math.round((n >> 16) * tc[0] / 255)},${Math.round((n >> 8 & 255) * tc[1] / 255)},${Math.round((n & 255) * tc[2] / 255)})`;
+}

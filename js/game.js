@@ -197,7 +197,7 @@ function drawChar(e, cx, cy, now) {
   const digging = e === ME && A && A.k === 'dig', holding = e === ME && ME.hold;
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
-  g.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));
+  G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
@@ -221,7 +221,7 @@ function drawEnt(o, cx, cy, now) {
       if (o.frames) o.spr = o.frames[Math.floor(now * 6 + o.ph) % o.frames.length];   // the furnace's flames flicker and its smoke curls: five frames, six a second
       const spr = o.spr; if (!spr) return;
       if (o.k === 'shop') { drawShop(o, cx, cy, now); return; }
-      if (o.k === 'tree') { g.globalAlpha = 0.3; g.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); g.globalAlpha = 1; }   // the crown's shadow on the ground
+      if (o.k === 'tree') { G0.globalAlpha = 0.3; G0.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); G0.globalAlpha = 1; }   // the crown's shadow on the ground
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
       if (o.ang) { const q = Math.round(o.ang / 1.5708) & 3, w = spr.width, h = spr.height; g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - cy) - h / 2); g.rotate(q * Math.PI / 2); g.drawImage(spr, -w / 2, -h / 2); g.restore(); } else if (Math.abs(o.lean) > 0.04) { const px = Math.round(o.x - spr.ax - cx), py = Math.round(o.y - spr.ay - cy), H = spr.height; for (let r = 0; r < H; r += 2) g.drawImage(spr, 0, r, spr.width, Math.min(2, H - r), px + Math.round(o.lean * Math.pow(1 - (r + 1) / H, 1.5) * 3), py + r, spr.width, Math.min(2, H - r)); } else if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
       if (spr.nrm) litProp(o, spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), fa);   // sun shading and point lights on props that have a bump map
@@ -262,8 +262,8 @@ function render(now) {
   entBegin();
   L.sort((a, b) => a.y - b.y); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
-  for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
   entEnd(cx, cy, now);   // tint that layer, add the light on props and people, lay it over the ground
+  { const tcn = FEATURES.light ? nightTint() : null; for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = tcn ? tintHex(p.col, tcn) : p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1; }   // dust and leaves, drawn over the finished scene in the night's tint
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
   // light
   const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();

@@ -60,4 +60,32 @@ for y in range(72):
         r, g, b, a = bp[x, y]
         if a and y < 38: bp[x, y] = (0, 0, 0, 0)        # no smoke or sparks in the bump map
 paint([(body, 8)], 'furnace')
+
+# ---- cast shadows, from true heights ------------------------------------------------------------------------------------------------------------
+# Every pixel gets the height it really has above the ground (a post: how far up the screen it is; a roof: a slab at the top; a table top: flat at table height), and the sun's rays carry
+# it down to the ground to the right and a little toward the back. The shadows are the footprints of those rays, so a tall roof throws a long shadow, a low table a short one, and a post a thin one.
+KX, KZ = 0.5, 0.32   # how far right and how far back (up the screen) one pixel of height throws its shadow
+def cast(parts, name, pad):
+    w, h = parts[0][0].size; H = {}
+    for img, fn in parts:
+        px = img.load()
+        for y in range(img.height):
+            for x in range(min(img.width, w)):
+                if px[x, y][3] > 8: H[(x, y)] = fn(x, y)
+    sh = Image.new('RGBA', (w + pad, h), (0, 0, 0, 0)); sp = sh.load()
+    for (x, y), hh in H.items():
+        for ox, oy in ((0, 0), (1, 0), (0, 1), (1, 1)):
+            hx = max(0, hh - oy * 0)   # a pixel's far corner is a pixel lower or to the side: same height, so the footprint is simply a 2x2 splat that closes the gaps
+            gx = round(x + ox + KX * hx); gy = round(y + oy + hh - KZ * hx)
+            if 0 <= gx < w + pad and 0 <= gy < h: sp[gx, gy] = (47, 56, 48, 125)
+    sh.save('assets/props/%s_shadow.png' % name)
+AY = 65; roof = lambda x, y: 44 + (26 - y) * 0.5
+cast([(crop(M[4]), lambda x, y: max(0, 58 - y)),                                  # the shopkeeper's feet are a little behind the stall's front
+      (crop(M[5]), lambda x, y: max(0, AY - y)), (crop(M[6]), lambda x, y: max(0, AY - y)),   # posts
+      (crop(M[7]), lambda x, y: min(20, max(0, AY - y))), (crop(M[8]), lambda x, y: min(17, max(0, AY - y))),   # table, cloth
+      (crop(M[10]), lambda x, y: min(22, max(0, AY - y))), (crop(M[11]), lambda x, y: min(22, max(0, AY - y))),   # goods
+      (crop(M[9]), roof)], 'shop', 40)                                            # the thatch is a sloping slab above the posts
+cast([(Image.open(A + 'anvil.png'), lambda x, y: 16 - y)], 'anvil', 14)
+cast([(Image.open(A + 'hammer.png'), lambda x, y: 11 - y)], 'hammer', 8)
+cast([(body, lambda x, y: 72 - y)], 'furnace', 22)
 print('ok')
