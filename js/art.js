@@ -102,10 +102,13 @@ function buildSprites() {
     SPR.tree = { trunk, crown, shadow };
   }
   if (ASSET.img.shop_stall) {   // the merchant's stall is three same-size layers sharing one anchor (bottom of the counter): ground shadow, shopkeeper (behind the counter) and the stall itself
-    const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const c = mk(64, 64); c.g.drawImage(ASSET.img['shop_' + k], 0, 0); c.ax = 30; c.ay = 57; L[k] = c; }
+    const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const im = ASSET.img['shop_' + k], c = mk(im.width, im.height); c.g.drawImage(im, 0, 0); c.ax = 27; c.ay = 65; L[k] = c; }
     SPR.shop = L.stall; SPR.shop.merchant = L.merchant; SPR.shop.shadow = L.shadow;
   }
   if (ASSET.img.workbench) { const c = mk(64, 64); c.g.drawImage(ASSET.img.workbench, 0, 0); c.ax = 32; c.ay = 54; SPR.bench = c; const sh = mk(64, 64); sh.g.drawImage(ASSET.img.workbench_shadow, 0, 0); sh.ax = 32; sh.ay = 54; c.shadow = sh; }   // the workbench: table and paper, plus its own ground shadow (same origin, anchored at the bottom of the legs)
+  const prop = (n, ax, ay) => { const im = ASSET.img[n]; if (!im) return null; const c = mk(im.width, im.height); c.g.drawImage(im, 0, 0); c.ax = ax; c.ay = ay; const sm = ASSET.img[n + '_shadow']; if (sm) { const s = mk(sm.width, sm.height); s.g.drawImage(sm, 0, 0); s.ax = ax; s.ay = ay; c.shadow = s; } return c; };   // a still prop and its cast shadow, sharing one anchor
+  SPR.anvil = prop('anvil', 11, 16); SPR.hammer = prop('hammer', 3, 11);
+  if (ASSET.img.furnace) { const im = ASSET.img.furnace, sh = ASSET.img.furnace_shadow, frames = []; for (let f = 0; f < 5; f++) { const c = mk(48, 72); c.g.drawImage(im, f * 48, 0, 48, 72, 0, 0, 48, 72); c.ax = 24; c.ay = 72; frames.push(c); } const s = mk(sh.width, sh.height); s.g.drawImage(sh, 0, 0); s.ax = 24; s.ay = 72; frames.forEach(c => c.shadow = s); SPR.furnace = frames; }   // the furnace: five frames of flicker and smoke, one shadow
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells

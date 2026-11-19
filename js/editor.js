@@ -9,19 +9,22 @@ const ED = {
 const TILE_NAMES = ['Deep water', 'Shallow water', 'Sand', 'Grass', 'Dirt path', 'Cobble', 'Pond'];
 const TILE_COL = ['#2e6294', '#5fa8c0', '#f1d8a6', '#abb488', '#c89676', '#c9b790', '#54a0b8'];
 const PAL = [
-  { k: 'camp', n: 'Camp (process and craft)' }, { k: 'shop', n: 'Merchant stall' }, { k: 'bench', n: 'Workbench' }, { k: 'tree', v: 0, n: 'Tree' }, { k: 'tree', v: 1, n: 'Bare tree' },
+  { k: 'camp', n: 'Camp (process and craft)' }, { k: 'shop', n: 'Merchant stall' }, { k: 'bench', n: 'Workbench' }, { k: 'anvil', n: 'Anvil' }, { k: 'hammer', n: 'Decorative hammer' }, { k: 'furnace', n: 'Furnace' }, { k: 'tree', v: 0, n: 'Tree' }, { k: 'tree', v: 1, n: 'Bare tree' },
   { k: 'decor', d: 'flower0', n: 'Flower: red' }, { k: 'decor', d: 'flower1', n: 'Flower: purple' }, { k: 'decor', d: 'flower2', n: 'Flower: gold' }, { k: 'decor', d: 'flower3', n: 'Flower: small red' }, { k: 'decor', d: 'flower4', n: 'Flower: small white' }, { k: 'decor', d: 'flower5', n: 'Flower: poppy' }, { k: 'decor', d: 'flower6', n: 'Flower: blue' }, { k: 'decor', d: 'flower7', n: 'Flower: pink' },
   { k: 'decor', d: 'bush0', n: 'Bush 1' }, { k: 'decor', d: 'bush1', n: 'Bush 2' }, { k: 'decor', d: 'bush2', n: 'Bush 3' }, { k: 'decor', d: 'bush3', n: 'Bush 4' }, { k: 'decor', d: 'bush4', n: 'Bush 1 (olive)' }, { k: 'decor', d: 'bush5', n: 'Bush 2 (olive)' }, { k: 'decor', d: 'bush6', n: 'Bush 3 (olive)' }, { k: 'decor', d: 'bush7', n: 'Bush 4 (olive)' },
   { k: 'decor', d: 'rock0', n: 'Rock' }, { k: 'decor', d: 'rock1', n: 'Big rock' }, { k: 'decor', d: 'pebble0', n: 'Pebble 1' }, { k: 'decor', d: 'pebble1', n: 'Pebble 2' }, { k: 'decor', d: 'pebble2', n: 'Pebble 3' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
-const LABELS = { camp: 'Camp', shop: 'Stall', bench: 'Workbench', tree: 'Tree', decor: 'Scenery' };
+const LABELS = { camp: 'Camp', shop: 'Stall', bench: 'Workbench', anvil: 'Anvil', hammer: 'Hammer', furnace: 'Furnace', tree: 'Tree', decor: 'Scenery' };
 
 function entrySpr(e) {
   switch (e.k) {
     case 'camp': return SPR.camp;
     case 'shop': return SPR.shop;
     case 'bench': return SPR.bench;
+    case 'anvil': return SPR.anvil;
+    case 'hammer': return SPR.hammer;
+    case 'furnace': return SPR.furnace && SPR.furnace[0];
     case 'tree': return SPR.tree && SPR.tree.trunk;
     case 'decor': return SPR.decor[e.d];
   }

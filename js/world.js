@@ -191,13 +191,16 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-19, -9, 38, 9], 22], bench: [[-15, -6, 30, 6]], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-15, -6, 30, 6]], anvil: [[-9, -4, 18, 4]], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
     case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree.trunk, crown: SPR.tree.crown, shadow: SPR.tree.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break;
     case 'shop': if (!SPR.shop) return; o = { k: 'shop', spr: SPR.shop }; break;
+    case 'anvil': if (!SPR.anvil) return; o = { k: 'anvil', spr: SPR.anvil }; break;
+    case 'hammer': if (!SPR.hammer) return; o = { k: 'hammer', spr: SPR.hammer }; break;
+    case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace[0], frames: SPR.furnace, ph: hash2(s.x | 0, s.y | 0, 7) * 5 }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;

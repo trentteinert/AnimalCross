@@ -218,6 +218,7 @@ function drawEnt(o, cx, cy, now) {
       g.translate(0, zo); drawChar(o, cx, cy, now); g.restore(); break;
     }
     default: {
+      if (o.frames) o.spr = o.frames[Math.floor(now * 6 + o.ph) % o.frames.length];   // the furnace's flames flicker and its smoke curls: five frames, six a second
       const spr = o.spr; if (!spr) return;
       if (o.k === 'shop') { drawShop(o, cx, cy, now); return; }
       if (o.k === 'tree') { g.globalAlpha = 0.3; g.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); g.globalAlpha = 1; }   // the crown's shadow on the ground
@@ -231,7 +232,7 @@ const shadowStrength = () => SUN;
 function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter and breathes: the shopkeeper's upper body rises a pixel now and then; the stall is drawn over them
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
   const up = Math.sin(now * 1.6 + (o.src.x | 0)) > 0.55 ? 1 : 0;
-  g.drawImage(m, 0, 0, 64, 36, bx, by - up, 64, 36); g.drawImage(m, 0, 36, 64, 28, bx, by + 36, 64, 28);
+  g.drawImage(m, 0, 0, m.width, 42, bx, by - up, m.width, 42); g.drawImage(m, 0, 42, m.width, m.height - 42, bx, by + 42, m.width, m.height - 42);
   g.drawImage(s, bx, by); g.globalAlpha = 1;
 }
 function render(now) {
@@ -248,7 +249,7 @@ function render(now) {
     const u = r.t / r.max, rx = 2 + u * (r.big ? 10 : 7), ry = rx * 0.5; g.fillStyle = `rgba(235,248,252,${(1 - u) * 0.8})`;
     for (let i = 0; i < 16; i++) { const a = i * 0.3927; g.fillRect(Math.round(r.x + Math.cos(a) * rx - cx), Math.round(r.y + Math.sin(a) * ry - cy), 1, 1); }
   }
-  for (const o of W.objs) if (o.spr && o.spr.shadow && (o.k === 'shop' || o.k === 'bench') && o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) { const sh = o.spr.shadow, a = shadowStrength(); if (a > 0.01) { g.globalAlpha = a; g.drawImage(sh, Math.round(o.x - sh.ax - cx), Math.round(o.y - sh.ay - cy)); g.globalAlpha = 1; } }   // the stall's shadow lies flat on the ground, under everything that stands
+  for (const o of W.objs) if (o.spr && o.spr.shadow && (o.k === 'shop' || o.k === 'bench' || o.k === 'anvil' || o.k === 'hammer' || o.k === 'furnace') && o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) { const sh = o.spr.shadow, a = shadowStrength(); if (a > 0.01) { g.globalAlpha = a; g.drawImage(sh, Math.round(o.x - sh.ax - cx), Math.round(o.y - sh.ay - cy)); g.globalAlpha = 1; } }   // the stall's shadow lies flat on the ground, under everything that stands
   const L = [];
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   for (const l of LEAVES) if (l.x > cx - 10 && l.x < cx + VW + 10 && l.y > cy - 10 && l.y < cy + VH + 10) L.push({ k: 'leaf', x: l.x, y: l.gy, l });   // leaves sort with everything else by where they will land, so they pass behind you or in front like anything on the ground
