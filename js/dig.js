@@ -297,12 +297,14 @@ function tickTrees(dt) {
       if (ME.moving && d < R + 5 && d > 0.1) { const k = 62 * f / d; o.vx = dx * k; o.vy = dy * k; }
       const sp = Math.hypot(o.vx, o.vy);
       if (sp > 2.5) {
-        const nx = o.x + o.vx * dt, ny = o.y + o.vy * dt;
-        if (!blockedAt(nx, o.y, R, R * 1.4)) o.x = nx; else o.vx *= -0.35;
-        if (!blockedAt(o.x, ny, R, R * 1.4)) o.y = ny; else o.vy *= -0.35;
+        const nx = o.x + o.vx * dt, ny = o.y + o.vy * dt, z0 = pitZ(o.x, o.y);   // a stone can roll off a ledge (it drops to the lower ground) or into the water (it sinks), but not up a wall
+        if (!blockedAt(nx, o.y, R, R * 1.4, 'stone') && pitZ(nx, o.y) > z0 - 0.55) o.x = nx; else o.vx *= -0.35;
+        if (!blockedAt(o.x, ny, R, R * 1.4, 'stone') && pitZ(o.x, ny) > pitZ(o.x, o.y) - 0.55) o.y = ny; else o.vy *= -0.35;
         o.ang += (o.vx >= 0 ? 1 : -1) * sp * dt / R;
         const fr = Math.exp(-3.2 * dt); o.vx *= fr; o.vy *= fr;
+        if (isWater(o.x, o.y - 1)) { o.dead = true; burst(o.x, o.y - 2, '#d8f0f8', 7, 36, 0.55, 100, 1); RP.push({ x: o.x, y: o.y, t: 0, max: 0.8, big: false }); }   // plop: it sinks out of sight
       } else o.vx = o.vy = 0;
+      { const tz = pitZ(o.x, o.y); o.pz = o.pz == null ? tz : o.pz + (tz - o.pz) * Math.min(1, dt * 9); }   // the stone drops to the ground it is on
       continue;
     }
     if (o.k !== 'tree') continue; o.sx = 0;
@@ -311,6 +313,7 @@ function tickTrees(dt) {
     if (!o.bare && SPR.leaves.length) { o.lt -= dt; if (o.lt <= 0) { o.lt = rnd(3.5, 8); spawnLeaf(o); } }
     if (ME.moving && Math.hypot(ME.x - o.x, (ME.y - o.y) * 1.2) < 13 && !o.bare) { if (!o.rt || t - o.rt > 1.6) { o.rt = t; o.shake = 0.55; for (let i = 0; i < 4; i++) spawnLeaf(o); } }   // brush past the trunk and the crown rustles
   }
+  if (W.objs.some(o => o.dead)) W.objs = W.objs.filter(o => !o.dead);   // stones that rolled into the water are gone
   for (let i = LEAVES.length - 1; i >= 0; i--) {
     const l = LEAVES[i]; l.t += dt;
     if (!l.land) { l.y += l.vy * dt; l.x += (Math.sin(l.t * 1.7 + l.ph) * 9 + l.vx) * dt; if (l.y >= l.gy) { l.y = l.gy; l.land = true; l.lt = 0; } }
