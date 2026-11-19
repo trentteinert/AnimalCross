@@ -234,8 +234,9 @@ function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter 
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
   const up = Math.sin(now * 1.6 + (o.src.x | 0)) > 0.55 ? 1 : 0;
   g.drawImage(m, 0, 0, m.width, 42, bx, by - up, m.width, 42); g.drawImage(m, 0, 42, m.width, m.height - 42, bx, by + 42, m.width, m.height - 42);
-  g.drawImage(s, bx, by); g.globalAlpha = 1;
-  litProp(o, m, bx, by, fa); litProp(o, s, bx, by, fa);
+  litProp(o, m, bx, by, fa);   // the shopkeeper's sun shading goes on before the stall is drawn over him
+  if (fa < 1) g.globalAlpha = fa; g.drawImage(s, bx, by); g.globalAlpha = 1;
+  litProp(o, s, bx, by, fa);
 }
 function render(now) {
   const sk = SHK.t > 0 ? SHK.a * SHK.t / SHK.d : 0, cx = Math.round(cam.x + (sk ? (Math.random() * 2 - 1) * sk : 0)), cy = Math.round(cam.y + (sk ? (Math.random() * 2 - 1) * sk : 0)), K = DPR * Z;
