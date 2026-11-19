@@ -208,7 +208,7 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-15, -6, 30, 6]], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4]], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-15, -6, 30, 6], 22], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4], 22], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {

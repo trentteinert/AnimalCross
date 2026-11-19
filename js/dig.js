@@ -42,11 +42,13 @@ function recordFind(res) {
 }
 
 // ---- targets and actions ----------------------------------------------------------------------------------------------------------------------
-const SHOPK = ['camp', 'shop'];
+const SHOPK = ['camp', 'shop', 'furnace', 'anvil', 'bench'];   // the things you press the action button at
+const STATION = { furnace: { title: 'Furnace', hint: 'Press to smelt', icon: 'camp' }, anvil: { title: 'Anvil', hint: 'Press to forge tools', icon: 'beach' }, bench: { title: 'Workbench', hint: 'Press to craft tools', icon: 'brush0' } };   // furnace: melt spare finds into scrap. anvil: forge mattocks. workbench: make brushes
 const ICON = { camp: 'camp', dig: 'beach' };
 function targetInfo(t) {
   if (t.kind === 'camp') return { icon: 'camp', hint: 'Press to open camp' };
   if (t.kind === 'shop') return { icon: 'bag', hint: 'Press to browse the shop' };
+  if (STATION[t.kind]) return { icon: STATION[t.kind].icon, hint: STATION[t.kind].hint };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
   if (bagUsed() >= bagCap()) return { icon: 'beach', hint: 'Bag full. Sell or donate some finds' };
@@ -66,7 +68,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
-    if (SHOPK.includes(o.k)) consider(o.k, o, o.x, o.y, distToBox(px, py, o), o.ia, -14);   // stations win over the ground right beside them
+    if (SHOPK.includes(o.k)) { const bd = distToBox(px, py, o), bx = o.x - px, by = o.y - 4 - py, bl = Math.hypot(bx, by) || 1; if (bd < 6 || (bx / bl * fv[0] + by / bl * fv[1]) > 0.1) consider(o.k, o, o.x, o.y, bd, o.ia, -14); }   // a station you are close to and facing wins over the ground beside it
   }
   let sb = null;   // the dig spot: the site tile just in front of you
   for (const dn of ['u', 'd', 'l', 'r']) {
@@ -76,7 +78,7 @@ function findTarget() {
       if ((z || wildOk(sx, sy)) && !(pitV(Math.floor(sx / TS), Math.floor(sy / TS)) & 1) && Math.abs(pitZ(sx, sy) - pitZ(px, py)) < 0.6) { const sc = dd * 0.8 - (dn === ME.dir ? 8 : 0); if (!sb || sc < sb.sc) sb = { dn, dd, sc, z, tx: Math.floor(sx / TS), ty: Math.floor(sy / TS) }; break; }
     }
   }
-  if (sb && (!best || sb.sc < best.sc + 2)) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z, tx: sb.tx, ty: sb.ty };
+  if (sb && !best) best = { kind: 'dig', ref: null, sc: sb.sc, dist: sb.dd, dir: sb.dn, zone: sb.z, tx: sb.tx, ty: sb.ty };
   return best;
 }
 function faceTo(t) { if (t.dir) ME.dir = t.dir; }
@@ -138,6 +140,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.face = FACE_OF_DIR[ME.dir]; ME.faceDir = ME.dir; ME.hold = null;
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
   if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
+  if (STATION[t.kind]) { held = false; UI.openCamp(t.kind === 'furnace' ? 'process' : 'craft', t.kind); return; }
   if (t.kind === 'dig') {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
     if (holeAt(t.tx, t.ty)) { UI.toast('Already dug. Pick another spot', 'info'); sfx('no'); return; }
@@ -411,21 +414,22 @@ UI.openGear = function () {
     <div class="row"><img src="${itemURL('brush' + S.gear.brush)}" alt=""><div class="grow"><b>${esc(b.n)}</b><small>Finds are ${b.pres}% more intact${b.wide > 1 ? ' · wider sweet spot' : ''}</small></div></div></div>
     <h3 class="sub">Dig sites</h3><p class="note">You can dig almost anywhere, but only these marked sites have good odds of real artifacts.</p><div class="list">${sites}</div><p class="note">Craft better tools at the camp tent.</p><div class="foot"><button class="btn small" data-act="snd">Sound: ${S.sound ? 'On' : 'Off'}</button><button class="btn small" data-act="testmenu">Test tools</button></div>`);
 };
-UI.openCamp = function (tab) { UI.open('camp', '<div id="campbox"></div>'); UI.cur = 'camp'; UI.renderCamp(tab || 'process'); sfx('pop'); };
+UI.openCamp = function (tab, station) { UI.cstation = station || null; UI.open('camp', '<div id="campbox"></div>'); UI.cur = 'camp'; UI.renderCamp(tab || 'process'); sfx('pop'); };   // station: 'furnace', 'anvil' or 'bench' show just their own job; none shows the whole camp
 UI.renderCamp = function (tab) {
-  UI.ctab = tab = tab || UI.ctab || 'process'; const host = $('#campbox'); if (!host) return; let body = '';
+  const st = UI.cstation; UI.ctab = tab = st === 'furnace' ? 'process' : st ? 'craft' : (tab || UI.ctab || 'process'); const host = $('#campbox'); if (!host) return; let body = '';
   if (tab === 'process') {
     const rows = ARTIFACTS.filter(a => a.r === 0).map(a => {
       const ex = extrasOf(a.id), scrap = ex.reduce((s, x) => s + scrapFor(x), 0);
       return `<div class="row"><img src="${itemURL(a.id)}" alt=""><div class="grow"><b>${esc(a.name)}</b><small>${ex.length ? ex.length + ' spare → ' + scrap + ' scrap' : found(a.id) ? 'No spares (your best copy is kept)' : 'Not found yet'}</small></div>`
-        + `<button class="btn small ${ex.length ? '' : 'dis'}" data-act="process:${a.id}">Process</button></div>`;
+        + `<button class="btn small ${ex.length ? '' : 'dis'}" data-act="process:${a.id}">Smelt</button></div>`;
     }).join('');
-    body = `<p class="note">Spare commons break down into scrap, which you need for tools. Your best copy of each artifact is always kept, and uncommon and rare finds are never processed.</p><div class="list">${rows}</div>`;
+    body = `<p class="note">Spare commons melt down into scrap, which the anvil needs for tools. Your best copy of each artifact is always kept, and uncommon and rare finds are never melted.</p><div class="list">${rows}</div>`;
   } else {
-    const rows = RECIPES.map(recipeRow).join('');
-    body = `<p class="note">Using: ${esc(mattock().n)} · ${esc(brush().n)}. Recipes unlock when you first find the artifact named on them.</p><div class="list">${rows}</div>`;
+    const rows = RECIPES.filter(r => !st || (st === 'anvil' ? r.kind === 'mattock' : r.kind === 'brush')).map(recipeRow).join('');
+    body = `<p class="note">${st === 'anvil' ? 'Forge better mattocks here.' : st === 'bench' ? 'Make better brushes here.' : ''} Using: ${esc(mattock().n)} · ${esc(brush().n)}. Recipes unlock when you first find the artifact named on them.</p><div class="list">${rows}</div>`;
   }
-  host.innerHTML = `${head('Camp')}<div class="tabs">${[['process', 'Process'], ['craft', 'Craft']].map(t => `<button class="tab ${t[0] === tab ? 'on' : ''}" data-act="ctab:${t[0]}">${t[1]}</button>`).join('')}</div><div class="list2">${body}</div>`;
+  const tabs = st ? '' : `<div class="tabs">${[['process', 'Process'], ['craft', 'Craft']].map(t => `<button class="tab ${t[0] === tab ? 'on' : ''}" data-act="ctab:${t[0]}">${t[1]}</button>`).join('')}</div>`;
+  host.innerHTML = `${head(st ? STATION[st].title : 'Camp')}${tabs}<div class="list2">${body}</div>`;
 };
 function recipeState(r) {   // 'done' | 'locked' | 'later' | 'ready' | 'short'
   const cur = r.kind === 'mattock' ? S.gear.mattock : S.gear.brush;
@@ -454,7 +458,7 @@ function processExtras(id) {
   const ex = extrasOf(id); if (!ex.length) { sfx('no'); return; }
   let scrap = 0; ex.forEach(x => { scrap += scrapFor(x); }); const keep = S.arts.filter(a => a.id === id).sort((p, q) => q.pct - p.pct)[0];
   S.arts = S.arts.filter(a => a.id !== id); S.arts.push(keep); S.mats.scrap = (S.mats.scrap | 0) + scrap;
-  sfx('coin'); UI.toast(`Processed ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''} → ${scrap} scrap`, 'gold'); UI.refresh(); UI.renderCamp();
+  sfx('coin'); UI.toast(`Smelted ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''} → ${scrap} scrap`, 'gold'); UI.refresh(); UI.renderCamp();
 }
 UI.openTest = function () {   // testing tools: start the dig-and-collect loop again from nothing
   UI.open('gear', `${head('Test tools')}<p class="note">For testing. Both buttons ask you to tap twice, because they can't be undone.</p>
