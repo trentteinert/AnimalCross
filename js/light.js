@@ -64,7 +64,8 @@ function lightOverlay(q, now) {   // per pixel: how much does each light (that f
 // ground (terrain, holes, shadows)  ->  night tint  ->  glow on the ground  ->  props and people on their own layer  ->  tint  ->  light on them  ->  laid over the ground
 // so the glow lies on the ground only (things standing in it cover it) and every prop and person is lit from its own shape instead.
 const EC = document.createElement('canvas'), EG = EC.getContext('2d'), MC = document.createElement('canvas'), MG = MC.getContext('2d');
-let ENT_ON = false;
+let ENT_ON = false, LORD = [];
+const EM = { c: document.createElement('canvas') }; EM.g = EM.c.getContext('2d');
 function nightTint() { const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72)); return tc[0] + tc[1] + tc[2] < 750 ? tc : null; }
 function lightGround(cx, cy, now) {
   if (!FEATURES.light) return; const tc = nightTint();
@@ -97,11 +98,14 @@ function entBegin() {
   if (EC.width !== w || EC.height !== h) { EC.width = w; EC.height = h; MC.width = w; MC.height = h; }
   EG.setTransform(1, 0, 0, 1, 0, 0); EG.clearRect(0, 0, w, h); EG.setTransform(G0.getTransform()); EG.imageSmoothingEnabled = false; g = EG;
 }
-function charLight(e, now) {   // a person standing in a light is warmed by it, most on the side that faces it
+function warmOf(s) { if (s._warm) return s._warm; const c = mk(s.width, s.height); c.g.drawImage(s, 0, 0); c.g.globalCompositeOperation = 'source-in'; c.g.fillStyle = 'rgb(255,168,84)'; c.g.fillRect(0, 0, s.width, s.height); return s._warm = c; }
+function charLight(e, now) {   // a person standing in a light is warmed by it (a warm tint on the sprite's own pixels, strongest on the side facing the light): never brighter or see-through
   const im = e._last; if (!im) return; let k = 0, side = 0;
   for (const L of LIGHTS) { const dx = L.x - e.x, dy = (L.y - e.y) * 1.4, d = Math.hypot(dx, dy); if (d < L.r) { const a = (1 - d / L.r) ** 2 * L.k; k += a; side += dx * a; } }
-  if (k < 0.02) return; k = Math.min(k, 1); const [spr, x, y] = im, w = spr.width, h = spr.height, left = side > 0 ? false : true;
-  g.globalAlpha = k * 0.4; g.drawImage(spr, x, y); g.globalAlpha = k * 0.4; if (left) g.drawImage(spr, 0, 0, w >> 1, h, x, y, w >> 1, h); else g.drawImage(spr, w >> 1, 0, w - (w >> 1), h, x + (w >> 1), y, w - (w >> 1), h); g.globalAlpha = 1;
+  if (k < 0.02) return; k = Math.min(k, 1); const [spr, x, y] = im, w = spr.width, h = spr.height, wm = warmOf(spr), left = !(side > 0);
+  g.globalCompositeOperation = 'source-atop'; g.globalAlpha = k * 0.2; g.drawImage(wm, x, y); g.globalAlpha = k * 0.16;
+  if (left) g.drawImage(wm, 0, 0, w >> 1, h, x, y, w >> 1, h); else g.drawImage(wm, w >> 1, 0, w - (w >> 1), h, x + (w >> 1), y, w - (w >> 1), h);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'lighter';
 }
 function entEnd(cx, cy, now) {
   if (!ENT_ON) { LITQ.length = 0; return; } ENT_ON = false; const tc = nightTint(), w = cv.width, h = cv.height, T = EG.getTransform();
@@ -109,16 +113,19 @@ function entEnd(cx, cy, now) {
     MG.setTransform(1, 0, 0, 1, 0, 0); MG.clearRect(0, 0, w, h); MG.drawImage(EC, 0, 0);
     EG.setTransform(1, 0, 0, 1, 0, 0); EG.globalCompositeOperation = 'multiply'; EG.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; EG.fillRect(0, 0, w, h); EG.globalCompositeOperation = 'destination-in'; EG.drawImage(MC, 0, 0); EG.globalCompositeOperation = 'source-over'; EG.setTransform(T);
   }
-  g.globalCompositeOperation = 'lighter';
-  if (LIGHTS.length) {
-    for (const q of LITQ) { if (!LIGHTS.some(L => Math.abs(L.x - q.o.x) < L.r + 40 && Math.abs(L.y - q.o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!q.o._lany) continue; g.globalAlpha = q.fa; g.drawImage(c, q.x, q.y); g.globalAlpha = 1; }
-    charLight(ME, now); for (const n of NPCS) charLight(n, now);
+  // light and glow-in-the-dark are laid down in drawing order on a layer of their own: whatever is drawn after a lit prop (a person standing in front of it...) cuts its light away
+  if (EM.c.width !== w || EM.c.height !== h) { EM.c.width = w; EM.c.height = h; }
+  const eg = EM.g, LQ = new Map(); for (const q of LITQ) { if (!LQ.has(q.o)) LQ.set(q.o, []); LQ.get(q.o).push(q); } LITQ.length = 0;
+  eg.setTransform(1, 0, 0, 1, 0, 0); eg.clearRect(0, 0, w, h); eg.setTransform(T); eg.imageSmoothingEnabled = false; let any = false;
+  for (const o of LORD) {
+    const qs = LQ.get(o), im = o._last || (o.spr && o.spr.width > 8 && !o.crown ? [o.spr, Math.round(o.x - o.spr.ax - cx), Math.round(o.y - o.spr.ay - cy)] : null);
+    if (any) { eg.globalCompositeOperation = 'destination-out'; if (im) eg.drawImage(im[0], im[1], im[2]); if (qs) for (const q of qs) eg.drawImage(q.spr, q.x, q.y); }
+    eg.globalCompositeOperation = 'source-over';
+    if (qs && LIGHTS.length) for (const q of qs) { if (!LIGHTS.some(L => Math.abs(L.x - o.x) < L.r + 40 && Math.abs(L.y - o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!o._lany) continue; eg.globalAlpha = q.fa; eg.drawImage(c, q.x, q.y); eg.globalAlpha = 1; any = true; }
+    if (o.frames && (o.k === 'furnace' || o.k === 'campfire') && o.spr) { const s = o.spr, em = s._em || (s._em = emissive(s)); eg.drawImage(em, Math.round(o.x - s.ax - cx), Math.round(o.y - s.ay - cy)); any = true; }
   }
-  LITQ.length = 0; g.globalCompositeOperation = 'source-over';
-  for (const o of W.objs) if (o.frames && (o.k === 'furnace' || o.k === 'campfire') && o.spr) {   // flames and coals glow on their own: put them back at full brightness over the night tint
-    const s = o.spr, em = s._em || (s._em = emissive(s)), x = Math.round(o.x - s.ax - cx), y = Math.round(o.y - s.ay - cy); if (x > VW || y > VH || x + s.width < 0 || y + s.height < 0) continue;
-    g.globalAlpha = clamp(0.35 + (1 - SUN), 0.35, 1); g.drawImage(em, x, y); g.globalAlpha = 1;
-  }
+  eg.globalCompositeOperation = 'source-over'; g.globalCompositeOperation = 'lighter'; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(EM.c, 0, 0); g.setTransform(T); g.globalCompositeOperation = 'source-over';
+  if (LIGHTS.length) { g.globalCompositeOperation = 'lighter'; charLight(ME, now); for (const n of NPCS) charLight(n, now); g.globalCompositeOperation = 'source-over'; }
   g = G0; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(EC, 0, 0); g.restore();
 }
 function emissive(s) {   // only the bright orange and yellow pixels of a sprite
