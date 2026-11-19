@@ -30,7 +30,7 @@ def edge_dist(alpha, w, h, cap=1.5):
             if d[y][x]: d[y][x] = min(d[y][x], pad(x + 1, y) + 1, pad(x, y + 1) + 1, pad(x + 1, y + 1) + 1.4, pad(x - 1, y + 1) + 1.4)
     return [[min(v, cap) for v in r] for r in d]
 
-def paint(parts, out, round_k=1.2, size=None):
+def paint(parts, out, round_k=1.0, size=None):
     """parts: list of (RGBA image, depth in pixels), drawn in order, later ones in front"""
     w, h = size or parts[0][0].size; depth = [[0.0] * w for _ in range(h)]; alpha = [[0] * w for _ in range(h)]
     for img, z in parts:
@@ -39,7 +39,7 @@ def paint(parts, out, round_k=1.2, size=None):
             for x in range(w):
                 if a[y][x] > 8:
                     r, g, b = px[x, y][:3]; lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255   # the painted detail itself carries the relief: darker marks (plank lines, gaps, shadows in the art) sit back, lighter ones come forward, so edges stay crisp
-                    depth[y][x] = z + round_k * min(ed[y][x], 1.5) + 3.0 * (lum - 0.45); alpha[y][x] = max(alpha[y][x], a[y][x])
+                    depth[y][x] = z + round_k * min(ed[y][x], 1.5) + 2.0 * (lum - 0.45); alpha[y][x] = max(alpha[y][x], a[y][x])
     o = Image.new('RGBA', (w, h), (0, 0, 0, 0)); op = o.load()
     for y in range(h):
         for x in range(w):
@@ -49,9 +49,8 @@ def paint(parts, out, round_k=1.2, size=None):
 A = 'assets/props/'
 M = layers('tools/src/Market_stall.aseprite'); CW = 56
 crop = lambda im: im.crop((0, 0, CW, im.height))
-# the shopkeeper stands behind the table; posts at the front corners; the roof juts out over everything; the table and goods are in between
-paint([(crop(M[4]), 0)], 'shop_merchant')
-paint([(crop(M[5]), 8), (crop(M[6]), 8), (crop(M[7]), 6), (crop(M[8]), 7), (crop(M[10]), 8), (crop(M[11]), 8), (crop(M[9]), 12)], 'shop_stall')
+paint([(crop(M[4]), 6)], 'shop_merchant')
+paint([(crop(M[i]), 8) for i in (5, 6, 7, 8, 10, 11, 9)], 'shop_stall')   # one depth for the whole stall: the lighting only shows real edges and painted detail, never a rounded bulge
 paint([(Image.open(A + 'workbench.png'), 4)], 'workbench')
 paint([(Image.open(A + 'anvil.png'), 6)], 'anvil')
 paint([(Image.open(A + 'hammer.png'), 3)], 'hammer')

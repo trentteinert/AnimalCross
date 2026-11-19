@@ -1,5 +1,5 @@
 'use strict';
-const cv = $('#game'), g = cv.getContext('2d');
+const cv = $('#game'); let g = cv.getContext('2d'); const G0 = g;   // g is swapped for the entity layer while the world's things are drawn (see light.js)
 let VW = 390, VH = 800, Z = 2, DPR = 1;
 const cam = { x: 0, y: 0 };
 const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
@@ -201,9 +201,9 @@ function drawChar(e, cx, cy, now) {
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
-    g.drawImage(digSprite(dd, fi), Math.round(e.x - anim.ax - cx), Math.round(e.y - anim.ay - cy));
+    { const ds = digSprite(dd, fi), qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
     if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
-  } else { g.drawImage(spr, Math.round(e.x - spr.ax - cx), Math.round(e.y - spr.ay - cy + bob)); }
+  } else { const qx = Math.round(e.x - spr.ax - cx), qy = Math.round(e.y - spr.ay - cy + bob); g.drawImage(spr, qx, qy); e._last = [spr, qx, qy]; }
   if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
@@ -257,10 +257,12 @@ function render(now) {
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   for (const l of LEAVES) if (l.x > cx - 10 && l.x < cx + VW + 10 && l.y > cy - 10 && l.y < cy + VH + 10) L.push({ k: 'leaf', x: l.x, y: l.gy, l });   // leaves sort with everything else by where they will land, so they pass behind you or in front like anything on the ground
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
+  lightGround(cx, cy, now);   // night tint and the glow on the ground (light.js), then the things standing on it are drawn on their own layer
+  entBegin();
   L.sort((a, b) => a.y - b.y); for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;
-  lightPass(cx, cy, now);   // night tint and the glow of furnaces and fires (light.js)
+  entEnd(cx, cy, now);   // tint that layer, add the light on props and people, lay it over the ground
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
   // light
   const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();

@@ -27,8 +27,8 @@ function bumpOf(spr, img) {   // read a bump image into a surface-direction map 
 }
 function lightInit() {
   const I = ASSET.img, pairs = [[SPR.shop, 'shop_stall'], [SPR.shop && SPR.shop.merchant, 'shop_merchant'], [SPR.bench, 'workbench'], [SPR.anvil, 'anvil'], [SPR.hammer, 'hammer']];
-  for (const [spr, n] of pairs) if (spr && I[n + '_bump']) bumpOf(spr, I[n + '_bump']);
-  if (SPR.furnace && I.furnace_bump) { bumpOf(SPR.furnace[0], I.furnace_bump); for (let i = 1; i < SPR.furnace.length; i++) { const f = SPR.furnace[i], b = SPR.furnace[0]; f.nrm = b.nrm; f.bumpv = b.bumpv; f.sunD = b.sunD; f.sunL = b.sunL; f.lw = b.lw; } }
+  for (const [spr, n] of pairs) if (spr && I[n + '_bump']) { bumpOf(spr, I[n + '_bump']); spr.flat = n !== 'anvil' && n !== 'hammer'; }
+  if (SPR.furnace && I.furnace_bump) { bumpOf(SPR.furnace[0], I.furnace_bump); for (let i = 1; i < SPR.furnace.length; i++) { const f = SPR.furnace[i], b = SPR.furnace[0]; f.nrm = b.nrm; f.bumpv = b.bumpv; f.sunD = b.sunD; f.sunL = b.sunL; f.lw = b.lw; f.flat = true; } SPR.furnace[0].flat = true; }
 }
 function litProp(o, spr, x, y, fa) {   // after a prop is drawn: its sun shading now, its point lighting later
   if (!FEATURES.light || !spr.nrm) return;
@@ -50,7 +50,9 @@ function lightOverlay(q, now) {   // per pixel: how much does each light (that f
     const i = y * w + x, nx = spr.nrm[i * 3], ny = spr.nrm[i * 3 + 1], nz = spr.nrm[i * 3 + 2]; if (nz === 0) continue;
     const X = o.x - spr.ax + x, Hh = spr.ay - y, Z = spr.bumpv[i]; let r = 0, gg = 0, b = 0;
     for (const L of LIGHTS) {
-      const vx = L.x - X, vy = L.h - Hh, vz = (L.y - o.y) + L.z - Z, dist = Math.hypot(vx, vy, vz); if (dist >= L.r || dist < 0.5) continue;
+      let vx = L.x - X, vy = L.h - Hh, vz = (L.y - o.y) + L.z - Z, dist = Math.hypot(vx, vy, vz);
+      if (spr.flat) { vx = L.x - o.x; vy = L.h - spr.ay * 0.4; vz = (L.y - o.y) + L.z; dist = Math.hypot(vx, vy, vz); }   // big props are lit as one piece (one direction and strength for the whole thing), so a wall never gets a round hot spot; only its edges and painted detail catch the light differently
+      if (dist >= L.r || dist < 0.5) continue;
       const dn = Math.max(0, (nx * vx + ny * vy + nz * vz) / dist), at = (1 - dist / L.r) ** 2, a = clamp(dn * at * L.k * 1.5, 0, 0.9);
       r += L.col[0] * a; gg += L.col[1] * a; b += L.col[2] * a;
     }
@@ -58,37 +60,66 @@ function lightOverlay(q, now) {   // per pixel: how much does each light (that f
   }
   c.g.putImageData(id, 0, 0); o._lcm[sid] = { c, key, any }; o._lany = any; return c;
 }
-function lightPass(cx, cy, now) {   // after the world is drawn: the night tint, then everything that glows
-  if (!FEATURES.light) { LITQ.length = 0; return; }
-  const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72));   // the day's tint, softened so nights stay playable
-  if (tc[0] + tc[1] + tc[2] < 750) { g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4); g.globalCompositeOperation = 'source-over'; }
+// ---- the layers of a frame -----------------------------------------------------------------------------------------------------------------
+// ground (terrain, holes, shadows)  ->  night tint  ->  glow on the ground  ->  props and people on their own layer  ->  tint  ->  light on them  ->  laid over the ground
+// so the glow lies on the ground only (things standing in it cover it) and every prop and person is lit from its own shape instead.
+const EC = document.createElement('canvas'), EG = EC.getContext('2d'), MC = document.createElement('canvas'), MG = MC.getContext('2d');
+let ENT_ON = false;
+function nightTint() { const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72)); return tc[0] + tc[1] + tc[2] < 750 ? tc : null; }
+function lightGround(cx, cy, now) {
+  if (!FEATURES.light) return; const tc = nightTint();
+  if (tc) { g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4); g.globalCompositeOperation = 'source-over'; }
+  g.globalCompositeOperation = 'lighter'; for (const L of LIGHTS) groundGlow(L, cx, cy, now); g.globalCompositeOperation = 'source-over';
+}
+const GLOW_K = { 0: 0.22, 1: 0.5, 2: 1.15, 3: 0.8, 4: 0.7, 5: 1.0, 6: 0.5 };   // how much of the light each ground takes: pale sand throws it back, grass and dirt soak it up, water barely holds it (it gets glints instead)
+const glowCache = {};
+function glowSprite(col, r) {   // a smooth round glow, brightest in the middle and eased out to nothing
+  const k = col.join(',') + ':' + r; if (glowCache[k]) return glowCache[k]; const w = r * 2, c = mk(w, w), gr = c.g.createRadialGradient(r, r, 0, r, r, r);
+  for (let i = 0; i <= 12; i++) { const t = i / 12, a = Math.pow(1 - t, 2.2) * 0.62; gr.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${a.toFixed(3)})`); }
+  c.g.fillStyle = gr; c.g.fillRect(0, 0, w, w); return glowCache[k] = c;
+}
+function groundGlow(L, cx, cy, now) {   // the circle, tile by tile, so each kind of ground answers the light its own way
+  const R = Math.round(L.r), x0 = Math.round(L.x - cx), y0 = Math.round(L.y - cy - 3), spr = glowSprite(L.col, R), n = L.k * clamp((1 - SUN) * 1.25, 0, 1); if (n < 0.02) return;
+  const tx0 = Math.floor((L.x - R) / TS), tx1 = Math.floor((L.x + R) / TS), ty0 = Math.floor((L.y - R) / TS), ty1 = Math.floor((L.y + R) / TS);
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+    const t = typeAt((tx + 0.5) * TS, (ty + 0.5) * TS), f = GLOW_K[t] == null ? 0.8 : GLOW_K[t], sx = tx * TS - cx, sy = ty * TS - cy; if (sx > VW || sy > VH || sx + TS < 0 || sy + TS < 0) continue;
+    const u = sx - (x0 - R), v = (sy - y0) * 1 + R; if (u < -TS || v < -TS || u > 2 * R || v > 2 * R) continue; g.globalAlpha = clamp(n * f, 0, 1);
+    const su = Math.max(0, u), sv = Math.max(0, v), sw = Math.min(TS, 2 * R - su), sh = Math.min(TS, 2 * R - sv); if (sw <= 0 || sh <= 0) continue; g.drawImage(spr, su, sv, sw, sh, sx + (su - u), sy + (sv - v), sw, sh);
+    if (t === 0 || t === 1 || t === 6) { const mid = sx + 8, d = Math.hypot(mid - x0, (sy + 8 - y0) * 1.6) / R; if (d < 1) {   // water: a few warm glints that wink on and off instead of a glow
+      g.globalAlpha = clamp(n * (1 - d) * 1.4, 0, 1); g.fillStyle = `rgb(${L.col[0]},${L.col[1]},${L.col[2] - 30})`;
+      for (let q = 0; q < 3; q++) if (hash2(tx * 3 + q, ty, Math.floor(now * 3 + q)) < 0.45) g.fillRect(sx + Math.floor(hash2(tx, ty * 3 + q, 5) * 14), sy + Math.floor(hash2(tx + q, ty, 6) * 14), 2, 1);
+    } }
+  }
+  g.globalAlpha = 1;
+}
+function entBegin() {
+  ENT_ON = FEATURES.light; if (!ENT_ON) return; const w = cv.width, h = cv.height;
+  if (EC.width !== w || EC.height !== h) { EC.width = w; EC.height = h; MC.width = w; MC.height = h; }
+  EG.setTransform(1, 0, 0, 1, 0, 0); EG.clearRect(0, 0, w, h); EG.setTransform(G0.getTransform()); EG.imageSmoothingEnabled = false; g = EG;
+}
+function charLight(e, now) {   // a person standing in a light is warmed by it, most on the side that faces it
+  const im = e._last; if (!im) return; let k = 0, side = 0;
+  for (const L of LIGHTS) { const dx = L.x - e.x, dy = (L.y - e.y) * 1.4, d = Math.hypot(dx, dy); if (d < L.r) { const a = (1 - d / L.r) ** 2 * L.k; k += a; side += dx * a; } }
+  if (k < 0.02) return; k = Math.min(k, 1); const [spr, x, y] = im, w = spr.width, h = spr.height, left = side > 0 ? false : true;
+  g.globalAlpha = k * 0.4; g.drawImage(spr, x, y); g.globalAlpha = k * 0.4; if (left) g.drawImage(spr, 0, 0, w >> 1, h, x, y, w >> 1, h); else g.drawImage(spr, w >> 1, 0, w - (w >> 1), h, x + (w >> 1), y, w - (w >> 1), h); g.globalAlpha = 1;
+}
+function entEnd(cx, cy, now) {
+  if (!ENT_ON) { LITQ.length = 0; return; } ENT_ON = false; const tc = nightTint(), w = cv.width, h = cv.height, T = EG.getTransform();
+  if (tc) {   // tint only what is on this layer
+    MG.setTransform(1, 0, 0, 1, 0, 0); MG.clearRect(0, 0, w, h); MG.drawImage(EC, 0, 0);
+    EG.setTransform(1, 0, 0, 1, 0, 0); EG.globalCompositeOperation = 'multiply'; EG.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; EG.fillRect(0, 0, w, h); EG.globalCompositeOperation = 'destination-in'; EG.drawImage(MC, 0, 0); EG.globalCompositeOperation = 'source-over'; EG.setTransform(T);
+  }
   g.globalCompositeOperation = 'lighter';
-  for (const L of LIGHTS) {   // a glow on the ground made of dither dots, not smooth rings: an uneven edge that breathes with the flame
-    const x = Math.round(L.x - cx), y = Math.round(L.y - cy); if (x < -L.r || x > VW + L.r || y < -L.r * 0.6 || y > VH + L.r * 0.6) continue;
-    const c = glowCanvas(L, now); if (c) g.drawImage(c, x - (c.width >> 1), y - 3 - (c.height >> 1));
+  if (LIGHTS.length) {
+    for (const q of LITQ) { if (!LIGHTS.some(L => Math.abs(L.x - q.o.x) < L.r + 40 && Math.abs(L.y - q.o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!q.o._lany) continue; g.globalAlpha = q.fa; g.drawImage(c, q.x, q.y); g.globalAlpha = 1; }
+    charLight(ME, now); for (const n of NPCS) charLight(n, now);
   }
-  if (LIGHTS.length) for (const q of LITQ) {
-    if (!LIGHTS.some(L => Math.abs(L.x - q.o.x) < L.r + 40 && Math.abs(L.y - q.o.y) < L.r + 40)) continue;
-    const c = lightOverlay(q, now); if (!q.o._lany) continue; g.globalAlpha = q.fa; g.drawImage(c, q.x, q.y); g.globalAlpha = 1;
-  }
-  g.globalCompositeOperation = 'source-over'; LITQ.length = 0;
+  LITQ.length = 0; g.globalCompositeOperation = 'source-over';
   for (const o of W.objs) if (o.frames && (o.k === 'furnace' || o.k === 'campfire') && o.spr) {   // flames and coals glow on their own: put them back at full brightness over the night tint
     const s = o.spr, em = s._em || (s._em = emissive(s)), x = Math.round(o.x - s.ax - cx), y = Math.round(o.y - s.ay - cy); if (x > VW || y > VH || x + s.width < 0 || y + s.height < 0) continue;
     g.globalAlpha = clamp(0.35 + (1 - SUN), 0.35, 1); g.drawImage(em, x, y); g.globalAlpha = 1;
   }
-}
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-function glowCanvas(L, now) {   // pixel-dithered, lumpy, slowly shifting; redrawn about eight times a second
-  if (SUN > 0.9) return null;   // no ground glow in full daylight
-  const R = Math.round(L.r), w = R * 2, h = Math.round(R * 1.2), step = Math.floor(now * 8); const O = L.o; if (O._gc && O._gs === step) return O._gc;
-  const c = O._gc || (O._gc = mk(w, h)), id = c.g.createImageData(w, h), D = id.data, ph = L.x * 0.13;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const dx = (x - R) / R, dy = (y - h / 2) / (R * 0.6), d = Math.hypot(dx, dy); if (d >= 1.15) continue; const a = Math.atan2(dy, dx);
-    const lump = 0.1 * Math.sin(a * 3 + ph + now * 0.7) + 0.07 * Math.sin(a * 5 - ph + now * 1.1) + 0.05 * Math.sin(a * 9 + step * 0.9), v = (1 - (d + lump)) * L.k * 1.5 * clamp((1 - SUN) * 1.2, 0, 1);   // lumpy radius, brighter in the middle
-    if (v <= 0) continue; const t = (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16, lvl = v > 0.55 ? 2 : 1;   // a dot is lit where the light beats the pattern; the very middle is a second, brighter tier
-    if (v * 1.15 > t) { const j = (y * w + x) * 4; D[j] = L.col[0]; D[j + 1] = L.col[1] - 20; D[j + 2] = L.col[2] - 20; D[j + 3] = lvl === 2 ? 46 : 30; }
-  }
-  c.g.putImageData(id, 0, 0); O._gs = step; return c;
+  g = G0; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(EC, 0, 0); g.restore();
 }
 function emissive(s) {   // only the bright orange and yellow pixels of a sprite
   const c = mk(s.width, s.height), id = s.g.getImageData(0, 0, s.width, s.height), d = id.data;
