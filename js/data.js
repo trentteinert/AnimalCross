@@ -3,7 +3,7 @@
 const $ = s => document.querySelector(s);
 const EDIT = /[?&]edit(&|$)/.test(location.search);
 // features switched off for now (their code and map data are kept; the editor still shows dig sites): flip to true to bring them back
-const FEATURES = { npcs: false, sites: true, fx: false, groundDetail: false, light: true, shadows: true, rim: true };   // fx = day/night tint, rain, clouds, vignette, water ripples, light glows: off so the art is seen exactly as painted; groundDetail = the generated grass tufts, soft tonal patches and tiny flowers on the ground
+const FEATURES = { npcs: false, sites: true, fx: false, groundDetail: false, light: true, shadows: false, rim: true };   // fx = day/night tint, rain, clouds, vignette, water ripples, light glows: off so the art is seen exactly as painted; groundDetail = the generated grass tufts, soft tonal patches and tiny flowers on the ground
 const MAP_DRAFT_KEY = 'littleisland.map.draft';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -67,7 +67,7 @@ const PALETTE = {
 const SAVE_KEY = 'littledig.loop.v1';
 function defaultState() {
   return {
-    name: 'trent', created: false, look: {}, sound: true, lefty: false, fx: true, light: true, shadows: true, rim: true,
+    name: 'trent', created: false, look: {}, sound: true, lefty: false, fx: true, light: true, objShadow: false, rim: true,
     mats: { nails: 0, boot: 0, fabric: 0, scrap: 0 },   // salvage and scrap
     arts: [],                                            // artifacts you hold: { id, pct }
     col: {},                                             // collection record: id -> { n: found, best: best % intact }

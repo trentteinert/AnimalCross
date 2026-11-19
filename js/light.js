@@ -4,6 +4,7 @@
 //  - the sun: one fixed direction (from the upper left and front); shading baked once per sprite, and it fades with SUN, so it goes away at night along with the cast shadows
 //  - point lights (furnace window, campfires): they light the pixels that face them, with falloff and flicker, drawn additively after the night tint, plus a soft stepped glow on the ground
 // Switch it all off with FEATURES.light = false (data.js).
+const LIGHT_K = 0.6, SHADE_K = 0.65;   // how strong the glow and the lighting on props are (1 = as first built), and the sun's shading on props
 const SUN_DIR = (() => { const v = [-0.5, 0.62, 0.78], l = Math.hypot(...v); return v.map(a => a / l); })();
 let LID = 0;
 const LITQ = [];   // props to light with point lights this frame (filled while drawing, used after the night tint)
@@ -32,14 +33,14 @@ function lightInit() {
 }
 function litProp(o, spr, x, y, fa) {   // after a prop is drawn: its sun shading now, its point lighting later
   if (!FEATURES.light || !spr.nrm) return;
-  if (SUN > 0.03) { g.globalAlpha = SUN * (fa == null ? 1 : fa); g.drawImage(spr.sunD, x, y); g.drawImage(spr.sunL, x, y); g.globalAlpha = 1; }
+  if (SUN > 0.03) { g.globalAlpha = SUN * SHADE_K * (fa == null ? 1 : fa); g.drawImage(spr.sunD, x, y); g.drawImage(spr.sunL, x, y); g.globalAlpha = 1; }
   LITQ.push({ o, spr, x, y, fa: fa == null ? 1 : fa });
 }
 function collectLights(now) {   // furnaces and campfires, with their flicker
   LIGHTS.length = 0; if (!FEATURES.light) return; const dark = 0.3 + 0.7 * (1 - SUN);
   for (const o of W.objs) {
-    if (o.k === 'furnace') { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ o, x: o.x - 4, y: o.y, h: 14, z: 7, r: 78, k: dark * fl, col: [255, 160, 70] }); }
-    else if (o.k === 'campfire') { const fl = 0.85 + 0.15 * Math.sin(now * 13 + o.x) + 0.06 * Math.sin(now * 29); LIGHTS.push({ o, x: o.x, y: o.y, h: 7, z: 2, r: 86, k: dark * fl * 1.1, col: [255, 170, 80] }); }
+    if (o.k === 'furnace') { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ o, x: o.x - 4, y: o.y, h: 14, z: 7, r: 62, k: dark * fl, col: [255, 160, 70] }); }
+    else if (o.k === 'campfire') { const fl = 0.85 + 0.15 * Math.sin(now * 13 + o.x) + 0.06 * Math.sin(now * 29); LIGHTS.push({ o, x: o.x, y: o.y, h: 7, z: 2, r: 70, k: dark * fl * 1.1, col: [255, 170, 80] }); }
   }
 }
 function lightOverlay(q, now) {   // per pixel: how much does each light (that faces this pixel) add
@@ -53,7 +54,7 @@ function lightOverlay(q, now) {   // per pixel: how much does each light (that f
       let vx = L.x - X, vy = L.h - Hh, vz = (L.y - o.y) + L.z - Z, dist = Math.hypot(vx, vy, vz);
       if (spr.flat) { vx = L.x - o.x; vy = L.h - spr.ay * 0.4; vz = (L.y - o.y) + L.z; dist = Math.hypot(vx, vy, vz); }   // big props are lit as one piece (one direction and strength for the whole thing), so a wall never gets a round hot spot; only its edges and painted detail catch the light differently
       if (dist >= L.r || dist < 0.5) continue;
-      const dn = Math.max(0, (nx * vx + ny * vy + nz * vz) / dist), at = (1 - dist / L.r) ** 2, a = clamp(dn * at * L.k * 1.5, 0, 0.9);
+      const dn = Math.max(0, (nx * vx + ny * vy + nz * vz) / dist), at = (1 - dist / L.r) ** 2, a = clamp(dn * at * L.k * 1.5 * LIGHT_K, 0, 0.9);
       r += L.col[0] * a; gg += L.col[1] * a; b += L.col[2] * a;
     }
     if (r + gg + b > 2) { const k = i * 4, j = (y * spr.width + x) * 4, m = Math.max(r, gg, b, 1); D[j] = Math.min(255, r); D[j + 1] = Math.min(255, gg); D[j + 2] = Math.min(255, b); D[j + 3] = 255; any = true; }
@@ -80,7 +81,7 @@ function glowSprite(col, r) {   // a smooth round glow, brightest in the middle 
   c.g.fillStyle = gr; c.g.fillRect(0, 0, w, w); return glowCache[k] = c;
 }
 function groundGlow(L, cx, cy, now) {   // the circle, tile by tile, so each kind of ground answers the light its own way
-  const R = Math.round(L.r), x0 = Math.round(L.x - cx), y0 = Math.round(L.y - cy - 3), spr = glowSprite(L.col, R), n = L.k * clamp((1 - SUN) * 1.25, 0, 1); if (n < 0.02) return;
+  const R = Math.round(L.r), x0 = Math.round(L.x - cx), y0 = Math.round(L.y - cy - 3), spr = glowSprite(L.col, R), n = L.k * LIGHT_K * clamp((1 - SUN) * 1.25, 0, 1); if (n < 0.02) return;
   const tx0 = Math.floor((L.x - R) / TS), tx1 = Math.floor((L.x + R) / TS), ty0 = Math.floor((L.y - R) / TS), ty1 = Math.floor((L.y + R) / TS);
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const t = typeAt((tx + 0.5) * TS, (ty + 0.5) * TS), f = GLOW_K[t] == null ? 0.8 : GLOW_K[t], sx = tx * TS - cx, sy = ty * TS - cy; if (sx > VW || sy > VH || sx + TS < 0 || sy + TS < 0) continue;
@@ -103,7 +104,7 @@ function charLight(e, now) {   // a person standing in a light is warmed by it (
   const im = e._last; if (!im) return; let k = 0, side = 0;
   for (const L of LIGHTS) { const dx = L.x - e.x, dy = (L.y - e.y) * 1.4, d = Math.hypot(dx, dy); if (d < L.r) { const a = (1 - d / L.r) ** 2 * L.k; k += a; side += dx * a; } }
   if (k < 0.02) return; k = Math.min(k, 1); const [spr, x, y] = im, w = spr.width, h = spr.height, wm = warmOf(spr), left = !(side > 0);
-  g.globalCompositeOperation = 'source-atop'; g.globalAlpha = k * 0.2; g.drawImage(wm, x, y); g.globalAlpha = k * 0.16;
+  g.globalCompositeOperation = 'source-atop'; g.globalAlpha = k * 0.12; g.drawImage(wm, x, y); g.globalAlpha = k * 0.09;
   if (left) g.drawImage(wm, 0, 0, w >> 1, h, x, y, w >> 1, h); else g.drawImage(wm, w >> 1, 0, w - (w >> 1), h, x + (w >> 1), y, w - (w >> 1), h);
   g.globalAlpha = 1; g.globalCompositeOperation = 'lighter';
 }

@@ -171,7 +171,7 @@ function pageSet(side, sx) {
   if (side === 'l') return jart('com_left', sx) + jhead('SETTINGS', sx) + jtoggle('SOUND', S.sound, 'jsnd', 40, sx) + jtoggle('LEFT HAND', !!S.lefty, 'jlefty', 54, sx)
     + jbox(sx + 4, 70, 69, 11, '<span>CHARACTER</span><button class="jtog" data-act="jedit">EDIT</button>', 'jrow');
   return jart('com_right', sx) + jhead('TESTING', sx) + jbox(sx + 4, 40, 69, 11, '<span>PROGRESS</span><button class="jtog" id="tr1" data-act="testreset">RESET</button>', 'jrow') + jbox(sx + 4, 54, 69, 11, '<span>ALL DATA</span><button class="jtog bad" id="tr2" data-act="testwipe">ERASE</button>', 'jrow')
-    + jtoggle('LIGHTING', S.light !== false, 'jlight', 68, sx) + jtoggle('SHADOWS', S.shadows !== false, 'jshadow', 82, sx) + jtoggle('EDGE LIGHT', S.rim !== false, 'jrim', 96, sx)
+    + jtoggle('LIGHTING', S.light !== false, 'jlight', 68, sx) + jtoggle('OBJ SHADOWS', S.objShadow === true, 'jshadow', 82, sx) + jtoggle('EDGE LIGHT', S.rim !== false, 'jrim', 96, sx)
     + jbox(sx + 4, 112, 69, 12, '<span class="jh jsm">ARCHIVE THE WEB</span>', 'jc');
 }
 const JR_FN = { log: pageLog, bag: pageBag, edit: pageEdit, com: pageCom, tasks: pageTasks, set: pageSet };
@@ -243,7 +243,7 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
     case 'jsnd': S.sound = !S.sound; if (S.sound) audioInit(); saveState(); JR.render(); return true;
     case 'jlight': S.light = !(S.light !== false); FEATURES.light = S.light; saveState(); JR.render(); return true;
     case 'jrim': S.rim = !(S.rim !== false); FEATURES.rim = S.rim; HERO.cache = {}; HERO.skins = {}; DIGC.c = {}; saveState(); if (UI.refreshPortrait) UI.refreshPortrait(); JR.render(); return true;
-    case 'jshadow': S.shadows = !(S.shadows !== false); FEATURES.shadows = S.shadows; saveState(); JR.render(); return true;
+    case 'jshadow': S.objShadow = !S.objShadow; FEATURES.shadows = S.objShadow; saveState(); JR.render(); return true;
     case 'jlefty': S.lefty = !S.lefty; document.body.classList.toggle('lefty', S.lefty); saveState(); JR.render(); return true;
     case 'jedit': JR.page = 'edit'; JR.side = 0; JR.name = null; JR.render(); return true;
     case 'jturn': JR.dir = ((JR.dir || 0) + 1) % 4; JR.drawHero(); return true;
