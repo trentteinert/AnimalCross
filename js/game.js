@@ -373,7 +373,7 @@ function boot() {
   const t0 = performance.now(); loadState(); resize(); addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 150)); if (window.visualViewport) visualViewport.addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); FEATURES.light = S.light !== false; FEATURES.shadows = S.shadows !== false; if (!EDIT) UI.init(); loadProgress(0.9);
+  loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); FEATURES.light = S.light !== false; FEATURES.shadows = S.shadows !== false; FEATURES.rim = S.rim !== false; if (!EDIT) UI.init(); loadProgress(0.9);
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }

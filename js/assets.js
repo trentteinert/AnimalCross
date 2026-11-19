@@ -20,6 +20,7 @@ const CHAR_SAT = 1.3;   // how much more saturated the characters are drawn than
 function rimShade(c) {   // form light without an outline: pixels on a sprite's left edge lean warm and light, pixels on its right edge lean cool and dark. Nothing is added, only the edge pixels' colours shift, so thin arms and legs read as round and stand apart from the ground
   const w = c.width, h = c.height, id = c.g.getImageData(0, 0, w, h), d = id.data;
   for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { const l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; d[i] = clamp(Math.round(l + (d[i] - l) * CHAR_SAT), 0, 255); d[i + 1] = clamp(Math.round(l + (d[i + 1] - l) * CHAR_SAT), 0, 255); d[i + 2] = clamp(Math.round(l + (d[i + 2] - l) * CHAR_SAT), 0, 255); }   // richer colour first, then the edge light
+  if (FEATURES.rim === false) { c.g.putImageData(id, 0, 0); return c; }   // edge light switched off (settings): only the richer colour
   const o = new Uint8ClampedArray(d), A = (x, y) => x >= 0 && x < w && d[(y * w + x) * 4 + 3] > 8;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4; if (d[i + 3] < 8) continue; const left = !A(x - 1, y), right = !A(x + 1, y);
