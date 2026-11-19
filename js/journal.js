@@ -185,7 +185,7 @@ JR.render = function (force) {
   if (force || JR.key !== key || !document.getElementById('jrcont')) {
     JR.key = key; stage.style.width = jc(b.x1 - b.x0); stage.style.height = jc(b.y1 - b.y0);
     const L = ['back_l', 'edge_l', 'block_l'], R = ['back_r', 'edge_r', 'block_r'];
-    const b1 = L.concat(R).map(n => jimg(n)).join('') + (spread ? jimg('tab_left') : '') + jimg('tab_time') + (spread ? jimg('tab_dot') : '');
+    const b1 = L.concat(R).map(n => jimg(n)).join('') + (spread ? jimg('tab_left') : '') + jimg('tab_time') + (spread ? jbox(161, 13, 5, 5, `<span id="jsky">${skySvg()}</span>`, 'jc') : '');
     const ribs = JR_PAGES.map(p => {   // on a tall screen the settings ribbon joins the others on the right, turned around to face outward
       const rp = jp(p[2]), ip = jp(p[3]), gear = p[0] === 'set', mirror = gear && !spread, x = mirror ? 211 : rp.x, y = mirror ? 112 : rp.y, il = ip.x - rp.x - (mirror ? 2 : 0);   // the turned-around gear ribbon: tucked two pixels back under the book, its icon two pixels further out in its own frame (so the same position on screen as the other ribbons' icons)
       return `<button class="jrib" data-page="${p[0]}" data-mirror="${mirror ? 1 : 0}" data-left="${gear && spread ? 1 : 0}" data-act="jpage:${p[0]}" aria-label="${p[1]}" style="left:${jx(x)};top:${jy(y)};width:${jc(rp.w)};height:${jc(rp.h)}"><img src="assets/ui/journal/${p[2]}.png" alt="" decoding="sync" style="left:0;top:0;width:${jc(rp.w)}"><img src="assets/ui/journal/${p[3]}.png" alt="" decoding="sync" style="left:${jc(il)};top:${jc(ip.y - rp.y)};width:${jc(ip.w)}"></button>`;
@@ -219,11 +219,18 @@ JR.content = function (instant) {
   const imgs = [...tmp.querySelectorAll('img')]; if (!imgs.length) return swap();
   Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => { }) : 0)).then(swap);
 };
-function jrTime() { const d = new Date(), h = d.getHours() % 12 || 12, m = String(d.getMinutes()).padStart(2, '0'); return h + ':' + m + (d.getHours() < 12 ? 'AM' : 'PM'); }
+function jrTime() { const hr = hourNow(), H = Math.floor(hr) % 24, h = H % 12 || 12, m = String(Math.floor((hr % 1) * 60)).padStart(2, '0'); return h + ':' + m + (H < 12 ? 'AM' : 'PM'); }   // the game's clock (the real one unless ?hour= is used)
+function skySvg() {   // the little window next to the time: the sky for this hour, with the sun (by day) or the moon (by night) on the left, middle or right as the time passes
+  const h = hourNow(), sun = sunAmt(h), day = [150, 192, 218], night = [40, 50, 96], warm = [228, 150, 104];
+  let c = day.map((v, i) => night[i] + (v - night[i]) * sun); const w = (sun > 0 && sun < 1) ? Math.max(0, 1 - Math.abs(2 * sun - 1)) * 0.55 : 0; c = c.map((v, i) => Math.round(v + (warm[i] - v) * w));
+  const isDay = h >= 6 && h < 18, t = isDay ? (h - 6) / 12 : (((h + 6) % 24) / 12), pos = t < 1 / 3 ? 0 : t < 2 / 3 ? 1 : 2, xy = [[1, 2], [2, 1], [3, 2]][pos], body = isDay ? '#f4ce54' : '#ece9dc';
+  const o = '#60463e', rect = (x, y, w2, h2, f) => `<rect x="${x}" y="${y}" width="${w2}" height="${h2}" fill="${f}"/>`;
+  return `<svg viewBox="0 0 5 5" shape-rendering="crispEdges" style="width:${jc(5)};height:${jc(5)};display:block">${rect(1, 0, 3, 1, o)}${rect(0, 1, 1, 3, o)}${rect(4, 1, 1, 3, o)}${rect(1, 4, 3, 1, o)}${rect(1, 1, 3, 3, `rgb(${c[0]},${c[1]},${c[2]})`)}${rect(xy[0], xy[1], 1, 1, body)}</svg>`;
+}
 UI.openJournal = function (page) {
   if (!JR.ready) { JR.wantOpen = true; JR.load(); return; } JR.wantOpen = false; if (UI.isOpen && UI.cur !== 'journal') UI.close();
   if (page) JR.page = page; const el = document.getElementById('jr'); el.classList.remove('hidden'); UI.isOpen = true; UI.cur = 'journal'; JR.render(); sfx('pop');
-  clearInterval(JR.clock); JR.clock = setInterval(() => { const c = document.getElementById('jclock'); if (c) c.textContent = jrTime(); }, 20000);
+  clearInterval(JR.clock); JR.clock = setInterval(() => { const c = document.getElementById('jclock'); if (c) c.textContent = jrTime(); const k = document.getElementById('jsky'); if (k) k.innerHTML = skySvg(); }, 20000);
 };
 JR.keepName = function () { const i = document.getElementById('jname'); if (i) JR.name = i.value; };
 UI.journalClosed = function () { JR.name = null; clearInterval(JR.spinTimer); JR.spinTimer = null; const el = document.getElementById('jr'); if (el) el.classList.add('hidden'); clearInterval(JR.clock); };
