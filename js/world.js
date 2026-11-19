@@ -291,10 +291,10 @@ function loadMap(map) {
 function initWorld(map) { loadMap(map); }
 
 // ---- collision --------------------------------------------------------------------------------------
-function blockedAt(x, y, hw = 3, hh = 3) {   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
+function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk into the shallows (deep water still stops everyone)   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
   let zmin = 99, zmax = -1;
-  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = typeAt(x + o[0], y + o[1]); if (t <= 1 || t === 6) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
+  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = typeAt(x + o[0], y + o[1]); if (t === 0 || ((t === 1 || t === 6) && !wade)) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
@@ -306,8 +306,9 @@ function blockedAt(x, y, hw = 3, hh = 3) {   // hw/hh: half width and height of 
 }
 function moveEnt(e, dx, dy) {
   let moved = false;
-  if (dx && !blockedAt(e.x + dx, e.y)) { e.x += dx; moved = true; }
-  if (dy && !blockedAt(e.x, e.y + dy)) { e.y += dy; moved = true; }
+  const wd = e === ME;
+  if (dx && !blockedAt(e.x + dx, e.y, 3, 3, wd)) { e.x += dx; moved = true; }
+  if (dy && !blockedAt(e.x, e.y + dy, 3, 3, wd)) { e.y += dy; moved = true; }
   return moved;
 }
 function distToBox(x, y, o) {

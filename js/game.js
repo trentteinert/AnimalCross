@@ -68,13 +68,14 @@ const STEPS = {
   wood: () => { const j = rj(0.05), v = rj(0.15); tn(0, { freq: 215 * j, to: 190 * j, glide: 0.06, a: 0.002, d: 0.085, lp: 1600, gain: 0.08 * v, partials: [{ ratio: 2.4, gain: 0.45, d: 0.04 }, { ratio: 4.1, gain: 0.2, d: 0.02 }], wet: 0.08 }); nz(0, { color: 'white', filter: 'bandpass', f: 1300 * j, q: 1.4, a: 0.001, dur: 0.025, gain: 0.1 * v, wet: 0.04 }); }
 };
 STEPS.stone = STEPS.dirt;
+STEPS.water = () => { const j = rj(0.1), v = rj(0.15); nz(0, { color: 'pink', filter: 'bandpass', f: 1100 * j, fTo: 520 * j, q: 0.9, a: 0.01, dur: 0.14 + Math.random() * 0.04, gain: 0.26 * v, wet: 0.08 }); tn(0.03, { freq: 330 * j, to: 190 * j, glide: 0.06, a: 0.004, d: 0.07, lp: 900, gain: 0.05 * v, wet: 0.08 }); };   // a wet slosh
 function footstep() {
   if (!S.sound || !AC) return; const x = ME.x, y = ME.y - 2; let k = 'grass';
-  if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
+  if (DECK[Math.floor(y / TS) * MW + Math.floor(x / TS)]) k = 'wood'; else if (siteAt(x, y) || pitZ(x, y) > 0.05) k = 'dirt'; else { const t = typeAt(x, y); k = (t === 1 || t === 6) ? 'water' : t === 2 ? 'sand' : t === 4 ? 'dirt' : t === 5 ? 'stone' : 'grass'; }
   try { STEPS[k](); } catch (e) { }
 }
 function brushSfx(l) { if (!S.sound || !AC) return; try { nz(0, { color: 'pink', filter: 'bandpass', f: 1900, fTo: 1100, q: 0.7, a: 0.025, dur: 0.16, gain: 0.22 * l, wet: 0.05 }); } catch (e) { } }   // a soft brushing swish while you press
-const NSFX = { rustle: () => {   // walking onto a bush: three soft pink-noise rustles that sweep down, with a gentle low whump
+const NSFX = { splash: () => { for (let i = 0; i < 3; i++) nz(i * 0.035, { color: 'white', filter: 'bandpass', f: 2600 * rj(0.1), fTo: 900, q: 0.8, a: 0.004, dur: 0.12, gain: 0.2 * rj(0.2), wet: 0.1 }); tn(0, { freq: 220, to: 110, glide: 0.1, a: 0.004, d: 0.14, lp: 700, gain: 0.08, wet: 0.08 }); }, rustle: () => {   // walking onto a bush: three soft pink-noise rustles that sweep down, with a gentle low whump
   for (let i = 0; i < 3; i++) { const j = rj(0.1); nz(i * 0.06, { color: 'pink', filter: 'bandpass', f: 2200 * j, fTo: 1000 * j, q: 0.7, a: 0.02, dur: 0.12 + Math.random() * 0.04, gain: 0.22 * rj(0.2), wet: 0.06 }); }
   tn(0, { freq: 130, to: 75, glide: 0.09, a: 0.006, d: 0.13, lp: 400, gain: 0.07, wet: 0.05 });
 } };
@@ -144,7 +145,7 @@ function doEmote(e) {
   NPCS.forEach(n => { if (Math.hypot(n.x - ME.x, n.y - ME.y) < 90 && Math.random() < 0.4) setTimeout(() => { n.bubble = pick(['👋', '❤️', '😄', '✨']); n.bt = 2.4; }, rnd(700, 1600)); });
 }
 
-const walkSp = () => 58;
+const walkSp = () => 58 * (1 - 0.28 * ((ME && ME.sub) || 0));   // wading is slower
 
 // ---- player ---------------------------------------------------------------
 function updateMe(dt) {
@@ -165,7 +166,7 @@ function updateMe(dt) {
 // ---- update ---------------------------------------------------------------
 function tick(dt) {
   timeNow = performance.now() / 1000;
-  SUN = FEATURES.light ? sunAmt(hourNow()) : 1; const night = isNight(); updateMe(dt);
+  updateWet(dt); SUN = FEATURES.light ? sunAmt(hourNow()) : 1; const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
   const st = actState();
@@ -193,17 +194,40 @@ function lineG(x0, y0, x1, y1, col) {
 }
 const WALK_FPS = 6;   // walk frames per second (the walk is 4 frames per direction)
 const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
+const WET = { hold: 1.5, fade: 5 };   // seconds your clothes stay fully dark after leaving the water, then the seconds they take to dry
+function updateWet(dt) {   // wading: how deep you are in the water, and how wet your clothes are
+  if (!ME) return; const t = typeAt(ME.x, ME.y - 1), inW = t === 1 || t === 6; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = inW ? 1 : 0; }
+  if (inW !== ME.wasW) { ME.wasW = inW; burst(ME.x, ME.y - 2, '#d8f0f8', inW ? 9 : 5, 42, 0.6, 100, 1); RP.push({ x: ME.x, y: ME.y, t: 0, max: 0.8, big: true }); if (inW) sfx('splash'); }   // a splash going in, a smaller one coming out
+  ME.sub += ((inW ? 1 : 0) - ME.sub) * Math.min(1, dt * 7); if (inW) ME.dry = 0; else ME.dry += dt; ME.wet = inW ? 1 : clamp(1 - (ME.dry - WET.hold) / WET.fade, 0, 1);
+  if (inW && ME.moving) { ME.rpt = (ME.rpt || 0) - dt; if (ME.rpt <= 0) { ME.rpt = 0.22; RP.push({ x: ME.x + rnd(-2, 2), y: ME.y, t: 0, max: 0.8, big: false }); } }
+  if (!inW && ME.wet > 0.12 && ME.moving) { ME.dpt = (ME.dpt || 0) - dt; if (ME.dpt <= 0) { ME.dpt = 0.28 + (1 - ME.wet) * 0.7; burst(ME.x + rnd(-3, 3), ME.y - rnd(6, 16), '#8cc0dc', 1, 6, 0.5, 130, 1); } }   // drips
+}
+function wetOf(c, lv) {   // the same sprite with its clothes darker and bluer; the head is left alone (lv 1 to 4)
+  const m = c._wet || (c._wet = {}); if (m[lv]) return m[lv]; const w = c.width, h = c.height, o = mk(w, h); o.g.drawImage(c, 0, 0); const id = o.g.getImageData(0, 0, w, h), d = id.data; let top = h;
+  for (let y = 0; y < h && top === h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { top = y; break; }
+  const f = 1 - 0.42 * lv / 4;
+  for (let y = top + 13; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3]) { d[i] = Math.round(d[i] * f * 0.9); d[i + 1] = Math.round(d[i + 1] * f * 0.97); d[i + 2] = Math.min(255, Math.round(d[i + 2] * f * 1.06)); } }
+  o.g.putImageData(id, 0, 0); o.ax = c.ax; o.ay = c.ay; return m[lv] = o;
+}
+function waterTint(im) { if (im._wt) return im._wt; const t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); t.g.globalCompositeOperation = 'source-atop'; t.g.fillStyle = 'rgba(26,70,104,0.65)'; t.g.fillRect(0, 0, im.width, im.height); return im._wt = t; }
 function drawChar(e, cx, cy, now) {
   const digging = e === ME && A && A.k === 'dig', holding = e === ME && ME.hold;
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
-  const spr = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look);
-  G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
+  const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME ? Math.round(clamp(ME.wet || 0, 0, 1) * 4) : 0, spr = wl ? wetOf(spr0, wl) : spr0;
+  const wy = e === ME && ME.sub > 0.03 ? Math.round(e.y - cy - 9 * ME.sub) : null;   // the water line on your legs
+  if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
+  if (wy != null) { g.save(); g.beginPath(); g.rect(-1000, -1000, 3000, 1000 + wy); g.clip(); }   // only what is above the water is drawn normally
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
-    { const ds = digSprite(dd, fi), qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
+    { const ds0 = digSprite(dd, fi), ds = wl ? wetOf(ds0, wl) : ds0, qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
     if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
   } else { const qx = Math.round(e.x - spr.ax - cx), qy = Math.round(e.y - spr.ay - cy + bob); g.drawImage(spr, qx, qy); e._last = [spr, qx, qy]; }
+  if (wy != null) {
+    g.restore(); const im = e._last;
+    if (im) { g.save(); g.beginPath(); g.rect(im[1] - 2, wy, im[0].width + 4, 60); g.clip(); g.globalAlpha = 0.4; g.drawImage(waterTint(im[0]), im[1], im[2]); g.restore(); }   // under the surface you are only a dark, bluish shape
+    const hw = 7 + Math.round(Math.sin(now * 5) * 1.5), fx = Math.round(e.x - cx); g.fillStyle = 'rgba(228,246,252,0.75)'; g.fillRect(fx - hw, wy, hw * 2, 1); g.fillStyle = 'rgba(30,76,110,0.5)'; g.fillRect(fx - hw + 2, wy + 1, hw * 2 - 4, 1);   // the waterline
+  }
   if (digging && !anim) drawMattock(e, cx, cy, now);
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
