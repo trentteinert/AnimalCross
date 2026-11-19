@@ -196,9 +196,9 @@ const WALK_FPS = 6;   // walk frames per second (the walk is 4 frames per direct
 const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
 const PRINTS = [];   // wet footprints left on dry ground after wading
 function wetPrint() {   // each step you take with wet feet leaves a dark print that dries out in a second or two (longer the wetter you are)
-  if (!ME || !(ME.wet > 0.12) || ME.sub > 0.05 || !(ME.wetH > 1)) return; const t = typeAt(ME.x, ME.y - 1); if (t < 2 || t > 5) return;
+  if (!ME || !(ME.wet > 0.25) || ME.sub > 0.05 || !(ME.wetH > 1)) return; const t = typeAt(ME.x, ME.y - 1); if (t < 2 || t > 5) return;
   ME.pside = -(ME.pside || 1); const v = DV[ME.dir] || [0, 1], px = -v[1] * ME.pside * 2, py = v[0] * ME.pside * 2;   // left and right feet alternate, to either side of your line
-  PRINTS.push({ x: ME.x + px, y: ME.y - 1 + py, t: 0, life: 1.1 + 2 * ME.wet, a: 0.2 + 0.3 * ME.wet, dir: ME.dir });
+  PRINTS.push({ x: ME.x + px, y: ME.y - 1 + py, t: 0, life: 0.6 + 2.4 * ME.wet, a: 0.12 + 0.38 * ME.wet, dir: ME.dir });
   if (PRINTS.length > 40) PRINTS.shift();
 }
 function drawPrints(cx, cy, dt) {
@@ -208,14 +208,15 @@ function drawPrints(cx, cy, dt) {
     if (vert) { g.fillRect(x - 1, y - 3, 2, 4); g.fillRect(x, y - 4, 1, 1); } else { g.fillRect(x - 2, y - 1, 4, 2); g.fillRect(x + 2, y - 1, 1, 1); }   // a small foot, long ways along the way you walk, with a toe
   }
 }
-const WET = { hold: 1.5, fade: 5 };   // seconds your clothes stay fully dark after leaving the water, then the seconds they take to dry
+const WET = { hold: 1.5, fade: 5, soak: 1.4 };   // seconds: you stay soaked this long after leaving, then take this long to dry; and about this long in knee-deep water to get fully soaked   // seconds your clothes stay fully dark after leaving the water, then the seconds they take to dry
 function updateWet(dt) {   // wading: how deep you are (it slopes down gradually from the shore), and how wet your clothes are
   if (!ME) return; const dpx = waterDepth(ME.x, ME.y - 1), t = typeAt(ME.x, ME.y - 1), inW = (t === 1 || t === 6) && dpx > 0.4; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = dpx / 9; ME.wetH = 0; }
-  if (inW !== ME.wasW) { ME.wasW = inW; burst(ME.x, ME.y - 2, '#d8f0f8', inW ? 9 : 5, 42, 0.6, 100, 1); RP.push({ x: ME.x, y: ME.y, t: 0, max: 0.8, big: true }); if (inW) sfx('splash'); }   // a splash going in, a smaller one coming out
+  ME.splT = Math.max(0, (ME.splT || 0) - dt); if (inW !== ME.wasW) { ME.wasW = inW; if (!ME.splT) { ME.splT = 0.9; burst(ME.x, ME.y - 2, '#d8f0f8', inW ? 9 : 5, 42, 0.6, 100, 1); RP.push({ x: ME.x, y: ME.y, t: 0, max: 0.8, big: true }); if (inW) sfx('splash'); } }   // a splash going in, a smaller one coming out (not again and again if you skim the edge)
   const tgt = dpx / 9; ME.sub = tgt < ME.sub ? Math.max(tgt, ME.sub - dt * 16) : Math.min(tgt, ME.sub + dt * 6);   // follows the ground's slope; coming up is quick, so your feet are above the ground as soon as you are out
-  if (inW) { ME.dry = 0; ME.wetH = Math.max(ME.wetH || 0, dpx); } else ME.dry += dt; ME.wet = inW ? 1 : clamp(1 - (ME.dry - WET.hold) / WET.fade, 0, 1); if (ME.wet <= 0) ME.wetH = 0;   // clothes are wet as high as the water reached
+  if (inW) { ME.dry = 0; ME.wetH = Math.max(ME.wetH || 0, dpx); ME.soak = Math.min(1, (ME.soak || 0) + dt * (0.2 + 0.8 * dpx / 9) / WET.soak); } else { ME.dry += dt; if (ME.dry > WET.hold) ME.soak = Math.max(0, (ME.soak || 0) - dt / WET.fade); }   // you get wet gradually: a brush with the edge barely dampens you, a proper wade soaks you in a second or two
+  ME.wet = ME.soak || 0; if (ME.wet <= 0) ME.wetH = 0;
   if (inW && ME.moving) { ME.rpt = (ME.rpt || 0) - dt; if (ME.rpt <= 0) { ME.rpt = 0.22; RP.push({ x: ME.x + rnd(-2, 2), y: ME.y, t: 0, max: 0.8, big: false }); } }
-  if (!inW && ME.wet > 0.12 && ME.moving && ME.wetH > 1) { ME.dpt = (ME.dpt || 0) - dt; if (ME.dpt <= 0) { ME.dpt = 0.28 + (1 - ME.wet) * 0.7; burst(ME.x + rnd(-3, 3), ME.y - rnd(3, Math.max(4, ME.wetH)), '#8cc0dc', 1, 6, 0.5, 130, 1); } }   // drips
+  if (!inW && ME.wet > 0.25 && ME.moving && ME.wetH > 1) { ME.dpt = (ME.dpt || 0) - dt; if (ME.dpt <= 0) { ME.dpt = 0.28 + (1 - ME.wet) * 0.7; burst(ME.x + rnd(-3, 3), ME.y - rnd(3, Math.max(4, ME.wetH)), '#8cc0dc', 1, 6, 0.5, 130, 1); } }   // drips
 }
 function wetOf(c, lv, hg) {   // the same sprite with the part that was in the water darker and bluer: the bottom `hg` rows (the water reached your knees), darker the wetter you are
   const m = c._wet || (c._wet = {}), key = lv * 16 + hg; if (m[key]) return m[key]; const w = c.width, h = c.height, o = mk(w, h); o.g.drawImage(c, 0, 0); const id = o.g.getImageData(0, 0, w, h), d = id.data; let bot = 0;
@@ -228,7 +229,7 @@ function waterTint(im) { if (im._wt) return im._wt; const t = mk(im.width, im.he
 function drawChar(e, cx, cy, now) {
   const digging = e === ME && A && A.k === 'dig', holding = e === ME && ME.hold;
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
-  const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME && (ME.wetH || 0) >= 1 ? Math.ceil(clamp(ME.wet || 0, 0, 1) * 4) : 0, wh = e === ME ? Math.max(1, Math.round(ME.wetH * clamp(ME.wet || 0, 0, 1))) : 0, spr = wl ? wetOf(spr0, wl, wh) : spr0;   // wet: darker and up to the knee, shrinking as you dry
+  const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME && (ME.wetH || 0) >= 1 && ME.wet > 0.1 ? Math.max(1, Math.round(clamp(ME.wet, 0, 1) * 4)) : 0, wh = e === ME ? Math.max(1, Math.round(ME.wetH * clamp(ME.wet * 1.3, 0, 1))) : 0, spr = wl ? wetOf(spr0, wl, wh) : spr0;   // wet: darker and up to the knee, shrinking as you dry
   const wy = e === ME && ME.sub > 0.03 ? Math.round(e.y - cy - 9 * ME.sub) : null;   // the water line on your legs
   if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
