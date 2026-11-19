@@ -198,29 +198,31 @@ const WET = { hold: 1.5, fade: 5 };   // seconds your clothes stay fully dark af
 function updateWet(dt) {   // wading: how deep you are in the water, and how wet your clothes are
   if (!ME) return; const t = typeAt(ME.x, ME.y - 1), inW = t === 1 || t === 6; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = inW ? 1 : 0; }
   if (inW !== ME.wasW) { ME.wasW = inW; burst(ME.x, ME.y - 2, '#d8f0f8', inW ? 9 : 5, 42, 0.6, 100, 1); RP.push({ x: ME.x, y: ME.y, t: 0, max: 0.8, big: true }); if (inW) sfx('splash'); }   // a splash going in, a smaller one coming out
-  ME.sub += ((inW ? 1 : 0) - ME.sub) * Math.min(1, dt * 7); if (inW) ME.dry = 0; else ME.dry += dt; ME.wet = inW ? 1 : clamp(1 - (ME.dry - WET.hold) / WET.fade, 0, 1);
+  const fw = [[-3, 0], [3, 0], [-3, -3], [3, -3]].reduce((n, o) => { const q = typeAt(ME.x + o[0], ME.y + o[1]); return n + (q === 1 || q === 6 ? 1 : 0); }, 0) / 4;   // how much of your feet are in the water
+  const tgt = inW ? Math.max(0.35, fw) : 0; if (tgt < ME.sub) ME.sub = Math.max(tgt, ME.sub - dt * 16); else ME.sub += (tgt - ME.sub) * Math.min(1, dt * 7);   // sinking in is gradual, coming up is quick, so your feet are back above the ground as soon as you are out
+  if (inW) ME.dry = 0; else ME.dry += dt; ME.wet = inW ? 1 : clamp(1 - (ME.dry - WET.hold) / WET.fade, 0, 1);
   if (inW && ME.moving) { ME.rpt = (ME.rpt || 0) - dt; if (ME.rpt <= 0) { ME.rpt = 0.22; RP.push({ x: ME.x + rnd(-2, 2), y: ME.y, t: 0, max: 0.8, big: false }); } }
   if (!inW && ME.wet > 0.12 && ME.moving) { ME.dpt = (ME.dpt || 0) - dt; if (ME.dpt <= 0) { ME.dpt = 0.28 + (1 - ME.wet) * 0.7; burst(ME.x + rnd(-3, 3), ME.y - rnd(6, 16), '#8cc0dc', 1, 6, 0.5, 130, 1); } }   // drips
 }
-function wetOf(c, lv) {   // the same sprite with its clothes darker and bluer; the head is left alone (lv 1 to 4)
-  const m = c._wet || (c._wet = {}); if (m[lv]) return m[lv]; const w = c.width, h = c.height, o = mk(w, h); o.g.drawImage(c, 0, 0); const id = o.g.getImageData(0, 0, w, h), d = id.data; let top = h;
-  for (let y = 0; y < h && top === h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { top = y; break; }
+function wetOf(c, lv, hg) {   // the same sprite with the part that was in the water darker and bluer: the bottom `hg` rows (the water reached your knees), darker the wetter you are
+  const m = c._wet || (c._wet = {}), key = lv * 16 + hg; if (m[key]) return m[key]; const w = c.width, h = c.height, o = mk(w, h); o.g.drawImage(c, 0, 0); const id = o.g.getImageData(0, 0, w, h), d = id.data; let bot = 0;
+  for (let y = h - 1; y >= 0 && !bot; y--) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { bot = y; break; }
   const f = 1 - 0.42 * lv / 4;
-  for (let y = top + 13; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3]) { d[i] = Math.round(d[i] * f * 0.9); d[i + 1] = Math.round(d[i + 1] * f * 0.97); d[i + 2] = Math.min(255, Math.round(d[i + 2] * f * 1.06)); } }
-  o.g.putImageData(id, 0, 0); o.ax = c.ax; o.ay = c.ay; return m[lv] = o;
+  for (let y = Math.max(0, bot - hg + 1); y <= bot; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3]) { d[i] = Math.round(d[i] * f * 0.9); d[i + 1] = Math.round(d[i + 1] * f * 0.97); d[i + 2] = Math.min(255, Math.round(d[i + 2] * f * 1.06)); } }
+  o.g.putImageData(id, 0, 0); o.ax = c.ax; o.ay = c.ay; return m[key] = o;
 }
 function waterTint(im) { if (im._wt) return im._wt; const t = mk(im.width, im.height); t.g.drawImage(im, 0, 0); t.g.globalCompositeOperation = 'source-atop'; t.g.fillStyle = 'rgba(26,70,104,0.65)'; t.g.fillRect(0, 0, im.width, im.height); return im._wt = t; }
 function drawChar(e, cx, cy, now) {
   const digging = e === ME && A && A.k === 'dig', holding = e === ME && ME.hold;
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
-  const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME ? Math.round(clamp(ME.wet || 0, 0, 1) * 4) : 0, spr = wl ? wetOf(spr0, wl) : spr0;
+  const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME ? Math.ceil(clamp(ME.wet || 0, 0, 1) * 4) : 0, wh = e === ME ? Math.max(1, Math.round(9 * clamp(ME.wet || 0, 0, 1))) : 0, spr = wl ? wetOf(spr0, wl, wh) : spr0;   // wet: darker and up to the knee, shrinking as you dry
   const wy = e === ME && ME.sub > 0.03 ? Math.round(e.y - cy - 9 * ME.sub) : null;   // the water line on your legs
   if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (wy != null) { g.save(); g.beginPath(); g.rect(-1000, -1000, 3000, 1000 + wy); g.clip(); }   // only what is above the water is drawn normally
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
-    { const ds0 = digSprite(dd, fi), ds = wl ? wetOf(ds0, wl) : ds0, qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
+    { const ds0 = digSprite(dd, fi), ds = wl ? wetOf(ds0, wl, wh) : ds0, qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
     if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
   } else { const qx = Math.round(e.x - spr.ax - cx), qy = Math.round(e.y - spr.ay - cy + bob); g.drawImage(spr, qx, qy); e._last = [spr, qx, qy]; }
   if (wy != null) {
