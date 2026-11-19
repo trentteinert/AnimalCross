@@ -28,6 +28,23 @@ function buildDist() { // distance (in tiles) from every land tile to the neares
     const i = q[h], x = i % MW, y = (i / MW) | 0;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue; const j = ny * MW + nx; if (DISTG[j] === 255) { DISTG[j] = DISTG[i] + 1; q.push(j); } }
   }
+  buildDepth();
+}
+let DEPTHG = null;
+function buildDepth() {   // how many tiles into the shallows each water tile is (1 = right at the shore), so wading can slope down gradually
+  DEPTHG = new Uint8Array(MW * MH).fill(0); const q = [];
+  for (let i = 0; i < GRID.length; i++) { const t = GRID[i]; if (t >= 2 && t <= 5) q.push(i); else if (t === 0) DEPTHG[i] = 4; else DEPTHG[i] = 255; }
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], x = i % MW, y = (i / MW) | 0, d = DEPTHG[i];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue; const j = ny * MW + nx; if (DEPTHG[j] === 255) { DEPTHG[j] = d + 1; q.push(j); } }
+  }
+  for (let i = 0; i < DEPTHG.length; i++) if (DEPTHG[i] === 255) DEPTHG[i] = 4;
+}
+function waterDepth(x, y) {   // 0 on land, rising smoothly through the shallows to about knee depth (9 pixels) two tiles from the shore
+  if (!DEPTHG) return 0; const fx = x / TS - 0.5, fy = y / TS - 0.5, x0 = Math.floor(fx), y0 = Math.floor(fy), ax = fx - x0, ay = fy - y0;
+  const v = (tx, ty) => tx < 0 || ty < 0 || tx >= MW || ty >= MH ? 4 : DEPTHG[ty * MW + tx];
+  const d = (v(x0, y0) * (1 - ax) + v(x0 + 1, y0) * ax) * (1 - ay) + (v(x0, y0 + 1) * (1 - ax) + v(x0 + 1, y0 + 1) * ax) * ay;
+  return clamp((d - 0.5) * 6, 0, 9);
 }
 function typeAt(px, py) {
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
