@@ -38,8 +38,8 @@ function litProp(o, spr, x, y, fa) {   // after a prop is drawn: its sun shading
 function collectLights(now) {   // furnaces and campfires, with their flicker
   LIGHTS.length = 0; if (!FEATURES.light) return; const dark = 0.3 + 0.7 * (1 - SUN);
   for (const o of W.objs) {
-    if (o.k === 'furnace') { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ x: o.x - 4, y: o.y, h: 14, z: 7, r: 78, k: dark * fl, col: [255, 160, 70] }); }
-    else if (o.k === 'campfire') { const fl = 0.85 + 0.15 * Math.sin(now * 13 + o.x) + 0.06 * Math.sin(now * 29); LIGHTS.push({ x: o.x, y: o.y, h: 7, z: 2, r: 86, k: dark * fl * 1.1, col: [255, 170, 80] }); }
+    if (o.k === 'furnace') { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ o, x: o.x - 4, y: o.y, h: 14, z: 7, r: 78, k: dark * fl, col: [255, 160, 70] }); }
+    else if (o.k === 'campfire') { const fl = 0.85 + 0.15 * Math.sin(now * 13 + o.x) + 0.06 * Math.sin(now * 29); LIGHTS.push({ o, x: o.x, y: o.y, h: 7, z: 2, r: 86, k: dark * fl * 1.1, col: [255, 170, 80] }); }
   }
 }
 function lightOverlay(q, now) {   // per pixel: how much does each light (that faces this pixel) add
@@ -63,9 +63,9 @@ function lightPass(cx, cy, now) {   // after the world is drawn: the night tint,
   const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72));   // the day's tint, softened so nights stay playable
   if (tc[0] + tc[1] + tc[2] < 750) { g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4); g.globalCompositeOperation = 'source-over'; }
   g.globalCompositeOperation = 'lighter';
-  for (const L of LIGHTS) {   // a soft glow on the ground, in a few flat steps
-    const x = L.x - cx, y = L.y - cy; if (x < -L.r || x > VW + L.r || y < -L.r || y > VH + L.r) continue;
-    for (let s = 0; s < 7; s++) { const rr = L.r * (1 - s * 0.13) * 0.92; g.fillStyle = `rgba(${L.col[0]},${L.col[1] - 20},${L.col[2] - 20},${0.032 * L.k})`; g.beginPath(); g.ellipse(Math.round(x), Math.round(y - 3), Math.round(rr), Math.round(rr * 0.6), 0, 0, 6.2832); g.fill(); }
+  for (const L of LIGHTS) {   // a glow on the ground made of dither dots, not smooth rings: an uneven edge that breathes with the flame
+    const x = Math.round(L.x - cx), y = Math.round(L.y - cy); if (x < -L.r || x > VW + L.r || y < -L.r * 0.6 || y > VH + L.r * 0.6) continue;
+    const c = glowCanvas(L, now); if (c) g.drawImage(c, x - (c.width >> 1), y - 3 - (c.height >> 1));
   }
   if (LIGHTS.length) for (const q of LITQ) {
     if (!LIGHTS.some(L => Math.abs(L.x - q.o.x) < L.r + 40 && Math.abs(L.y - q.o.y) < L.r + 40)) continue;
@@ -76,6 +76,19 @@ function lightPass(cx, cy, now) {   // after the world is drawn: the night tint,
     const s = o.spr, em = s._em || (s._em = emissive(s)), x = Math.round(o.x - s.ax - cx), y = Math.round(o.y - s.ay - cy); if (x > VW || y > VH || x + s.width < 0 || y + s.height < 0) continue;
     g.globalAlpha = clamp(0.35 + (1 - SUN), 0.35, 1); g.drawImage(em, x, y); g.globalAlpha = 1;
   }
+}
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function glowCanvas(L, now) {   // pixel-dithered, lumpy, slowly shifting; redrawn about eight times a second
+  if (SUN > 0.9) return null;   // no ground glow in full daylight
+  const R = Math.round(L.r), w = R * 2, h = Math.round(R * 1.2), step = Math.floor(now * 8); const O = L.o; if (O._gc && O._gs === step) return O._gc;
+  const c = O._gc || (O._gc = mk(w, h)), id = c.g.createImageData(w, h), D = id.data, ph = L.x * 0.13;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = (x - R) / R, dy = (y - h / 2) / (R * 0.6), d = Math.hypot(dx, dy); if (d >= 1.15) continue; const a = Math.atan2(dy, dx);
+    const lump = 0.1 * Math.sin(a * 3 + ph + now * 0.7) + 0.07 * Math.sin(a * 5 - ph + now * 1.1) + 0.05 * Math.sin(a * 9 + step * 0.9), v = (1 - (d + lump)) * L.k * 1.5 * clamp((1 - SUN) * 1.2, 0, 1);   // lumpy radius, brighter in the middle
+    if (v <= 0) continue; const t = (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16, lvl = v > 0.55 ? 2 : 1;   // a dot is lit where the light beats the pattern; the very middle is a second, brighter tier
+    if (v * 1.15 > t) { const j = (y * w + x) * 4; D[j] = L.col[0]; D[j + 1] = L.col[1] - 20; D[j + 2] = L.col[2] - 20; D[j + 3] = lvl === 2 ? 46 : 30; }
+  }
+  c.g.putImageData(id, 0, 0); O._gs = step; return c;
 }
 function emissive(s) {   // only the bright orange and yellow pixels of a sprite
   const c = mk(s.width, s.height), id = s.g.getImageData(0, 0, s.width, s.height), d = id.data;
