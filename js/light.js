@@ -119,9 +119,11 @@ function entEnd(cx, cy, now) {
   eg.setTransform(1, 0, 0, 1, 0, 0); eg.clearRect(0, 0, w, h); eg.setTransform(T); eg.imageSmoothingEnabled = false; let any = false;
   for (const o of LORD) {
     const qs = LQ.get(o), im = o._last || (o.spr && o.spr.width > 8 && !o.crown ? [o.spr, Math.round(o.x - o.spr.ax - cx), Math.round(o.y - o.spr.ay - cy)] : null);
-    if (any) { eg.globalCompositeOperation = 'destination-out'; if (im) eg.drawImage(im[0], im[1], im[2]); if (qs) for (const q of qs) eg.drawImage(q.spr, q.x, q.y); }
-    eg.globalCompositeOperation = 'source-over';
-    if (qs && LIGHTS.length) for (const q of qs) { if (!LIGHTS.some(L => Math.abs(L.x - o.x) < L.r + 40 && Math.abs(L.y - o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!o._lany) continue; eg.globalAlpha = q.fa; eg.drawImage(c, q.x, q.y); eg.globalAlpha = 1; any = true; }
+    if (any && im && !qs) { eg.globalCompositeOperation = 'destination-out'; eg.drawImage(im[0], im[1], im[2]); eg.globalCompositeOperation = 'source-over'; }
+    if (qs) for (const q of qs) {   // a prop's pieces go in their own order (the shopkeeper, then the stall in front of him): each piece cuts away what is behind it, then adds its own light
+      if (any) { eg.globalCompositeOperation = 'destination-out'; eg.drawImage(q.spr, q.x, q.y); eg.globalCompositeOperation = 'source-over'; }
+      if (!LIGHTS.length || !LIGHTS.some(L => Math.abs(L.x - o.x) < L.r + 40 && Math.abs(L.y - o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!o._lany) continue; eg.globalAlpha = q.fa; eg.drawImage(c, q.x, q.y); eg.globalAlpha = 1; any = true;
+    }
     if (o.frames && (o.k === 'furnace' || o.k === 'campfire') && o.spr) { const s = o.spr, em = s._em || (s._em = emissive(s)); eg.drawImage(em, Math.round(o.x - s.ax - cx), Math.round(o.y - s.ay - cy)); any = true; }
   }
   eg.globalCompositeOperation = 'source-over'; g.globalCompositeOperation = 'lighter'; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(EM.c, 0, 0); g.setTransform(T); g.globalCompositeOperation = 'source-over';
