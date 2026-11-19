@@ -158,7 +158,7 @@ function updateMe(dt) {
   if (mag > 0.05) {
     autoWalk = null; const sp = walkSp() * Math.min(1, mag);
     const nd = dirOf(v[0], v[1]); if (nd !== ME.dir && Math.abs(Math.abs(v[0]) - Math.abs(v[1])) > 0.25 || !DV[ME.dir]) ME.dir = nd; else if (Math.abs(Math.abs(v[0]) - Math.abs(v[1])) <= 0.25) { /* keep */ } else ME.dir = nd;
-    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt * Math.max(0.25, Math.min(1, mag)); { const sn = Math.floor(ME.t * WALK_FPS / 2); if (ME.moving && sn !== ME.lastStep) { ME.lastStep = sn; footstep(); } }   // the walk animation runs at the pace you move
+    ME.face = faceOf(v[0], v[1]); ME.faceDir = ME.dir; ME.moving = moveEnt(ME, v[0] * sp * dt, v[1] * sp * dt); ME.t += dt * Math.max(0.25, Math.min(1, mag)); { const sn = Math.floor(ME.t * WALK_FPS / 2); if (ME.moving && sn !== ME.lastStep) { ME.lastStep = sn; footstep(); wetPrint(); } }   // the walk animation runs at the pace you move
 
   }
 }
@@ -194,6 +194,20 @@ function lineG(x0, y0, x1, y1, col) {
 }
 const WALK_FPS = 6;   // walk frames per second (the walk is 4 frames per direction)
 const heroFrameOf = e => e.moving ? 1 + Math.floor(e.t * WALK_FPS) % 4 : 0;   // 0 = idle, 1-4 = walk cycle
+const PRINTS = [];   // wet footprints left on dry ground after wading
+function wetPrint() {   // each step you take with wet feet leaves a dark print that dries out in a second or two (longer the wetter you are)
+  if (!ME || !(ME.wet > 0.12) || ME.sub > 0.05) return; const t = typeAt(ME.x, ME.y - 1); if (t < 2 || t > 5) return;
+  ME.pside = -(ME.pside || 1); const v = DV[ME.dir] || [0, 1], px = -v[1] * ME.pside * 2, py = v[0] * ME.pside * 2;   // left and right feet alternate, to either side of your line
+  PRINTS.push({ x: ME.x + px, y: ME.y - 1 + py, t: 0, life: 1.1 + 2 * ME.wet, a: 0.2 + 0.3 * ME.wet, dir: ME.dir });
+  if (PRINTS.length > 40) PRINTS.shift();
+}
+function drawPrints(cx, cy, dt) {
+  for (let i = PRINTS.length - 1; i >= 0; i--) {
+    const p = PRINTS[i]; p.t += dt; if (p.t >= p.life) { PRINTS.splice(i, 1); continue; }
+    const a = p.a * Math.pow(1 - p.t / p.life, 1.3), x = Math.round(p.x - cx), y = Math.round(p.y - cy), vert = p.dir === 'u' || p.dir === 'd'; g.fillStyle = `rgba(16,30,44,${a.toFixed(3)})`;
+    if (vert) { g.fillRect(x - 1, y - 3, 2, 4); g.fillRect(x, y - 4, 1, 1); } else { g.fillRect(x - 2, y - 1, 4, 2); g.fillRect(x + 2, y - 1, 1, 1); }   // a small foot, long ways along the way you walk, with a toe
+  }
+}
 const WET = { hold: 1.5, fade: 5 };   // seconds your clothes stay fully dark after leaving the water, then the seconds they take to dry
 function updateWet(dt) {   // wading: how deep you are in the water, and how wet your clothes are
   if (!ME) return; const t = typeAt(ME.x, ME.y - 1), inW = t === 1 || t === 6; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = inW ? 1 : 0; }
@@ -270,7 +284,7 @@ function render(now) {
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
   g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) fxWater(cx, cy, now);
-  drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now);
+  drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now); drawPrints(cx, cy, Math.min(0.1, Math.max(0, now - (drawPrints.last || now)))); drawPrints.last = now;
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
   for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
