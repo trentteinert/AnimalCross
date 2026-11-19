@@ -229,7 +229,7 @@ function drawEnt(o, cx, cy, now) {
   }
 }
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
-const shadowStrength = () => SUN;
+const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
 function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter and breathes: the shopkeeper's upper body rises a pixel now and then; the stall is drawn over them
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
   const up = Math.sin(now * 1.6 + (o.src.x | 0)) > 0.55 ? 1 : 0;
@@ -333,7 +333,7 @@ function boot() {
   const t0 = performance.now(); loadState(); resize(); addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 150)); if (window.visualViewport) visualViewport.addEventListener('resize', resize);
   loadAssets(failed => {
   if (failed.length) console.error('Missing assets:', failed.join(', '));
-  loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); if (!EDIT) UI.init(); loadProgress(0.9);
+  loadProgress(0.8); buildSprites(); if (ASSET.ok) heroInit(); buildClouds(); FEATURES.light = S.light !== false; FEATURES.shadows = S.shadows !== false; if (!EDIT) UI.init(); loadProgress(0.9);
   setTimeout(() => prepareAtlas(() => loadMapData((map, src) => {
     initWorld(map, EDIT);
     if (EDIT) { startEditor(src); return; }
