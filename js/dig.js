@@ -42,20 +42,21 @@ function recordFind(res) {
 }
 
 // ---- targets and actions ----------------------------------------------------------------------------------------------------------------------
-const SHOPK = ['camp', 'shop', 'furnace', 'anvil', 'bench'];   // the things you press the action button at
+const SHOPK = ['camp', 'shop', 'furnace', 'anvil', 'bench', 'museum'];   // the things you press the action button at
 const STATION = { furnace: { title: 'Furnace', hint: 'Press to smelt', icon: 'camp' }, anvil: { title: 'Anvil', hint: 'Press to forge tools', icon: 'beach' }, bench: { title: 'Workbench', hint: 'Press to craft tools', icon: 'brush0' } };   // furnace: melt spare finds into scrap. anvil: forge mattocks. workbench: make brushes
 const ICON = { camp: 'camp', dig: 'beach' };
 function targetInfo(t) {
   if (t.kind === 'camp') return { icon: 'camp', hint: 'Press to open camp' };
   if (t.kind === 'shop') return { icon: 'bag', hint: 'Press to browse the shop' };
   if (STATION[t.kind]) return { icon: STATION[t.kind].icon, hint: STATION[t.kind].hint };
+  if (t.kind === 'museum') return { icon: 'camp', hint: 'Press to enter the museum' };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
   if (bagUsed() >= bagCap()) return { icon: 'beach', hint: 'Bag full. Sell or donate some finds' };
   return { icon: 'beach', hint: 'Press to dig' };
 }
 function wildOk(x, y) {   // ordinary ground you could dig: land that is clear to stand on (not water, a deck, a tree trunk or a pit wall)
-  const t = typeAt(x, y); if (t < 2 || t > 5) return false; const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
+  if (W.theme === 'museum') return false; const t = typeAt(x, y); if (t < 2 || t > 5) return false; const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
   return !blockedAt((tx + 0.5) * TS, (ty + 0.5) * TS + 4, 6, 6);
 }
 function findTarget() {
@@ -68,6 +69,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
+    if (o.k === 'museum') { if (Math.abs(px - o.x) < 26 && py > o.y - 8 && py < o.y + 22) consider('museum', o, o.x, o.y - 10, Math.hypot(px - o.x, py - (o.y + 2)) * 0.5, 40, -14); continue; }   // the door is in the middle of the steps
     if (SHOPK.includes(o.k)) { const bd = distToBox(px, py, o), bx = o.x - px, by = o.y - 4 - py, bl = Math.hypot(bx, by) || 1; if (bd < 6 || (bx / bl * fv[0] + by / bl * fv[1]) > 0.1) consider(o.k, o, o.x, o.y, bd, o.ia, -14); }   // a station you are close to and facing wins over the ground beside it
   }
   let sb = null;   // the dig spot: the site tile just in front of you
@@ -140,6 +142,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.face = FACE_OF_DIR[ME.dir]; ME.faceDir = ME.dir; ME.hold = null;
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
   if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
+  if (t.kind === 'museum') { held = false; goArea('museum', 440, 236, 'l'); return; }
   if (STATION[t.kind]) { held = false; UI.openCamp(t.kind === 'furnace' ? 'process' : 'craft', t.kind); return; }
   if (t.kind === 'dig') {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
@@ -349,7 +352,7 @@ function drawLeaf(l, cx, cy) {
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
 const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
-const GHOST_BIG = new Set(['shop', 'camp']);   // only walls and buildings show your outline when they hide you; benches, anvils, fires, plants and rocks do not
+const GHOST_BIG = new Set(['shop', 'camp', 'museum']);   // only walls and buildings show your outline when they hide you; benches, anvils, fires, plants and rocks do not
 function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
   if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me' || o.k === 'tree' || o.k === 'decor') return 1;
   const s = o.spr, over = o.y > ME.y && ME.x + 9 > o.x - s.ax && ME.x - 9 < o.x - s.ax + s.width && ME.y > o.y - s.ay && ME.y - 46 < o.y;

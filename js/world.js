@@ -1,5 +1,5 @@
 'use strict';
-const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 32, MAP_MAX = 200;
+const TS = 16, CX = 32 * TS, CY = 32 * TS, MAP_MIN = 16, MAP_MAX = 200;
 let MW = 64, MH = 64, PW = MW * TS, PH = MH * TS; // map size in tiles / pixels; maps can be any size from MAP_MIN to MAP_MAX
 function setMapSize(w, h) { MW = w; MH = h; PW = w * TS; PH = h * TS; DECK = new Uint8Array(w * h); SITE = new Uint8Array(w * h); PIT = new Uint8Array(w * h); }
 // Generator constants: only used to author the DEFAULT island. A saved map (maps/island.json) replaces all of this.
@@ -9,7 +9,7 @@ let SITE = new Uint8Array(MW * MH); // dig sites: 0 = none, 1-4 = zone (see SITE
 let PIT = new Uint8Array(MW * MH);
 const PIT_U = 8;   // pixels of screen height per unit of depth
 let DECK = new Uint8Array(MW * MH); // wooden / stone decking laid over the tiles (piers, bridges, boardwalks): 0 = none, 1-3 = plank styles, 4-6 = the same with rails
-let LASTD = 0, MAPDATA = null;
+let LASTD = 0, MAPDATA = null, MGRID = null, MDOOR = null;   // MGRID: the museum interior's tile ids; MDOOR: where the museum's door is on the island (you come out there)
 
 function hash2(x, y, s) {
   let h = (x * 374761393 + y * 668265263 + (s || 0) * 2147483647) | 0;
@@ -74,7 +74,13 @@ function variantCol(L, h, i, j) {   // grass: a third plain, most of the rest th
   if (L !== 4) return h < 0.4 ? 32 : 33 + Math.min(7, Math.floor((h - 0.4) / 0.6 * 8));
   if (!grassVariant(i, j)) return 32; if (h < 0.98) return 33 + Math.min(3, Math.floor(h / 0.98 * 4)); return 37 + Math.min(3, Math.floor((h - 0.98) / 0.02 * 4));
 }
+function renderMuseum() {   // the interior: every tile drawn from the museum tile set (assets/museum/tileset.png)
+  const c = mk(PW, PH), A = ASSET.img.museum_tiles;
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { const id = MGRID[ty * MW + tx]; c.g.drawImage(A, (id & 15) * 16, (id >> 4) * 16, 16, 16, tx * 16, ty * 16, 16, 16); }
+  return c;
+}
 function renderTerrain() {
+  if (W.theme === 'museum' && MGRID) return renderMuseum();
   const A = atlasFor(W.theme), c = mk(PW, PH);
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) c.g.drawImage(A, Math.floor(hash2(tx, ty, 21) * 3) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
@@ -208,7 +214,7 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-15, -6, 30, 6], 22], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4], 22], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { museum: [[-100, -26, 200, 26]], camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-14, -6, 28, 6], 22], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4], 22], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
@@ -219,11 +225,15 @@ function instantiate(s) {
     case 'hammer': if (!SPR.hammer) return; o = { k: 'hammer', spr: SPR.hammer }; break;
     case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace[0], frames: SPR.furnace, ph: hash2(s.x | 0, s.y | 0, 7) * 5 }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
+    case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
+    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n }; break;
+    case 'mexit': o = { k: 'mexit', to: s.to, sx: s.sx, sy: s.sy }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;
   }
-  let sd = SOLIDS[s.k]; 
+  let sd = SOLIDS[s.k]; if (s.k === 'mprop' && o.spr) { const w = o.spr.width; sd = /^case_/.test(s.n) || s.n === 'stage' ? [[-w / 2, -14, w, 14]] : s.n === 'board' ? [[-4, -4, 8, 4]] : null; }   // cases and the stage are solid across their base
+  
   o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
@@ -293,7 +303,8 @@ function drawPits(c) {   // sunken ground: floors drawn lower on screen, north w
 }
 function loadMap(map) {
   setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);
-  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) GRID[ty * MW + tx] = Math.min(6, Math.max(0, map.tiles[ty].charCodeAt(tx) - 48));
+  const museum = map.theme === 'museum' && ASSET.mTiles; MGRID = museum ? new Uint16Array(MW * MH) : null; const walk = museum ? new Set(ASSET.mTiles.walk) : null;
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { const id = map.tiles[ty].charCodeAt(tx) - 48; if (museum) { MGRID[ty * MW + tx] = id; GRID[ty * MW + tx] = walk.has(id) ? 5 : 0; } else GRID[ty * MW + tx] = Math.min(6, Math.max(0, id)); }   // the museum's tiles are ids into its own tile set; the game only needs to know floor (walkable) from everything else
   MAPDATA = map; W.theme = map.theme || 'day'; buildDist();
   if (!map.structs) map.structs = map.pier ? [{ t: 'pier', x0: map.pier.x0, y0: map.pier.y0, x1: map.pier.x1, y1: map.pier.y1, style: 0, rails: false, posts: true }] : [];
   map.pier = null;

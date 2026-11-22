@@ -1,0 +1,144 @@
+{
+ "case_3x3": {
+  "w": 48,
+  "h": 59,
+  "ax": 24,
+  "ay": 59,
+  "over": true,
+  "sx": 0,
+  "sy": 0,
+  "ox": 90
+ },
+ "case_3x2": {
+  "w": 48,
+  "h": 54,
+  "ax": 24,
+  "ay": 54,
+  "over": true,
+  "sx": 0,
+  "sy": 61,
+  "ox": 90
+ },
+ "case_3x1": {
+  "w": 48,
+  "h": 42,
+  "ax": 24,
+  "ay": 42,
+  "over": true,
+  "sx": 0,
+  "sy": 117,
+  "ox": 90
+ },
+ "case_2x2": {
+  "w": 32,
+  "h": 55,
+  "ax": 16,
+  "ay": 55,
+  "over": true,
+  "sx": 0,
+  "sy": 161,
+  "ox": 90
+ },
+ "case_2x1": {
+  "w": 32,
+  "h": 42,
+  "ax": 16,
+  "ay": 42,
+  "over": true,
+  "sx": 0,
+  "sy": 218,
+  "ox": 90
+ },
+ "case_1x2": {
+  "w": 16,
+  "h": 55,
+  "ax": 8,
+  "ay": 55,
+  "over": true,
+  "sx": 0,
+  "sy": 262,
+  "ox": 90
+ },
+ "case_1x1": {
+  "w": 16,
+  "h": 43,
+  "ax": 8,
+  "ay": 43,
+  "over": true,
+  "sx": 0,
+  "sy": 319,
+  "ox": 90
+ },
+ "stage": {
+  "w": 67,
+  "h": 55,
+  "ax": 33,
+  "ay": 55,
+  "over": false,
+  "sx": 0,
+  "sy": 364
+ },
+ "board": {
+  "w": 13,
+  "h": 22,
+  "ax": 6,
+  "ay": 22,
+  "over": false,
+  "sx": 0,
+  "sy": 421
+ },
+ "panel_fossils": {
+  "w": 88,
+  "h": 23,
+  "ax": 44,
+  "ay": 23,
+  "over": false,
+  "sx": 0,
+  "sy": 445
+ },
+ "panel_scorpion": {
+  "w": 39,
+  "h": 23,
+  "ax": 19,
+  "ay": 23,
+  "over": false,
+  "sx": 0,
+  "sy": 470
+ },
+ "plaque": {
+  "w": 39,
+  "h": 22,
+  "ax": 19,
+  "ay": 22,
+  "over": false,
+  "sx": 0,
+  "sy": 495
+ },
+ "window_rect": {
+  "w": 32,
+  "h": 49,
+  "ax": 16,
+  "ay": 49,
+  "over": false,
+  "sx": 0,
+  "sy": 519
+ },
+ "window_arch": {
+  "w": 28,
+  "h": 56,
+  "ax": 14,
+  "ay": 56,
+  "over": false,
+  "sx": 0,
+  "sy": 570
+ },
+ "alcove": {
+  "w": 58,
+  "h": 65,
+  "ax": 29,
+  "ay": 65,
+  "over": false,
+  "sx": 0,
+  "sy": 628
+ }
+}

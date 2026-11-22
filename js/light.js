@@ -67,7 +67,7 @@ function lightOverlay(q, now) {   // per pixel: how much does each light (that f
 const EC = document.createElement('canvas'), EG = EC.getContext('2d'), MC = document.createElement('canvas'), MG = MC.getContext('2d');
 let ENT_ON = false, LORD = [];
 const EM = { c: document.createElement('canvas') }; EM.g = EM.c.getContext('2d');
-function nightTint() { const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72)); return tc[0] + tc[1] + tc[2] < 750 ? tc : null; }
+function nightTint() { if (W.theme === 'museum') return null; const tc = tintAt(hourNow()).map(v => Math.round(255 - (255 - v) * 0.72)); return tc[0] + tc[1] + tc[2] < 750 ? tc : null; }
 function lightGround(cx, cy, now) {
   if (!FEATURES.light) return; const tc = nightTint();
   if (tc) { g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${tc[0]},${tc[1]},${tc[2]})`; g.fillRect(-2, -2, VW + 4, VH + 4); g.globalCompositeOperation = 'source-over'; }

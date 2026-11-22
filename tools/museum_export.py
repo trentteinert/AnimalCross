@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Cuts the museum art into what the game uses.
+EXTERIOR (tools/src/Museum_exterior.aseprite, 215x167): assets/props/museum_building.png (the building: base and steps, columns, frieze, roof, pediment),
+  museum_door.png (the doors, so they can open) and museum_sign.png (the hanging GRAND OPENING banner, so it can sway). Same size and origin: 215x167.
+  Left out: the flattened copy of the whole building (layer 9, it would be drawn twice), the faint outline box and some hidden scraps.
+INTERIOR (tools/src/Museum_interior.aseprite, 640x320):
+  * everything is moved by (+9, -4) so the floor lines up with the game's 16 pixel grid (it started at 39, 84).
+  * the room is cut into a tile set (assets/museum/tileset.png, 16x16 tiles, tileset.json): the wall, frame and void tiles that occur, plus the marble floor in
+    quarters (each 32x32 marble tile of your art becomes four 16x16 tiles; there are 19 different ones). maps/museum.json is the room built from those tiles.
+  * the things in the room are separate props (assets/museum/props.png + props.json): display cases in 7 sizes (base and glass kept apart so a find can sit between them),
+    the stage with its rope and podium, the information board, wall panels (fossil panel, scorpion panel, plain plaque), the two windows and the back alcove.
+  Fixed on the way: 1-3 tiny transparent specks in most marble tiles (they showed the floor underneath; filled from the tile under them), one stray misplaced pair of floor tiles (layer 7, fully hidden),
+  the old man (layer 93) and two copies (101, 102) that were switched off.
+Run:  python3 tools/museum_export.py"""
+import hashlib, json, os, struct, zlib
+from PIL import Image
+
+def read(path):
+    d = open(path, 'rb').read(); W, H = struct.unpack_from('<HH', d, 8); off = 128
+    fb, fm, old, dur, _, new = struct.unpack_from('<IHHHHI', d, off); n = new or old; p = off + 16; layers = []; imgs = {}
+    for _ in range(n):
+        csz, ct = struct.unpack_from('<IH', d, p); b = p + 6
+        if ct == 0x2004:
+            f, t, l = struct.unpack_from('<HHH', d, b); nl = struct.unpack_from('<H', d, b + 16)[0]; layers.append({'flags': f, 'type': t, 'lv': l, 'name': d[b + 18:b + 18 + nl].decode()})
+        elif ct == 0x2005:
+            li, x, y, op, ctype, z = struct.unpack_from('<HhhBHh', d, b); w, h = struct.unpack_from('<HH', d, b + 16)
+            if ctype in (0, 2):
+                raw = d[b + 20:b + 20 + w * h * 4] if ctype == 0 else zlib.decompressobj().decompress(d[b + 20:p + csz])
+                full = Image.new('RGBA', (W, H), (0, 0, 0, 0)); full.alpha_composite(Image.frombytes('RGBA', (w, h), raw).crop((max(0, -x), max(0, -y), w, h)), (max(0, x), max(0, y))); imgs[li] = full
+        p += csz
+    return W, H, layers, imgs
+
+# ---------------------------------------------------------------------------------------------------------------- exterior
+W, H, L, I = read('tools/src/Museum_exterior.aseprite')
+def stack(imgs, ids, W, H):
+    o = Image.new('RGBA', (W, H))
+    for i in ids: o.alpha_composite(imgs[i])
+    return o
+# 5 base and steps, 8 column shading, 9 columns, 10 frieze, 11 roof, 12 pediment, 14 and 15 the roof's louvres, 7 doors, 16 banner, 17 its lettering. 18 is a flattened copy of everything.
+stack(I, [5, 8, 9, 10, 11, 12, 14, 15], W, H).save('assets/props/museum_building.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
+print('exterior', W, H, 'door bbox', I[7].getbbox(), 'sign bbox', stack(I, [16, 17], W, H).getbbox())
+
+# ---------------------------------------------------------------------------------------------------------------- interior
+W, H, L, I = read('tools/src/Museum_interior.aseprite'); DX, DY = 9, -4
+def sh(im): o = Image.new('RGBA', im.size, (0, 0, 0, 0)); o.alpha_composite(im, (DX, 0) if False else (max(0, DX), 0)) if False else o.paste(im, (DX, DY)); return o
+S = {i: sh(im) for i, im in I.items()}
+# the room without the floor tiles: void, wall and floor base, frame
+R = stack(S, [1, 3, 55], W, H)
+# the floor: the base plus the tile layers (the base fills the specks)
+floor_ids = [i for i in range(7, 55) if i in S and L[i]['type'] == 0 and S[i].getbbox()]
+FL = stack(S, [3] + floor_ids, W, H); FX0, FY0, FCOLS, FROWS = 39 + DX, 84 + DY, 12, 6
+tiles = {}; layout = {}
+for r in range(FROWS):
+    for c in range(FCOLS):
+        t = FL.crop((FX0 + 32 * c, FY0 + 32 * r, FX0 + 32 * c + 32, FY0 + 32 * r + 32)); k = hashlib.md5(t.tobytes()).hexdigest(); tiles.setdefault(k, t); layout[(c, r)] = k
+corr = FL.crop((423 + DX, 212 + DY, 455 + DX, 244 + DY)); ck = hashlib.md5(corr.tobytes()).hexdigest(); tiles.setdefault(ck, corr)
+ukeys = list(tiles); print('floor tiles', len(layout) + 1, 'unique', len(ukeys))
+# tile set: first the non-floor cells that occur (deduplicated), then the floor quarters
+GW, GH = W // 16, H // 16
+floor_cells = {}
+for (c, r), k in layout.items():
+    for q in range(4): floor_cells[(FX0 // 16 + c * 2 + (q & 1), FY0 // 16 + r * 2 + (q >> 1))] = (k, q)
+for q in range(4): floor_cells[((423 + DX) // 16 + (q & 1), (212 + DY) // 16 + (q >> 1))] = (ck, q)
+tset = []; tid = {}; grid = [[0] * GW for _ in range(GH)]
+def cell(img, cx, cy): return img.crop((cx * 16, cy * 16, cx * 16 + 16, cy * 16 + 16))
+for cy in range(GH):
+    for cx in range(GW):
+        if (cx, cy) in floor_cells: continue
+        t = cell(R, cx, cy); k = hashlib.md5(t.tobytes()).hexdigest()
+        if k not in tid: tid[k] = len(tset); tset.append(t)
+        grid[cy][cx] = tid[k]
+n_plain = len(tset); fid = {}
+for k in ukeys:
+    for q in range(4): fid[(k, q)] = len(tset); tset.append(tiles[k].crop(((q & 1) * 16, (q >> 1) * 16, (q & 1) * 16 + 16, (q >> 1) * 16 + 16)))
+for (cx, cy), (k, q) in floor_cells.items(): grid[cy][cx] = fid[(k, q)]
+print('tileset tiles', len(tset), '(', n_plain, 'wall, frame and void;', len(ukeys) * 4, 'floor quarters)')
+COLS = 16; ts = Image.new('RGBA', (COLS * 16, ((len(tset) + COLS - 1) // COLS) * 16))
+for i, t in enumerate(tset): ts.paste(t, ((i % COLS) * 16, (i // COLS) * 16))
+os.makedirs('assets/museum', exist_ok=True); ts.save('assets/museum/tileset.png')
+walk = list(range(n_plain, len(tset)))
+json.dump({'size': 16, 'cols': COLS, 'count': len(tset), 'floor_from': n_plain, 'walk': walk, 'note': 'ids below floor_from are wall, frame and void; from floor_from on, each 4 ids are the quarters (TL, TR, BL, BR) of one 32x32 marble tile'}, open('assets/museum/tileset.json', 'w'), indent=1)
+
+# props: cut each piece to its bounding box, pack into one sheet, remember where it stood in the room
+def piece(ids): im = stack(S, ids, W, H); return im, im.getbbox()
+PROPS = {  # name: (base layers, over layers (drawn after what stands inside), kind)
+    'case_3x3': ([65, 66], [67]), 'case_3x2': ([69], [70]), 'case_3x1': ([72], [73]), 'case_2x2': ([75], [76]), 'case_2x1': ([78], [79]), 'case_1x2': ([81], [82]), 'case_1x1': ([84], [87]),
+    'stage': ([89, 90, 91], []), 'board': ([92], []), 'panel_fossils': ([99, 100], []), 'panel_scorpion': ([96, 97], []), 'plaque': ([94], []),
+    'window_rect': ([60, 61, 62], []), 'window_arch': ([57, 58, 59], []), 'alcove': ([2], [])}
+sheet = []; meta = {}; x = 0; objs = []
+for name, (base, over) in PROPS.items():
+    bi, bb = piece(base); oi, ob = piece(over) if over else (None, None); boxes = [b for b in (bb, ob) if b]; x0, y0, x1, y1 = min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes)
+    meta[name] = {'w': x1 - x0, 'h': y1 - y0, 'ax': (x1 - x0) // 2, 'ay': y1 - y0, 'over': bool(over)}; sheet.append((name, bi.crop((x0, y0, x1, y1)), oi.crop((x0, y0, x1, y1)) if oi else None))
+    objs.append({'k': 'mprop', 'n': name, 'x': (x0 + x1) // 2, 'y': y1})
+SW = max(m['w'] for m in meta.values()) + 2; SH = sum(m['h'] + 2 for m in meta.values()) * 2
+sp = Image.new('RGBA', (SW * 2, SH // 2 + 4)); y = 0
+for name, b, o in sheet:
+    meta[name]['sx'] = 0; meta[name]['sy'] = y; sp.paste(b, (0, y))
+    if o: sp.paste(o, (SW, y)); meta[name]['ox'] = SW
+    y += meta[name]['h'] + 2
+sp = sp.crop((0, 0, SW * 2, y)); sp.save('assets/museum/props.png'); json.dump(meta, open('assets/museum/props.json', 'w'), indent=1)
+
+# the map
+chars = lambda row: ''.join(chr(48 + v) for v in row)
+rows = [chars(r) for r in grid]; zero = ['0' * GW] * GH
+spawn = {'x': 440, 'y': 236}
+objects = objs + [{'k': 'mexit', 'x': 462, 'y': 236, 'to': 'island'}]
+json.dump({'v': 1, 'w': GW, 'h': GH, 'theme': 'museum', 'tiles': rows, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': spawn, 'objects': objects}, open('maps/museum.json', 'w'), separators=(',', ':'))
+print('wrote maps/museum.json', GW, 'x', GH, len(objects), 'objects; ids up to', len(tset) - 1)

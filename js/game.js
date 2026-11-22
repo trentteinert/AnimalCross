@@ -166,7 +166,7 @@ function updateMe(dt) {
 // ---- update ---------------------------------------------------------------
 function tick(dt) {
   timeNow = performance.now() / 1000;
-  updateWet(dt); SUN = FEATURES.light ? sunAmt(hourNow()) : 1; const night = isNight(); updateMe(dt);
+  updateWet(dt); SUN = FEATURES.light && W.theme !== 'museum' ? sunAmt(hourNow()) : 1; checkExits();   // indoors there is no sun const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
   const st = actState();
@@ -181,7 +181,7 @@ function tick(dt) {
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
   for (let i = RP.length - 1; i >= 0; i--) { RP[i].t += dt; if (RP[i].t > RP[i].max) RP.splice(i, 1); }
   // the camera eases toward the player instead of being locked to them (snaps on teleports / first frame)
-  const ctx_ = clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = clamp(ME.y + pitZ(ME.x, ME.y) * PIT_U - VH / 2 - 10, 0, Math.max(0, PH - VH));
+  const ctx_ = PW <= VW ? (PW - VW) / 2 : clamp(ME.x - VW / 2, 0, Math.max(0, PW - VW)), cty_ = PH <= VH ? (PH - VH) / 2 : clamp(ME.y + pitZ(ME.x, ME.y) * PIT_U - VH / 2 - 10, 0, Math.max(0, PH - VH));   // a room smaller than the screen sits in the middle of it
   if (Math.hypot(ctx_ - cam.x, cty_ - cam.y) > 120) { cam.x = ctx_; cam.y = cty_; }
   else { const k = 1 - Math.exp(-dt * 3.5); cam.x += (ctx_ - cam.x) * k; cam.y += (cty_ - cam.y) * k; if (Math.abs(ctx_ - cam.x) < 0.02) cam.x = ctx_; if (Math.abs(cty_ - cam.y) < 0.02) cam.y = cty_; }
 }
@@ -210,7 +210,7 @@ function drawPrints(cx, cy, dt) {
 }
 const WET = { hold: 1.5, fade: 5, soak: 1.4 };   // seconds: you stay soaked this long after leaving, then take this long to dry; and about this long in knee-deep water to get fully soaked   // seconds your clothes stay fully dark after leaving the water, then the seconds they take to dry
 function updateWet(dt) {   // wading: how deep you are (it slopes down gradually from the shore), and how wet your clothes are
-  if (!ME) return; const dpx = waterDepth(ME.x, ME.y - 1), t = typeAt(ME.x, ME.y - 1), inW = (t === 1 || t === 6) && dpx > 0.4; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = dpx / 9; ME.wetH = 0; }
+  if (!ME) return; const t = typeAt(ME.x, ME.y - 1), dpx = (t === 1 || t === 6) ? waterDepth(ME.x, ME.y - 1) : 0, inW = (t === 1 || t === 6) && dpx > 0.4; if (ME.wasW == null) { ME.wasW = inW; ME.dry = 99; ME.sub = dpx / 9; ME.wetH = 0; }
   ME.splT = Math.max(0, (ME.splT || 0) - dt); if (inW !== ME.wasW) { ME.wasW = inW; if (!ME.splT) { ME.splT = 0.9; burst(ME.x, ME.y - 2, '#d8f0f8', inW ? 9 : 5, 42, 0.6, 100, 1); RP.push({ x: ME.x, y: ME.y, t: 0, max: 0.8, big: true }); } }   // a splash going in, a smaller one coming out (not again and again if you skim the edge)
   const tgt = dpx / 9; ME.sub = tgt < ME.sub ? Math.max(tgt, ME.sub - dt * 16) : Math.min(tgt, ME.sub + dt * 6);   // follows the ground's slope; coming up is quick, so your feet are above the ground as soon as you are out
   if (inW) { ME.dry = 0; ME.wetH = Math.max(ME.wetH || 0, dpx); ME.soak = Math.min(1, (ME.soak || 0) + dt * (0.2 + 0.8 * dpx / 9) / WET.soak); } else { ME.dry += dt; if (ME.dry > WET.hold) ME.soak = Math.max(0, (ME.soak || 0) - dt / WET.fade); }   // you get wet gradually: a brush with the edge barely dampens you, a proper wade soaks you in a second or two
@@ -261,10 +261,12 @@ function drawEnt(o, cx, cy, now) {
       if (o.frames) o.spr = o.frames[Math.floor(now * 6 + o.ph) % o.frames.length];   // the furnace's flames flicker and its smoke curls: five frames, six a second
       const spr = o.spr; if (!spr) return;
       if (o.k === 'shop') { drawShop(o, cx, cy, now); return; }
+      if (o.k === 'museum') { drawMuseum(o, cx, cy, now); return; }
       if (o.k === 'tree') { G0.globalAlpha = 0.3; G0.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); G0.globalAlpha = 1; }   // the crown's shadow on the ground
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
       const zo = o.pz > 0.02 ? Math.round(o.pz * PIT_U) : 0; if (zo) { g.save(); const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } g.translate(0, zo); }   // a stone that has dropped into a pit is drawn lower, and the higher ground in front hides its bottom
       if (o.ang) { const q = Math.round(o.ang / 1.5708) & 3, w = spr.width, h = spr.height; g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - cy) - h / 2); g.rotate(q * Math.PI / 2); g.drawImage(spr, -w / 2, -h / 2); g.restore(); } else if (Math.abs(o.lean) > 0.04) { const px = Math.round(o.x - spr.ax - cx), py = Math.round(o.y - spr.ay - cy), H = spr.height; for (let r = 0; r < H; r += 2) g.drawImage(spr, 0, r, spr.width, Math.min(2, H - r), px + Math.round(o.lean * Math.pow(1 - (r + 1) / H, 1.5) * 3), py + r, spr.width, Math.min(2, H - r)); } else if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
+      if (o.k === 'mprop' && spr.over) g.drawImage(spr.over, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));   // a case's glass goes over what is in it
       if (zo) g.restore();
       if (spr.nrm) litProp(o, spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), fa);   // sun shading and point lights on props that have a bump map
     }
@@ -272,6 +274,10 @@ function drawEnt(o, cx, cy, now) {
 }
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
 const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
+function drawMuseum(o, cx, cy, now) {   // the building, its doors, and the banner swaying a little on its ropes
+  const s = o.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy); g.drawImage(s, bx, by); g.drawImage(s.door, bx, by);
+  const sw = Math.round(Math.sin(now * 1.3 + o.x * 0.01) * 1.2), sg = s.sign; g.drawImage(sg, 0, 0, sg.width, 44, bx, by, sg.width, 44); g.drawImage(sg, 0, 44, sg.width, sg.height - 44, bx + sw, by + 44, sg.width, sg.height - 44);   // the ropes stay put, the banner swings
+}
 function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter and breathes: the shopkeeper's upper body rises a pixel now and then; the stall is drawn over them
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
   const up = Math.sin(now * 1.6 + (o.src.x | 0)) > 0.55 ? 1 : 0;
@@ -284,12 +290,12 @@ function render(now) {
   const sk = SHK.t > 0 ? SHK.a * SHK.t / SHK.d : 0, cx = Math.round(cam.x + (sk ? (Math.random() * 2 - 1) * sk : 0)), cy = Math.round(cam.y + (sk ? (Math.random() * 2 - 1) * sk : 0)), K = DPR * Z;
   // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
-  g.fillStyle = '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
+  g.fillStyle = W.theme === 'museum' ? '#14161c' : '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) fxWater(cx, cy, now);
   drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now); drawPrints(cx, cy, Math.min(0.1, Math.max(0, now - (drawPrints.last || now)))); drawPrints.last = now;
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
-  for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
+  for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (W.theme !== 'museum' && hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
   for (const r of RP) {
     const u = r.t / r.max, rx = 2 + u * (r.big ? 10 : 7), ry = rx * 0.5; g.fillStyle = `rgba(235,248,252,${(1 - u) * 0.8})`;
     for (let i = 0; i < 16; i++) { const a = i * 0.3927; g.fillRect(Math.round(r.x + Math.cos(a) * rx - cx), Math.round(r.y + Math.sin(a) * ry - cy), 1, 1); }
@@ -351,11 +357,14 @@ function loop(ts) {
 }
 const areaDraftKey = a => a === 'island' ? MAP_DRAFT_KEY : MAP_DRAFT_KEY + '.' + a;
 const defaultFor = a => a === 'cave' ? generateDefaultCave() : generateDefaultMap();
-function goArea(to, sx, sy) { // fade out, load the other map, drop the player at its target spot
+const AREAHOLES = {};
+function checkExits() { if (fading || !W.objs) return; for (const o of W.objs) if (o.k === 'mexit' && Math.abs(ME.x - o.x) < 10 && Math.abs(ME.y - o.y) < 22) { goArea(o.to, o.to === 'island' && MDOOR ? MDOOR.x : o.sx, o.to === 'island' && MDOOR ? MDOOR.y : o.sy, 'd'); return; } }   // walking into the museum's exit takes you outside, at its door
+function goArea(to, sx, sy, dir) { // fade out, load the other map, drop the player at its target spot
   if (fading) return; fading = true; const f = $('#fade'); f.classList.add('on'); sfx('pop');
   setTimeout(() => {
     const done = map => {
-      AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = 'd'; autoWalk = null; A = null; ME.hold = null;
+      AREAHOLES[AREA] = HOLES.slice(); HOLES.length = 0; (AREAHOLES[to] || []).forEach(h => HOLES.push(h));   // each place keeps its own dug holes
+      AREA = to; initWorld(map, false); ME.x = sx || W.spawn.x; ME.y = sy || W.spawn.y; ME.dir = dir || 'd'; ME.face = FACE_OF_DIR[ME.dir]; autoWalk = null; A = null; ME.hold = null;
       FX.leaves = [];
       setTimeout(() => { f.classList.remove('on'); fading = false; }, 140);
     };
