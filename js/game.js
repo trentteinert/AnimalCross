@@ -121,6 +121,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (['Space', 'KeyE', 'Enter'].includes(e.code)) actUp(); });
 function inputVec() {
+  if (fading) return [0, 0];   // you stop where you are while the screen changes
   if (joy.mag > 0) return [joy.vx * joy.mag, joy.vy * joy.mag];
   let x = 0, y = 0;
   if (keys.KeyA || keys.ArrowLeft) x -= 1; if (keys.KeyD || keys.ArrowRight) x += 1; if (keys.KeyW || keys.ArrowUp) y -= 1; if (keys.KeyS || keys.ArrowDown) y += 1;
@@ -367,7 +368,7 @@ function loop(ts) {
 const areaDraftKey = a => a === 'island' ? MAP_DRAFT_KEY : MAP_DRAFT_KEY + '.' + a;
 const defaultFor = a => a === 'cave' ? generateDefaultCave() : generateDefaultMap();
 const AREAHOLES = {};
-function checkExits() { if (fading || !W.objs) return; for (const o of W.objs) if (o.k === 'museum' && Math.abs(ME.x - o.x) < 14 && ME.y <= o.y - 27 && ME.y >= o.y - 42) { goArea('museum', 440, 236, 'l'); return; }   // walking into the museum's doors takes you in
+function checkExits() { if (fading || !W.objs) return; for (const o of W.objs) if (o.k === 'museum' && Math.abs(ME.x - o.x) < 17 && ME.y <= o.y - 22 && ME.y >= o.y - 42) { goArea('museum', 440, 236, 'l'); return; }   // walking into the museum's doors takes you in
   for (const o of W.objs) if (o.k === 'mexit' && Math.abs(ME.x - o.x) < 10 && Math.abs(ME.y - o.y) < 32) { goArea(o.to, o.to === 'island' && MDOOR ? MDOOR.x : o.sx, o.to === 'island' && MDOOR ? MDOOR.y : o.sy, 'd'); return; } }   // walking into the museum's exit takes you outside, at its door
 function goArea(to, sx, sy, dir) { // fade out, load the other map, drop the player at its target spot
   if (fading) return; fading = true; const f = $('#fade'); f.classList.add('on'); sfx('pop');
@@ -379,7 +380,7 @@ function goArea(to, sx, sy, dir) { // fade out, load the other map, drop the pla
       setTimeout(() => { f.classList.remove('on'); fading = false; }, 140);
     };
     fetch('maps/' + to + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(m => done(validMap(m) ? m : defaultFor(to))).catch(() => done(defaultFor(to)));
-  }, 330);
+  }, 200);
 }
 function loadMapData(cb) {
   AREA = qs.get('area') || 'island';
