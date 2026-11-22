@@ -166,7 +166,8 @@ function updateMe(dt) {
 // ---- update ---------------------------------------------------------------
 function tick(dt) {
   timeNow = performance.now() / 1000;
-  updateWet(dt); SUN = FEATURES.light && W.theme !== 'museum' ? sunAmt(hourNow()) : 1; checkExits();   // indoors there is no sun const night = isNight(); updateMe(dt);
+  // indoors there is no sun
+  updateWet(dt); SUN = FEATURES.light && W.theme !== 'museum' ? sunAmt(hourNow()) : 1; checkExits(); const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
   const st = actState();
