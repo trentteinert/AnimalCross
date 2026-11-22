@@ -280,11 +280,11 @@ function drawEnt(o, cx, cy, now) {
 }
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
 const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
-function drawMuseum(o, cx, cy, now) {   // one of the museum's pieces: the ground (steps, porch floor), the back (wall, doors, banner swaying on its ropes, roof) or the columns
+function drawMuseum(o, cx, cy, now) {   // one of the museum's pieces: the ground (steps, porch floor, side stairs), the back (wall, doors, roof) or the front (columns, the frieze over them, the banner swaying on its ropes)
   const s = o.owner.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy);
   if (o.part === 'ground') g.drawImage(s.ground, bx, by);
-  else if (o.part === 'cols') g.drawImage(s.cols, bx, by);
-  else { g.drawImage(s, bx, by); g.drawImage(s.door, bx, by); const sw = Math.round(Math.sin(now * 1.3 + o.x * 0.01) * 1.2), sg = s.sign; g.drawImage(sg, 0, 0, sg.width, 44, bx, by, sg.width, 44); g.drawImage(sg, 0, 44, sg.width, sg.height - 44, bx + sw, by + 44, sg.width, sg.height - 44); }   // the ropes stay put, the banner swings
+  else if (o.part === 'cols') { g.drawImage(s.cols, bx, by); const sw = Math.round(Math.sin(now * 1.3 + o.x * 0.01) * 1.2), sg = s.sign; g.drawImage(sg, 0, 0, sg.width, 44, bx, by, sg.width, 44); g.drawImage(sg, 0, 44, sg.width, sg.height - 44, bx + sw, by + 44, sg.width, sg.height - 44); }   // the ropes stay put, the banner swings
+  else { g.drawImage(s, bx, by); g.drawImage(s.door, bx, by); }
 }
 function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter and breathes: the shopkeeper's upper body rises a pixel now and then; the stall is drawn over them
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;

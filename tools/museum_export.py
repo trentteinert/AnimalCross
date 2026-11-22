@@ -48,10 +48,11 @@ def stack(imgs, ids, W, H, L=None):   # layers over each other; with L given, ea
 #   cols (the columns and their shading: you are in front of them on the steps and behind them when you are on the porch between them).
 # The doors (layer 7) and the banner (layers 16, 17) are separate so they can open and sway; the flattened copy of everything (layer 9... "Layer 9") and the faint outline box are left out.
 FOOT = 134
-l5 = I[5]; ground = l5.copy(); ground.paste((0, 0, 0, 0), (0, 0, W, FOOT)); wall = l5.copy(); wall.paste((0, 0, 0, 0), (0, FOOT, W, H))
+l5 = I[5]; wall = Image.new('RGBA', (W, H)); ground = l5.copy(); wall.paste(l5.crop((11, 0, 203, FOOT)), (11, 0)); ground.paste((0, 0, 0, 0), (11, 0, 203, FOOT))   # the wall face is the back; the porch floor, the steps and the plinth's side stairs are all ground
 back = Image.new('RGBA', (W, H))
-for im in [wall] + [I[i] for i in (10, 11, 12, 14, 15)]: back.alpha_composite(im)
-back.save('assets/props/museum_back.png'); ground.save('assets/props/museum_ground.png'); stack(I, [8, 9], W, H).save('assets/props/museum_cols.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
+for im in [wall] + [I[i] for i in (11, 12, 14, 15)]: back.alpha_composite(im)
+back.save('assets/props/museum_back.png'); ground.save('assets/props/museum_ground.png'); stack(I, [8, 9, 10], W, H).save('assets/props/museum_cols.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
+# cols = the columns and the frieze over them (the column tops tuck behind the frieze); the game draws the banner after them
 # collision: the layer called "collision" (any spelling that starts with "coll") in Museum_exterior.aseprite: red marks are solid, green marks are walkable (anything not red is walkable).
 col = [i for i, l in enumerate(L) if l['name'].strip().lower().startswith('coll') and i in I]
 cm = Image.new('RGBA', (W, H)); cp = cm.load()
