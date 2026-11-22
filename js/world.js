@@ -46,11 +46,12 @@ function waterDepth(x, y) {   // 0 on land, rising smoothly through the shallows
   const d = (v(x0, y0) * (1 - ax) + v(x0 + 1, y0) * ax) * (1 - ay) + (v(x0, y0 + 1) * (1 - ax) + v(x0 + 1, y0 + 1) * ax) * ay;
   return clamp((d - 0.5) * 6, 0, 9);
 }
-function elevAt(x, y) {   // how many pixels above the ground you stand: the museum's steps rise to its porch (about 12 pixels, climbing steadily over the steps)
+function elevAt(x, y) {   // how many pixels above the ground you stand: the museum's steps rise to its porch (12 pixels, climbing steadily over the steps). You stand at a ground position and are DRAWN that many pixels higher, so the walls' collision and the floor's drawing are lined up through museumRow() / its inverse
   if (!W.objs) return 0;
   for (const o of W.objs) if (o.k === 'museum' && o.spr.gmask) {
-    const lx = Math.floor(x - (o.x - 107)), ly = Math.floor(y - (o.y - 167)); if (lx < 0 || lx >= 215 || ly < 117 || ly >= 167 || !o.spr.gmask[ly * 215 + lx]) return 0;
-    return ly <= 149 ? 12 : Math.round((167 - ly) * 12 / 17);
+    const lx = Math.floor(x - (o.x - 107)), yg = y - (o.y - 167); if (lx < 0 || lx >= 215 || yg < 129 || yg >= 167) return 0;
+    const e = yg >= 150 ? (167 - yg) * 12 / 17 : 12, r = Math.round(yg - e); if (r < 0 || r >= 167 || !o.spr.gmask[r * 215 + lx]) return 0;   // only where there is porch or steps under where you are drawn
+    return Math.round(e);
   }
   return 0;
 }
@@ -245,7 +246,7 @@ function instantiate(s) {
   o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
-  if (o.k === 'museum') for (const [part, sy] of [['ground', -400], ['back', -33], ['cols', -19]]) W.objs.push({ k: 'museum' + part, x: o.x, y: o.y, sy: o.y + sy, spr: o.spr[part] || o.spr, part, owner: o });   // the building is drawn in three pieces at their own depths: the ground, the wall and roof (in front of you when you are south of the wall), the columns
+  if (o.k === 'museum') for (const [part, sy] of [['ground', -400], ['back', -21], ['cols', -11]]) W.objs.push({ k: 'museum' + part, x: o.x, y: o.y, sy: o.y + sy, spr: o.spr[part] || o.spr, part, owner: o });   // the building is drawn in three pieces at their own depths: the ground, the wall and roof (in front of you when you are south of the wall), the columns
   if (o.k === 'mprop' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'mprop', x: o.x, y: o.y, box: b });   // cases, the stage and the board are solid where they are painted
   if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }
