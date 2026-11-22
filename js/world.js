@@ -46,6 +46,14 @@ function waterDepth(x, y) {   // 0 on land, rising smoothly through the shallows
   const d = (v(x0, y0) * (1 - ax) + v(x0 + 1, y0) * ax) * (1 - ay) + (v(x0, y0 + 1) * (1 - ax) + v(x0 + 1, y0 + 1) * ax) * ay;
   return clamp((d - 0.5) * 6, 0, 9);
 }
+function elevAt(x, y) {   // how many pixels above the ground you stand: the museum's steps rise to its porch (about 12 pixels, climbing steadily over the steps)
+  if (!W.objs) return 0;
+  for (const o of W.objs) if (o.k === 'museum' && o.spr.gmask) {
+    const lx = Math.floor(x - (o.x - 107)), ly = Math.floor(y - (o.y - 167)); if (lx < 0 || lx >= 215 || ly < 117 || ly >= 167 || !o.spr.gmask[ly * 215 + lx]) return 0;
+    return ly <= 149 ? 12 : Math.round((167 - ly) * 12 / 17);
+  }
+  return 0;
+}
 function typeAt(px, py) {
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
   if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) { LASTD = 0; return 0; }

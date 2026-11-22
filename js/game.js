@@ -167,6 +167,7 @@ function updateMe(dt) {
 function tick(dt) {
   timeNow = performance.now() / 1000;
   // indoors there is no sun
+  { const et = elevAt(ME.x, ME.y); ME.elev = ME.elev == null ? et : ME.elev + (et - ME.elev) * Math.min(1, dt * 18); }   // you rise as you climb steps
   updateWet(dt); SUN = FEATURES.light && W.theme !== 'museum' ? sunAmt(hourNow()) : 1; checkExits(); const night = isNight(); updateMe(dt);
   target = findTarget(); updateAct(dt); if (A) target = null;
   if (ME.bt > 0) { ME.bt -= dt; if (ME.bt <= 0) ME.bubble = null; }
@@ -232,7 +233,7 @@ function drawChar(e, cx, cy, now) {
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME && (ME.wetH || 0) >= 1 && ME.wet > 0.1 ? Math.max(1, Math.round(clamp(ME.wet, 0, 1) * 4)) : 0, wh = e === ME ? Math.max(1, Math.round(ME.wetH * clamp(ME.wet * 1.3, 0, 1))) : 0, spr = wl ? wetOf(spr0, wl, wh) : spr0;   // wet: darker and up to the knee, shrinking as you dry
   const wy = e === ME && ME.sub > 0.03 ? Math.round(e.y - cy - 9 * ME.sub) : null;   // the water line on your legs
-  if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
+  if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy) - (e === ME ? Math.round(ME.elev || 0) : 0));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (wy != null) { g.save(); g.beginPath(); g.rect(-1000, -1000, 3000, 1000 + wy); g.clip(); }   // only what is above the water is drawn normally
   if (anim) {
@@ -253,7 +254,7 @@ function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'leaf': drawLeaf(o.l, cx, cy); return;
     case 'me': case 'npc': {
-      const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U); g.save();
+      const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U) - (o === ME ? Math.round(ME.elev || 0) : 0); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
       if (o === ME) g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)));
       g.translate(0, zo); drawChar(o, cx, cy, now); g.restore(); break;
@@ -344,7 +345,7 @@ function render(now) {
   drawHoldText(cx, cy);
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
     if (o === ME && ME.hold) continue;
-    if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)) + Math.round(pitZ(o.x, o.y) * PIT_U)); }
+    if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)) + Math.round(pitZ(o.x, o.y) * PIT_U) - Math.round(ME.elev || 0)); }
     const nm = o === ME ? S.name : o.name, x = Math.round(o.x - cx), y = Math.round(o.y - 46 - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText(nm, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x, y);
     if (o.bubble) { const bw = Math.max(14, g.measureText(o.bubble).width + 8), by = y - 14; g.fillStyle = '#f5e9cf'; g.fillRect(Math.round(x - bw / 2), by, Math.round(bw), 11); g.fillStyle = '#2a1c1c'; g.fillRect(Math.round(x - bw / 2), by + 11, Math.round(bw), 1); g.fillRect(x - 1, by + 12, 2, 2); g.fillStyle = '#f5e9cf'; g.fillRect(x - 1, by + 11, 2, 2); g.fillStyle = '#2a1c1c'; g.fillText(o.bubble, x, by + 8); }

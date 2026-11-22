@@ -270,7 +270,7 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
 }
 function drawHoldText(cx, cy) {   // over the held find: its name in the rarity colour and, for artifacts, how intact it is, each with a thin dark shadow
   if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', x = Math.round(ME.x - cx);
-  const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
+  const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (ME.elev || 0) - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
   g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   const line = (t, yy, c, f) => { g.font = f; g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(t, x + 1, yy + 1); g.fillText(t, x, yy + 1); g.fillText(t, x + 1, yy); g.fillStyle = c; g.fillText(t, x, yy); };
   if (big) { line(r.pct + '% intact', y, pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); line(txt, y - 9, col, 'bold 7px "Pixelify Sans", monospace'); }
@@ -361,7 +361,7 @@ function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-t
 function drawGhost(L, cx, cy) {
   const e = ME, spr = heroSprite(faceIdx(e), (A && A.k === 'dig') || ME.hold ? 0 : heroFrameOf(e), null), w = spr.width, h = spr.height;
   const bob = A && A.k === 'dig' ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0, z = pitZ(e.x, e.y);
-  const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U);
+  const sx = Math.round(e.x - spr.ax - cx), sy = Math.round(e.y - spr.ay - cy + bob) + Math.round(z * PIT_U) - Math.round(ME.elev || 0);
   const near = (x0, y0, sw, sh) => x0 + sw > sx && x0 < sx + w && y0 + sh > sy && y0 < sy + h;
   const front = (GHOST_MODE === 'fade' ? [] : L.slice(L.indexOf(e) + 1).filter(o => o.spr && GHOST_BIG.has(o.k) && near(o.x - o.spr.ax - cx, o.y - o.spr.ay - cy, o.spr.width, o.spr.height))).map(o => ({ spr: o.spr, px: Math.round(o.x - o.spr.ax - cx), py: Math.round(o.y - o.spr.ay - cy) }));   // things drawn after you that overlap you
   const ry = z > 0.01 ? rimY(e.x, e.y) : null;
