@@ -232,12 +232,13 @@ function instantiate(s) {
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
     default: return;
   }
-  let sd = SOLIDS[s.k]; if (s.k === 'mprop' && o.spr) { const w = o.spr.width; sd = /^case_/.test(s.n) || s.n === 'stage' ? [[-w / 2, -14, w, 14]] : s.n === 'board' ? [[-4, -4, 8, 4]] : null; }   // cases and the stage are solid across their base
+  let sd = SOLIDS[s.k];
   
   o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
   if (o.k === 'museum') for (const [part, sy] of [['ground', -400], ['back', -33], ['cols', -19]]) W.objs.push({ k: 'museum' + part, x: o.x, y: o.y, sy: o.y + sy, spr: o.spr[part] || o.spr, part, owner: o });   // the building is drawn in three pieces at their own depths: the ground, the wall and roof (in front of you when you are south of the wall), the columns
+  if (o.k === 'mprop' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'mprop', x: o.x, y: o.y, box: b });   // cases, the stage and the board are solid where they are painted
   if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }
 function rebuildObjects() {

@@ -91,6 +91,17 @@ function makeCamp() {
   RC(c, 40, 26, 14, 12, '#a8743a'); RC(c, 40, 26, 14, 2, '#c9965a'); RC(c, 46, 26, 2, 12, '#7a5028'); RC(c, 29, 0, 2, 6, '#6b4423'); RC(c, 31, 0, 6, 3, '#f2b84b');
   return anchor(OL(c), 31, 40);
 }
+function maskBoxes(cv, ax, ay, whole) {   // a picture's opaque pixels as a list of solid boxes [x, y, w, h] relative to its anchor (rows with the same run are merged); `whole` makes it one box around everything
+  const w = cv.width, h = cv.height, d = cv.g.getImageData(0, 0, w, h).data;
+  if (whole) { let x0 = w, x1 = -1, y0 = h, y1 = -1; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 8) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } return x1 < 0 ? [] : [[x0 - ax, y0 - ay, x1 - x0 + 1, y1 - y0 + 1]]; }
+  const out = []; let open = [];
+  for (let y = 0; y <= h; y++) {
+    const runs = []; if (y < h) { let s = -1; for (let x = 0; x <= w; x++) { const on = x < w && d[(y * w + x) * 4 + 3] > 8; if (on && s < 0) s = x; if (!on && s >= 0) { runs.push([s, x - s]); s = -1; } } }
+    const cur = []; for (const r of runs) { const k = r[0] + ':' + r[1], f = open.find(o => o.k === k); cur.push(f || { k, x: r[0], w: r[1], y0: y }); }
+    for (const o of open) if (!cur.includes(o)) out.push([o.x - ax, o.y0 - ay, o.w, y - o.y0]); open = cur;
+  }
+  return out;
+}
 function buildSprites() {
   SPR.camp = makeCamp();
   const T = ASSET.tree, im = ASSET.img.tree;   // the tree is three layers: trunk, crown (drawn over everything, it sways) and the crown's shadow
@@ -119,7 +130,8 @@ function buildSprites() {
       for (let y = 0; y <= im.height; y++) { const runs = y < im.height ? rows[y] : [], cur = []; for (const r of runs) { const k = r[0] + ':' + r[1], f = open.find(o => o.k === k); cur.push(f ? f : { k, x: r[0], w: r[1], y0: y }); } for (const o of open) if (!cur.includes(o)) b.col.push([o.x - 107, o.y0 - 167, o.w, y - o.y0]); open = cur; }
     }
   }   // the museum from outside: building, doors and hanging banner (same size and origin; anchored at the bottom middle of the steps)
-  if (ASSET.img.museum_props && ASSET.mProps) { SPR.mprop = {}; for (const n in ASSET.mProps) { const d = ASSET.mProps[n], c = cut(ASSET.img.museum_props, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ax = d.ax; c.ay = d.ay; if (d.over) { c.over = cut(ASSET.img.museum_props, { x: d.ox, y: d.sy, w: d.w, h: d.h }); c.overA = d.overAlpha == null ? 1 : d.overAlpha; c.overM = d.overBlend || 'normal';
+  if (ASSET.img.museum_props && ASSET.mProps) { SPR.mprop = {}; for (const n in ASSET.mProps) { const d = ASSET.mProps[n], c = cut(ASSET.img.museum_props, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ax = d.ax; c.ay = d.ay; if (/^case_|^stage$|^board$/.test(n)) c.col = maskBoxes(c, d.ax, d.h, n === 'stage');   // the brown parts of a case (and the whole stage) are solid
+      if (d.over) { c.over = cut(ASSET.img.museum_props, { x: d.ox, y: d.sy, w: d.w, h: d.h }); c.overA = d.overAlpha == null ? 1 : d.overAlpha; c.overM = d.overBlend || 'normal';
       if (c.overM === 'multiply') {   // multiply needs something under it: where the case itself is under the glass it is multiplied as it is; where only the floor is, the same multiply is worked out once against the marble's colour
         const w = c.width, h = c.height, bd = c.g.getImageData(0, 0, w, h).data, gd = c.over.g.getImageData(0, 0, w, h), ob = mk(w, h), og = mk(w, h), oi = ob.g.createImageData(w, h), gi = og.g.createImageData(w, h), F = [209, 205, 191];
         for (let i = 0; i < w * h * 4; i += 4) { const a = gd.data[i + 3]; if (!a) continue; if (bd[i + 3] > 8) { oi.data[i] = gd.data[i]; oi.data[i + 1] = gd.data[i + 1]; oi.data[i + 2] = gd.data[i + 2]; oi.data[i + 3] = a; } else { gi.data[i] = F[0] * gd.data[i] / 255; gi.data[i + 1] = F[1] * gd.data[i + 1] / 255; gi.data[i + 2] = F[2] * gd.data[i + 2] / 255; gi.data[i + 3] = a; } }
