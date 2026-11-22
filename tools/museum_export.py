@@ -43,17 +43,29 @@ def stack(imgs, ids, W, H, L=None):   # layers over each other; with L given, ea
         elif op < 1: t = imgs[i].copy(); t.putalpha(t.getchannel('A').point(lambda v: round(v * op))); o.alpha_composite(t)
         else: o.alpha_composite(imgs[i])
     return o
-# 5 base and steps, 8 column shading, 9 columns, 10 frieze, 11 roof, 12 pediment, 14 and 15 the roof's louvres, 7 doors, 16 banner, 17 its lettering. 18 is a flattened copy of everything.
-stack(I, [5, 8, 9, 10, 11, 12, 14, 15], W, H).save('assets/props/museum_building.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
-# collision: paint a layer called "Collision" (any colour, anything solid) in Museum_exterior.aseprite and that is what blocks you. Without one, a default is made:
-# the whole building and its porch are solid, from the wall down to the front of the columns, except the pocket in front of the doors; the steps in front stay walkable.
-col = [i for i, l in enumerate(L) if l['name'].strip().lower() in ('collision', 'collisions', 'col') and i in I]
-if col: cm = Image.new('RGBA', (W, H)); [cm.alpha_composite(I[i]) for i in col]; print('collision layer found:', cm.getbbox())
+# The building is cut into three pieces that are drawn at different depths, so you can stand on the porch and steps in front of the walls but go behind everything when you walk round the back:
+#   ground (the porch floor and steps, rows 134 and below of layer 5: always under you), back (the wall face and plinth sides, frieze, roof, pediment: you are in front of it when you are south of the wall, behind it when you are north),
+#   cols (the columns and their shading: you are in front of them on the steps and behind them when you are on the porch between them).
+# The doors (layer 7) and the banner (layers 16, 17) are separate so they can open and sway; the flattened copy of everything (layer 9... "Layer 9") and the faint outline box are left out.
+FOOT = 134
+l5 = I[5]; ground = l5.copy(); ground.paste((0, 0, 0, 0), (0, 0, W, FOOT)); wall = l5.copy(); wall.paste((0, 0, 0, 0), (0, FOOT, W, H))
+back = Image.new('RGBA', (W, H))
+for im in [wall] + [I[i] for i in (10, 11, 12, 14, 15)]: back.alpha_composite(im)
+back.save('assets/props/museum_back.png'); ground.save('assets/props/museum_ground.png'); stack(I, [8, 9], W, H).save('assets/props/museum_cols.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
+# collision: the layer called "collision" (any spelling that starts with "coll") in Museum_exterior.aseprite: red marks are solid, green marks are walkable (anything not red is walkable).
+col = [i for i, l in enumerate(L) if l['name'].strip().lower().startswith('coll') and i in I]
+cm = Image.new('RGBA', (W, H)); cp = cm.load()
+if col:
+    src = I[col[0]].load()
+    for y in range(H):
+        for x in range(W):
+            r, g, b, a = src[x, y]
+            if a > 8 and r > 180 and g < 140 and b < 140: cp[x, y] = (255, 0, 0, 255)
+    print('collision layer found:', cm.getbbox())
 else:
-    cm = Image.new('RGBA', (W, H)); px = cm.load()
     for (x0, y0, x1, y1) in ((8, 100, 89, 148), (125, 100, 207, 148), (89, 100, 125, 134)):
         for y in range(y0, y1):
-            for x in range(x0, x1): px[x, y] = (255, 0, 0, 255)
+            for x in range(x0, x1): cp[x, y] = (255, 0, 0, 255)
 cm.save('assets/props/museum_col.png')
 print('exterior', W, H, 'door bbox', I[7].getbbox(), 'sign bbox', stack(I, [16, 17], W, H).getbbox())
 

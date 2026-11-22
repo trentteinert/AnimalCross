@@ -262,7 +262,8 @@ function drawEnt(o, cx, cy, now) {
       if (o.frames) o.spr = o.frames[Math.floor(now * 6 + o.ph) % o.frames.length];   // the furnace's flames flicker and its smoke curls: five frames, six a second
       const spr = o.spr; if (!spr) return;
       if (o.k === 'shop') { drawShop(o, cx, cy, now); return; }
-      if (o.k === 'museum') { drawMuseum(o, cx, cy, now); return; }
+      if (o.k === 'museum') return;   // the museum itself draws nothing: its three pieces do (below)
+      if (o.part) { drawMuseum(o, cx, cy, now); return; }
       if (o.k === 'tree') { G0.globalAlpha = 0.3; G0.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); G0.globalAlpha = 1; }   // the crown's shadow on the ground
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
       const zo = o.pz > 0.02 ? Math.round(o.pz * PIT_U) : 0; if (zo) { g.save(); const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } g.translate(0, zo); }   // a stone that has dropped into a pit is drawn lower, and the higher ground in front hides its bottom
@@ -279,9 +280,11 @@ function drawEnt(o, cx, cy, now) {
 }
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
 const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
-function drawMuseum(o, cx, cy, now) {   // the building, its doors, and the banner swaying a little on its ropes
-  const s = o.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy); g.drawImage(s, bx, by); g.drawImage(s.door, bx, by);
-  const sw = Math.round(Math.sin(now * 1.3 + o.x * 0.01) * 1.2), sg = s.sign; g.drawImage(sg, 0, 0, sg.width, 44, bx, by, sg.width, 44); g.drawImage(sg, 0, 44, sg.width, sg.height - 44, bx + sw, by + 44, sg.width, sg.height - 44);   // the ropes stay put, the banner swings
+function drawMuseum(o, cx, cy, now) {   // one of the museum's pieces: the ground (steps, porch floor), the back (wall, doors, banner swaying on its ropes, roof) or the columns
+  const s = o.owner.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy);
+  if (o.part === 'ground') g.drawImage(s.ground, bx, by);
+  else if (o.part === 'cols') g.drawImage(s.cols, bx, by);
+  else { g.drawImage(s, bx, by); g.drawImage(s.door, bx, by); const sw = Math.round(Math.sin(now * 1.3 + o.x * 0.01) * 1.2), sg = s.sign; g.drawImage(sg, 0, 0, sg.width, 44, bx, by, sg.width, 44); g.drawImage(sg, 0, 44, sg.width, sg.height - 44, bx + sw, by + 44, sg.width, sg.height - 44); }   // the ropes stay put, the banner swings
 }
 function drawShop(o, cx, cy, now) {   // the merchant stands behind the counter and breathes: the shopkeeper's upper body rises a pixel now and then; the stall is drawn over them
   const s = o.spr, m = s.merchant, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
@@ -313,7 +316,7 @@ function render(now) {
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
   lightGround(cx, cy, now);   // night tint and the glow on the ground (light.js), then the things standing on it are drawn on their own layer
   entBegin();
-  L.sort((a, b) => a.y - b.y); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
+  L.sort((a, b) => (a.sy == null ? a.y : a.sy) - (b.sy == null ? b.y : b.sy)); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   entEnd(cx, cy, now);   // tint that layer, add the light on props and people, lay it over the ground
   { const tcn = FEATURES.light ? nightTint() : null; for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = tcn ? tintHex(p.col, tcn) : p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1; }   // dust and leaves, drawn over the finished scene in the night's tint
