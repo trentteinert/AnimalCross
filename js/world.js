@@ -214,7 +214,7 @@ function validMap(m) {
   return m.tiles.length === h && m.tiles.every(r => typeof r === 'string' && r.length === w);
 }
 
-const SOLIDS = { museum: [[-100, -26, 200, 26]], camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-14, -6, 28, 6], 22], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4], 22], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
+const SOLIDS = { camp: [[-26, -8, 52, 8], 20], shop: [[-24, -9, 48, 9], 22], bench: [[-14, -6, 28, 6], 22], campfire: [[-6, -3, 12, 3]], anvil: [[-9, -4, 18, 4], 22], hammer: [[-2, -2, 4, 2]], furnace: [[-20, -9, 40, 9], 22], tree: [[-3, -4, 6, 4]] };   // collision boxes (and press range) of the things still in the game; add entries here for new objects
 function instantiate(s) {
   let o;
   switch (s.k) {
@@ -237,6 +237,7 @@ function instantiate(s) {
   o.x = s.x; o.y = s.y; o.src = s;
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
+  if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }
 function rebuildObjects() {
   W.objs = []; W.solids = []; W.trees = []; W.bushes = []; W.lamps = []; W.fires = []; W.glows = []; W.patches = []; 
@@ -326,8 +327,7 @@ function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
-    if (Math.abs(o.x - x) > 40 || Math.abs(o.y - y) > 30) continue;
-    const bx = o.x + o.box[0], by = o.y + o.box[1];
+    const bx = o.x + o.box[0], by = o.y + o.box[1]; if (x < bx - 16 || x > bx + o.box[2] + 16 || y < by - 16 || y > by + o.box[3] + 16) continue;   // only the solids near you (judged by their own edges, so a wide building is not skipped)
     if (x1 > bx && x0 < bx + o.box[2] && y1 > by && y0 < by + o.box[3]) return true;
   }
   return false;

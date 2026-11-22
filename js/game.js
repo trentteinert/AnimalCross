@@ -267,7 +267,11 @@ function drawEnt(o, cx, cy, now) {
       const fa = o.k === 'tree' ? 1 : behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
       const zo = o.pz > 0.02 ? Math.round(o.pz * PIT_U) : 0; if (zo) { g.save(); const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } g.translate(0, zo); }   // a stone that has dropped into a pit is drawn lower, and the higher ground in front hides its bottom
       if (o.ang) { const q = Math.round(o.ang / 1.5708) & 3, w = spr.width, h = spr.height; g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - cy) - h / 2); g.rotate(q * Math.PI / 2); g.drawImage(spr, -w / 2, -h / 2); g.restore(); } else if (Math.abs(o.lean) > 0.04) { const px = Math.round(o.x - spr.ax - cx), py = Math.round(o.y - spr.ay - cy), H = spr.height; for (let r = 0; r < H; r += 2) g.drawImage(spr, 0, r, spr.width, Math.min(2, H - r), px + Math.round(o.lean * Math.pow(1 - (r + 1) / H, 1.5) * 3), py + r, spr.width, Math.min(2, H - r)); } else if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
-      if (o.k === 'mprop' && spr.over) g.drawImage(spr.over, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy));   // a case's glass goes over what is in it
+      if (o.k === 'mprop' && spr.over) {
+        const qx = Math.round(o.x - spr.ax - cx), qy = Math.round(o.y - spr.ay - cy); g.globalAlpha = spr.overA;
+        if (spr.overB) { g.drawImage(spr.overG, qx, qy); g.globalCompositeOperation = 'multiply'; g.drawImage(spr.overB, qx, qy); g.globalCompositeOperation = 'source-over'; } else g.drawImage(spr.over, qx, qy);
+        g.globalAlpha = 1;
+      }   // a case's glass goes over what is in it, as you set it in the file: multiply at 39%
       if (zo) g.restore();
       if (spr.nrm) litProp(o, spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy), fa);   // sun shading and point lights on props that have a bump map
     }

@@ -69,7 +69,7 @@ function findTarget() {
   };
   for (const o of W.objs) {
     if (Math.abs(o.x - px) > 60 || Math.abs(o.y - py) > 60) continue;
-    if (o.k === 'museum') { if (Math.abs(px - o.x) < 26 && py > o.y - 8 && py < o.y + 22) consider('museum', o, o.x, o.y - 10, Math.hypot(px - o.x, py - (o.y + 2)) * 0.5, 40, -14); continue; }   // the door is in the middle of the steps
+    if (o.k === 'museum') { if (Math.abs(px - o.x) < 24 && py > o.y - 40 && py < o.y + 8) consider('museum', o, o.x, o.y - 30, Math.hypot(px - o.x, py - (o.y - 22)) * 0.5, 40, -14); continue; }   // the door is in the middle of the steps
     if (SHOPK.includes(o.k)) { const bd = distToBox(px, py, o), bx = o.x - px, by = o.y - 4 - py, bl = Math.hypot(bx, by) || 1; if (bd < 6 || (bx / bl * fv[0] + by / bl * fv[1]) > 0.1) consider(o.k, o, o.x, o.y, bd, o.ia, -14); }   // a station you are close to and facing wins over the ground beside it
   }
   let sb = null;   // the dig spot: the site tile just in front of you

@@ -21,7 +21,7 @@ def read(path):
     for _ in range(n):
         csz, ct = struct.unpack_from('<IH', d, p); b = p + 6
         if ct == 0x2004:
-            f, t, l = struct.unpack_from('<HHH', d, b); nl = struct.unpack_from('<H', d, b + 16)[0]; layers.append({'flags': f, 'type': t, 'lv': l, 'name': d[b + 18:b + 18 + nl].decode()})
+            f, t, l = struct.unpack_from('<HHH', d, b); bm, op = struct.unpack_from('<HB', d, b + 10); nl = struct.unpack_from('<H', d, b + 16)[0]; layers.append({'flags': f, 'type': t, 'lv': l, 'blend': bm, 'opacity': op, 'name': d[b + 18:b + 18 + nl].decode()})   # blend: 0 normal, 1 multiply, 2 screen
         elif ct == 0x2005:
             li, x, y, op, ctype, z = struct.unpack_from('<HhhBHh', d, b); w, h = struct.unpack_from('<HH', d, b + 16)
             if ctype in (0, 2):
@@ -32,12 +32,29 @@ def read(path):
 
 # ---------------------------------------------------------------------------------------------------------------- exterior
 W, H, L, I = read('tools/src/Museum_exterior.aseprite')
-def stack(imgs, ids, W, H):
+def stack(imgs, ids, W, H, L=None):   # layers over each other; with L given, each layer's own blend mode (multiply, screen) and opacity are applied
     o = Image.new('RGBA', (W, H))
-    for i in ids: o.alpha_composite(imgs[i])
+    for i in ids:
+        mode = L[i]['blend'] if L else 0; op = (L[i]['opacity'] / 255) if L else 1
+        if mode in (1, 2):
+            from PIL import ImageChops
+            top = imgs[i]; bl = (ImageChops.multiply if mode == 1 else ImageChops.screen)(o.convert('RGB'), top.convert('RGB')); m = top.getchannel('A').point(lambda v: round(v * op))
+            res = Image.composite(bl, o.convert('RGB'), m).convert('RGBA'); res.putalpha(Image.eval(ImageChops.lighter(o.getchannel('A'), m), lambda v: v)); o = res
+        elif op < 1: t = imgs[i].copy(); t.putalpha(t.getchannel('A').point(lambda v: round(v * op))); o.alpha_composite(t)
+        else: o.alpha_composite(imgs[i])
     return o
 # 5 base and steps, 8 column shading, 9 columns, 10 frieze, 11 roof, 12 pediment, 14 and 15 the roof's louvres, 7 doors, 16 banner, 17 its lettering. 18 is a flattened copy of everything.
 stack(I, [5, 8, 9, 10, 11, 12, 14, 15], W, H).save('assets/props/museum_building.png'); I[7].save('assets/props/museum_door.png'); stack(I, [16, 17], W, H).save('assets/props/museum_sign.png')
+# collision: paint a layer called "Collision" (any colour, anything solid) in Museum_exterior.aseprite and that is what blocks you. Without one, a default is made:
+# the whole building and its porch are solid, from the wall down to the front of the columns, except the pocket in front of the doors; the steps in front stay walkable.
+col = [i for i, l in enumerate(L) if l['name'].strip().lower() in ('collision', 'collisions', 'col') and i in I]
+if col: cm = Image.new('RGBA', (W, H)); [cm.alpha_composite(I[i]) for i in col]; print('collision layer found:', cm.getbbox())
+else:
+    cm = Image.new('RGBA', (W, H)); px = cm.load()
+    for (x0, y0, x1, y1) in ((8, 100, 89, 148), (125, 100, 207, 148), (89, 100, 125, 134)):
+        for y in range(y0, y1):
+            for x in range(x0, x1): px[x, y] = (255, 0, 0, 255)
+cm.save('assets/props/museum_col.png')
 print('exterior', W, H, 'door bbox', I[7].getbbox(), 'sign bbox', stack(I, [16, 17], W, H).getbbox())
 
 # ---------------------------------------------------------------------------------------------------------------- interior
@@ -81,15 +98,18 @@ walk = list(range(n_plain, len(tset)))
 json.dump({'size': 16, 'cols': COLS, 'count': len(tset), 'floor_from': n_plain, 'walk': walk, 'note': 'ids below floor_from are wall, frame and void; from floor_from on, each 4 ids are the quarters (TL, TR, BL, BR) of one 32x32 marble tile'}, open('assets/museum/tileset.json', 'w'), indent=1)
 
 # props: cut each piece to its bounding box, pack into one sheet, remember where it stood in the room
-def piece(ids): im = stack(S, ids, W, H); return im, im.getbbox()
+def piece(ids, blend=False): im = stack(S, ids, W, H, L if blend else None); return im, im.getbbox()
 PROPS = {  # name: (base layers, over layers (drawn after what stands inside), kind)
     'case_3x3': ([65, 66], [67]), 'case_3x2': ([69], [70]), 'case_3x1': ([72], [73]), 'case_2x2': ([75], [76]), 'case_2x1': ([78], [79]), 'case_1x2': ([81], [82]), 'case_1x1': ([84], [87]),
     'stage': ([89, 90, 91], []), 'board': ([92], []), 'panel_fossils': ([99, 100], []), 'panel_scorpion': ([96, 97], []), 'plaque': ([94], []),
     'window_rect': ([60, 61, 62], []), 'window_arch': ([57, 58, 59], []), 'alcove': ([2], [])}
 sheet = []; meta = {}; x = 0; objs = []
 for name, (base, over) in PROPS.items():
-    bi, bb = piece(base); oi, ob = piece(over) if over else (None, None); boxes = [b for b in (bb, ob) if b]; x0, y0, x1, y1 = min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes)
-    meta[name] = {'w': x1 - x0, 'h': y1 - y0, 'ax': (x1 - x0) // 2, 'ay': y1 - y0, 'over': bool(over)}; sheet.append((name, bi.crop((x0, y0, x1, y1)), oi.crop((x0, y0, x1, y1)) if oi else None))
+    bi, bb = piece(base, name.startswith('window')); oi, ob = piece(over) if over else (None, None);   # window glass is baked in with its screen blend; a case's glass stays a separate picture, multiplied on top when it is drawn
+    gl = L[over[0]] if over else None; boxes = [b for b in (bb, ob) if b]; x0, y0, x1, y1 = min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes)
+    meta[name] = {'w': x1 - x0, 'h': y1 - y0, 'ax': (x1 - x0) // 2, 'ay': y1 - y0, 'over': bool(over)}
+    if gl: meta[name]['overBlend'] = {0: 'normal', 1: 'multiply', 2: 'screen'}.get(gl['blend'], 'normal'); meta[name]['overAlpha'] = round(gl['opacity'] / 255, 3);   # your glass layers: multiply at 39%
+    sheet.append((name, bi.crop((x0, y0, x1, y1)), oi.crop((x0, y0, x1, y1)) if oi else None))
     objs.append({'k': 'mprop', 'n': name, 'x': (x0 + x1) // 2, 'y': y1})
 SW = max(m['w'] for m in meta.values()) + 2; SH = sum(m['h'] + 2 for m in meta.values()) * 2
 sp = Image.new('RGBA', (SW * 2, SH // 2 + 4)); y = 0

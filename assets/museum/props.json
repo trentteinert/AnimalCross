@@ -5,6 +5,8 @@
   "ax": 24,
   "ay": 59,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 0,
   "ox": 90
@@ -15,6 +17,8 @@
   "ax": 24,
   "ay": 54,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 61,
   "ox": 90
@@ -25,6 +29,8 @@
   "ax": 24,
   "ay": 42,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 117,
   "ox": 90
@@ -35,6 +41,8 @@
   "ax": 16,
   "ay": 55,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 161,
   "ox": 90
@@ -45,6 +53,8 @@
   "ax": 16,
   "ay": 42,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 218,
   "ox": 90
@@ -55,6 +65,8 @@
   "ax": 8,
   "ay": 55,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 262,
   "ox": 90
@@ -65,6 +77,8 @@
   "ax": 8,
   "ay": 43,
   "over": true,
+  "overBlend": "multiply",
+  "overAlpha": 0.388,
   "sx": 0,
   "sy": 319,
   "ox": 90
