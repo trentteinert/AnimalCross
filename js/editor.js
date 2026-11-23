@@ -15,7 +15,23 @@ const PAL = [
   { k: 'decor', d: 'rock0', n: 'Rock' }, { k: 'decor', d: 'rock1', n: 'Big rock' }, { k: 'decor', d: 'pebble0', n: 'Pebble 1' }, { k: 'decor', d: 'pebble1', n: 'Pebble 2' }, { k: 'decor', d: 'pebble2', n: 'Pebble 3' }
   // (the nature and decoration sprites were removed while they are remade: add new palette entries here)
 ];
-const LABELS = { camp: 'Camp', shop: 'Stall', bench: 'Workbench', campfire: 'Campfire', anvil: 'Anvil', hammer: 'Hammer', furnace: 'Furnace', tree: 'Tree', decor: 'Scenery' };
+let EPAL = PAL;   // the palette in use: the museum has its own (cases with every item, wall panels, stage...)
+function museumPal() {
+  const P = [], I = ASSET.mItems || {}, M = ASSET.mProps || {}, nice = { case_1x1: '1x1 case', case_2x1: '2x1 case', case_2x2: '2x2 case', case_3x2: '3x2 case (permanent exhibit)', case_3x3: '3x3 case (old)', case_3x1: '3x1 case (old)', case_1x2: '1x2 case (old)' };
+  for (const c of ['case_1x1', 'case_2x1', 'case_2x2', 'case_3x2']) { if (!M[c]) continue; P.push({ k: 'mprop', pn: c, n: nice[c] + ': empty' }); for (const id in I) if (I[id].case === c) P.push({ k: 'mprop', pn: c, item: id, n: nice[c] + ': ' + I[id].label }); }
+  for (const n in M) if (!/^case_(1x1|2x1|2x2|3x2)$/.test(n)) P.push({ k: 'mprop', pn: n, n: nice[n] || n.replace(/_/g, ' ') });
+  return P;
+}
+const mpCache = {};
+function mpropPic(pn, item, st) {   // a museum prop as one picture (case + what is in it + glass), for the palette and the editor's ghost
+  const key = pn + '|' + (item || '') + '|' + (st | 0); if (mpCache[key]) return mpCache[key];
+  const s = SPR.mprop && SPR.mprop[pn]; if (!s) return null; const it = item && SPR.mitem && SPR.mitem[item], pic = it ? (st > 0 && it.stages ? it.stages[Math.min(st, it.stages.length) - 1] : it) : null;
+  const top = it ? Math.min(0, it.iy) : 0, h = Math.max(s.height, it ? it.iy + it.height : 0) - top, c = mk(s.width, h); c.g.drawImage(s, 0, -top);
+  if (pic) c.g.drawImage(pic, it.ix, it.iy - top);
+  if (s.over) { c.g.globalAlpha = s.overA; if (s.overB) { c.g.drawImage(s.overG, 0, -top); c.g.globalCompositeOperation = 'multiply'; c.g.drawImage(s.overB, 0, -top); c.g.globalCompositeOperation = 'source-over'; } else c.g.drawImage(s.over, 0, -top); c.g.globalAlpha = 1; }
+  c.ax = s.ax; c.ay = s.ay - top; return mpCache[key] = c;
+}
+const LABELS = { mprop: 'Museum', camp: 'Camp', shop: 'Stall', bench: 'Workbench', campfire: 'Campfire', anvil: 'Anvil', hammer: 'Hammer', furnace: 'Furnace', tree: 'Tree', decor: 'Scenery' };
 
 function entrySpr(e) {
   switch (e.k) {
@@ -28,6 +44,7 @@ function entrySpr(e) {
     case 'furnace': return SPR.furnace;
     case 'tree': return SPR.tree && SPR.tree.trunk;
     case 'decor': return SPR.decor[e.d];
+    case 'mprop': return mpropPic(e.pn, e.item, 0);
   }
 }
 function runtimeSpr(o) {
@@ -36,9 +53,9 @@ function runtimeSpr(o) {
 const anc = s => ({ ax: s.ax != null ? s.ax : s.width / 2, ay: s.ay != null ? s.ay : s.height });
 const iconCache2 = {};
 function palIcon(i) {
-  if (iconCache2[i]) return iconCache2[i];
-  const s = entrySpr(PAL[i]), c = mk(40, 40), sc = Math.min(40 / s.width, 40 / s.height, 2); const w = Math.round(s.width * sc), h = Math.round(s.height * sc);
-  c.g.drawImage(s, Math.round((40 - w) / 2), Math.round((40 - h) / 2), w, h); return iconCache2[i] = c.toDataURL();
+  const ck = (EPAL === PAL ? 'p' : 'm') + i; if (iconCache2[ck]) return iconCache2[ck];
+  const s = entrySpr(EPAL[i]), c = mk(40, 40), sc = Math.min(40 / s.width, 40 / s.height, 2); const w = Math.round(s.width * sc), h = Math.round(s.height * sc);
+  c.g.drawImage(s, Math.round((40 - w) / 2), Math.round((40 - h) / 2), w, h); return iconCache2[ck] = c.toDataURL();
 }
 const snapv = v => ED.snap > 1 ? Math.round(v / ED.snap) * ED.snap : Math.round(v);
 function msg(t) { ED.msg = t; ED.msgT = performance.now(); const el = $('#edStatus'); if (el) el.dataset.msg = t; }
@@ -67,6 +84,11 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   const op = m.pit || []; m.pit = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && op[sy] ? op[sy][sx] : '0'; } m.pit.push(r); }
   const os = m.site || []; m.site = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && os[sy] ? os[sy][sx] : '0'; } m.site.push(r); }
   m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
+}
+function resizeMuseum(fw, fh) {   // the museum room: rebuilt at the new size; the exit and the spot you come in at move with the right wall
+  const R = museumRoom(fw, fh), m = JSON.parse(snapshot()); m.room = { w: R.w, h: R.h }; m.w = R.cols; m.h = R.rows; m.tiles = R.tiles; m.deck = m.site = m.pit = null;
+  m.objects = m.objects.filter(o => o.k === 'mexit' || (o.x < R.cols * TS && o.y < R.rows * TS)); m.objects.forEach(o => { if (o.k === 'mexit') { o.x = R.exit.x; o.y = R.exit.y; } }); m.spawn = R.spawn;
+  loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('The room is now ' + R.w + ' x ' + R.h + ' marble tiles.');
 }
 function commit() {
   const s = snapshot(); if (s === ED.cur) return;
@@ -98,7 +120,7 @@ function lineTiles(x0, y0, x1, y1, fn) {
 }
 function placeAt(wx, wy) {
   const e = ED.place; if (!e) { msg('Pick an object from the palette first.'); return; }
-  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style; if (e.d) o.d = e.d;
+  const o = { k: e.k, x: snapv(wx), y: snapv(wy) }; if (e.kind) o.kind = e.kind; if (e.v != null) o.v = e.v; if (e.style) o.style = e.style; if (e.d) o.d = e.d; if (e.k === 'mprop') { o.n = e.pn; if (e.item) o.item = e.item; }
   if (e.k === 'portal') { o.to = e.style === 'exit' ? 'island' : 'cave'; o.sx = e.style === 'exit' ? 512 : 512; o.sy = e.style === 'exit' ? 224 : 912; } if (e.k === 'note') o.text = 'Write your tip here.';
   MAPDATA.objects.push(o); rebuildAndSelect(o); commit();
 }
@@ -181,10 +203,11 @@ function edClick(e) {
     case 'tool': ED.tool = p; if (p !== 'place') ED.place = ED.place; break;
     case 'tile': ED.tile = +p; ED.tool = 'paint'; break;
     case 'brush': ED.brush = +p; ED.tool = 'paint'; break;
-    case 'pal': ED.place = PAL[+p]; ED.tool = 'place'; break;
+    case 'pal': ED.place = EPAL[+p]; ED.tool = 'place'; break;
     case 'undo': undo(); break; case 'redo': redo(); break;
     case 'grid': ED.grid = !ED.grid; break;
     case 'zoomin': ED.zoom = clamp(ED.zoom + 1, 1, 6); break; case 'zoomout': ED.zoom = clamp(ED.zoom - 1, 1, 6); break;
+    case 'mroom': resizeMuseum(+$('#edRW').value, +$('#edRH').value); break;
     case 'resize': resizeMap(+$('#edMW').value, +$('#edMH').value, $('#edGrow').value === 'c'); break;
     case 'save': saveProject(); break; case 'export': download('island.json', JSON.stringify(serializeMap())); msg('Exported island.json. Put it in the maps folder to use it.'); break;
     case 'import': $('#edFile').click(); break;
@@ -203,6 +226,8 @@ function edChange(e) {
   if (t.id === 'edSnap') ED.snap = +t.value;
   else if (t.id === 'edArea') { let a = t.value; if (a === '__new') a = (prompt('Name for the new area (letters, numbers, - or _)') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24); if (a) location.href = location.pathname + '?edit&area=' + a; else t.value = AREA; }
   else if (t.id === 'edTheme') { MAPDATA.theme = t.value; W.theme = t.value; rebuildAll(); commit(); }
+  else if (ED.sel && t.id === 'edMItem') { const v = t.value || null; if (v) ED.sel.src.item = v; else delete ED.sel.src.item; delete ED.sel.src.st; rebuildAndSelect(ED.sel.src); commit(); }
+  else if (ED.sel && t.id === 'edMSt') { const v = +t.value; if (v) ED.sel.src.st = v; else delete ED.sel.src.st; rebuildAndSelect(ED.sel.src); commit(); }
   else if (ED.sel && t.id === 'edPTo') { ED.sel.src.to = t.value.trim().toLowerCase(); ED.sel.to = ED.sel.src.to; commit(); }
   else if (ED.sel && (t.id === 'edPSx' || t.id === 'edPSy')) { const k = t.id === 'edPSx' ? 'sx' : 'sy'; ED.sel.src[k] = Math.round(+t.value) || 0; ED.sel[k] = ED.sel.src[k]; commit(); }
   else if (t.id === 'edFile' && t.files[0]) {
@@ -280,7 +305,8 @@ function buildEditorUI() {
     + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`
     + `<h4>Depth (pits and walkways going down)</h4>` + [[2, 'Pit floor, 1 down', '#6a4b2e'], [4, 'Pit floor, 2 down', '#4e3622'], [1, 'Ramp 0 to 1', '#8a6a40'], [3, 'Ramp 1 to 2', '#8a6a40'], [5, 'Ramp 2 to 3', '#8a6a40'], [6, 'Pit floor, 3 down', '#3e2c1c']].map(t => `<button class="edt" data-ed="tile:${400 + t[0]}" data-t="${400 + t[0]}"><span style="background:${t[2]}"></span>${t[1]}</button>`).join('')
     + `<button class="edt" data-ed="tile:400" data-t="400"><span style="background:#4a6a3a"></span>Remove depth (ground level)</button>`;
-  const pal = PAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
+  const MUS = W.theme === 'museum' && ASSET.mTiles && ASSET.mTiles.tmpl; EPAL = MUS ? museumPal() : PAL;
+  const pal = EPAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
   el.innerHTML = `
   <div class="edbar">
     <label>Area<select id="edArea">${areaOptions()}</select></label><i></i><button data-ed="undo" id="edUndo">Undo</button><button data-ed="redo" id="edRedo">Redo</button><i></i>
@@ -295,23 +321,23 @@ function buildEditorUI() {
       <button data-ed="tool:paint" data-tool="paint">Paint tiles</button><button data-ed="tool:place" data-tool="place">Place object</button>
       <button data-ed="tool:select" data-tool="select">Select / move</button><button data-ed="tool:spawn" data-tool="spawn">Spawn point</button>
     </div>
-    <h4>Tiles</h4><div class="edtl">${tiles}</div>
-    <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>
+    ${MUS ? '' : `<h4>Tiles</h4><div class="edtl">${tiles}</div>
+    <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>`}
     <h4>Objects</h4><div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
-    <h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>
+    ${MUS ? `<h4>Room</h4><label class="edth">Size (marble tiles, 32px)<span class="edsz"><input id="edRW" type="number" min="${ASSET.mTiles.tmpl.minW}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).w}"> × <input id="edRH" type="number" min="${ASSET.mTiles.tmpl.minH}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).h}"></span></label><div class="edtools"><button data-ed="mroom">Apply size</button></div><p class="mut">The room grows to the right and down; the exit corridor stays on the right wall, near the bottom.</p>` : `<h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>`}
     <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Piers and bridges are decking tiles: paint them like any tile. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
 }
-function areaOptions() { const list = ['island']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
+function areaOptions() { const list = ['island', 'museum']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
 function updateBar() {
   const $$ = s => document.querySelectorAll(s); if (!$('#ed')) return;
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';
   $('#edSave').textContent = ED.unsaved ? 'Save to project *' : 'Save to project';
   $$('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === ED.tool)); $$('.edt').forEach(b => b.classList.toggle('on', +b.dataset.t === ED.tile && ED.tool === 'paint'));
-  $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === PAL[+b.dataset.p] && ED.tool === 'place'));
+  $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === EPAL[+b.dataset.p] && ED.tool === 'place'));
 }
 function refreshInspector(quick) {
   const el = $('#edInsp'); if (!el) return; const s = ED.sel;
@@ -319,6 +345,12 @@ function refreshInspector(quick) {
   if (quick) { const c = $('#edCoords'); if (c) c.textContent = 'x ' + s.x + '  y ' + s.y; return; }
   const src = s.src, k = src.k; let extra = '';
   if (k === 'portal') extra = `<label>Goes to area<input id="edPTo" type="text" value="${esc2(src.to || '')}"></label><div class="ednums"><label>Lands at x<input id="edPSx" type="number" value="${src.sx || 0}"></label><label>Lands at y<input id="edPSy" type="number" value="${src.sy || 0}"></label></div><p class="mut">Where the player appears in that area, in pixels. Open that area in the editor and read the pixel position from the status bar.</p>`;
+  if (k === 'mprop') {
+    const n = src.n, I = ASSET.mItems || {}, it = src.item && I[src.item];
+    extra = `<p class="mut">${esc2(n.replace(/_/g, ' '))}</p>`;
+    if (/^case_/.test(n)) extra += `<label>On display<select id="edMItem"><option value="">(empty)</option>${Object.keys(I).filter(id => I[id].case === n).map(id => `<option value="${id}" ${id === src.item ? 'selected' : ''}>${esc2(I[id].label)}</option>`).join('')}</select></label>`;
+    if (it && it.stages) extra += `<label>Built so far<select id="edMSt"><option value="0">Finished</option>${it.stages.map((_, i) => `<option value="${i + 1}" ${i + 1 === (src.st | 0) ? 'selected' : ''}>Stage ${i + 1} of ${it.stages.length + 1}</option>`).join('')}</select></label>`;
+  }
   if (k === 'patch') extra = '<p class="mut">Flowers are scattered on grass inside this circle.</p>';
   el.innerHTML = `<b>${LABELS[k] || k}</b><div id="edCoords" class="mut">x ${s.x}  y ${s.y}</div>${extra}<button data-ed="del" class="danger">Delete</button>`;
 }

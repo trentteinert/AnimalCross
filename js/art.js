@@ -137,12 +137,14 @@ function buildSprites() {
     }
   }   // the museum from outside: building, doors and hanging banner (same size and origin; anchored at the bottom middle of the steps)
   if (ASSET.img.museum_props && ASSET.mProps) { SPR.mprop = {}; for (const n in ASSET.mProps) { const d = ASSET.mProps[n], c = cut(ASSET.img.museum_props, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ax = d.ax; c.ay = d.ay; if (/^case_|^stage$|^board$/.test(n)) c.col = maskBoxes(c, d.ax, d.h, n === 'stage', /^case_/.test(n) ? 0.3 : 0);   // the brown parts of a case (and the whole stage) are solid
-      if (d.over) { c.over = cut(ASSET.img.museum_props, { x: d.ox, y: d.sy, w: d.w, h: d.h }); c.overA = d.overAlpha == null ? 1 : d.overAlpha; c.overM = d.overBlend || 'normal';
+      if (d.over) { c.over = cut(ASSET.img.museum_props, { x: d.ox, y: d.oy != null ? d.oy : d.sy, w: d.w, h: d.h }); c.overA = d.overAlpha == null ? 1 : d.overAlpha; c.overM = d.overBlend || 'normal';
       if (c.overM === 'multiply') {   // multiply needs something under it: where the case itself is under the glass it is multiplied as it is; where only the floor is, the same multiply is worked out once against the marble's colour
         const w = c.width, h = c.height, bd = c.g.getImageData(0, 0, w, h).data, gd = c.over.g.getImageData(0, 0, w, h), ob = mk(w, h), og = mk(w, h), oi = ob.g.createImageData(w, h), gi = og.g.createImageData(w, h), F = [209, 205, 191];
         for (let i = 0; i < w * h * 4; i += 4) { const a = gd.data[i + 3]; if (!a) continue; if (bd[i + 3] > 8) { oi.data[i] = gd.data[i]; oi.data[i + 1] = gd.data[i + 1]; oi.data[i + 2] = gd.data[i + 2]; oi.data[i + 3] = a; } else { gi.data[i] = F[0] * gd.data[i] / 255; gi.data[i + 1] = F[1] * gd.data[i + 1] / 255; gi.data[i + 2] = F[2] * gd.data[i + 2] / 255; gi.data[i + 3] = a; } }
         ob.g.putImageData(oi, 0, 0); og.g.putImageData(gi, 0, 0); c.overB = ob; c.overG = og;
       } } SPR.mprop[n] = c; } }   // things inside the museum: cases, stage, board, wall panels, windows
+  if (ASSET.img.museum_items && ASSET.mItems) { SPR.mitem = {}; for (const n in ASSET.mItems) { const d = ASSET.mItems[n], c = cut(ASSET.img.museum_items, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ix = d.ix; c.iy = d.iy; c.label = d.label; c.case = d.case;
+    if (d.stages) c.stages = d.stages.map(q => cut(ASSET.img.museum_items, { x: q[0], y: q[1], w: d.w, h: d.h })); SPR.mitem[n] = c; } }   // what is on display in a case: drawn between its base and its glass, already placed (ix, iy) for that case
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre
   if (D && dm) for (const n in D) { const c = cut(dm, D[n]); c.ax = D[n].ax; c.ay = D[n].ay; SPR.decor[n] = c; }
   SPR.leaves = []; const lm = ASSET.img.leaves;   // falling leaf: 4 frames x 3 variants, 5x5 cells

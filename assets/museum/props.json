@@ -1,158 +1,174 @@
 {
- "case_3x3": {
-  "w": 48,
-  "h": 59,
-  "ax": 24,
-  "ay": 59,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 0,
-  "ox": 90
- },
- "case_3x2": {
-  "w": 48,
-  "h": 54,
-  "ax": 24,
-  "ay": 54,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 61,
-  "ox": 90
- },
- "case_3x1": {
-  "w": 48,
-  "h": 42,
-  "ax": 24,
-  "ay": 42,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 117,
-  "ox": 90
- },
- "case_2x2": {
-  "w": 32,
-  "h": 55,
-  "ax": 16,
-  "ay": 55,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 161,
-  "ox": 90
- },
- "case_2x1": {
-  "w": 32,
-  "h": 42,
-  "ax": 16,
-  "ay": 42,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 218,
-  "ox": 90
- },
- "case_1x2": {
-  "w": 16,
-  "h": 55,
-  "ax": 8,
-  "ay": 55,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 262,
-  "ox": 90
- },
- "case_1x1": {
-  "w": 16,
-  "h": 43,
-  "ax": 8,
-  "ay": 43,
-  "over": true,
-  "overBlend": "multiply",
-  "overAlpha": 0.388,
-  "sx": 0,
-  "sy": 319,
-  "ox": 90
- },
- "stage": {
-  "w": 67,
-  "h": 55,
-  "ax": 33,
-  "ay": 55,
-  "over": false,
-  "sx": 0,
-  "sy": 364
- },
- "board": {
-  "w": 13,
-  "h": 22,
-  "ax": 6,
-  "ay": 22,
-  "over": false,
-  "sx": 0,
-  "sy": 421
- },
- "panel_fossils": {
-  "w": 88,
-  "h": 23,
-  "ax": 44,
-  "ay": 23,
-  "over": false,
-  "sx": 0,
-  "sy": 445
- },
- "panel_scorpion": {
-  "w": 39,
-  "h": 23,
-  "ax": 19,
-  "ay": 23,
-  "over": false,
-  "sx": 0,
-  "sy": 470
- },
- "plaque": {
-  "w": 39,
-  "h": 22,
-  "ax": 19,
-  "ay": 22,
-  "over": false,
-  "sx": 0,
-  "sy": 495
- },
- "window_rect": {
-  "w": 32,
-  "h": 49,
-  "ax": 16,
-  "ay": 49,
-  "over": false,
-  "sx": 0,
-  "sy": 519
- },
- "window_arch": {
-  "w": 28,
-  "h": 56,
-  "ax": 14,
-  "ay": 56,
-  "over": false,
-  "sx": 0,
-  "sy": 570
- },
- "alcove": {
-  "w": 58,
-  "h": 65,
-  "ax": 29,
-  "ay": 65,
-  "over": false,
-  "sx": 0,
-  "sy": 628
- }
+"case_1x1": {
+"sx": 0,
+"sy": 0,
+"w": 16,
+"h": 43,
+"ax": 8,
+"ay": 43,
+"over": true,
+"ox": 17,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_2x1": {
+"sx": 34,
+"sy": 0,
+"w": 32,
+"h": 42,
+"ax": 16,
+"ay": 42,
+"over": true,
+"ox": 67,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_2x2": {
+"sx": 100,
+"sy": 0,
+"w": 32,
+"h": 55,
+"ax": 16,
+"ay": 55,
+"over": true,
+"ox": 133,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_3x2": {
+"sx": 166,
+"sy": 0,
+"w": 48,
+"h": 54,
+"ax": 24,
+"ay": 54,
+"over": true,
+"ox": 215,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_3x3": {
+"sx": 264,
+"sy": 0,
+"w": 48,
+"h": 59,
+"ax": 24,
+"ay": 59,
+"over": true,
+"ox": 313,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_3x1": {
+"sx": 362,
+"sy": 0,
+"w": 48,
+"h": 42,
+"ax": 24,
+"ay": 42,
+"over": true,
+"ox": 411,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"case_1x2": {
+"sx": 460,
+"sy": 0,
+"w": 16,
+"h": 55,
+"ax": 8,
+"ay": 55,
+"over": true,
+"ox": 477,
+"oy": 0,
+"overBlend": "multiply",
+"overAlpha": 0.388
+},
+"stage": {
+"sx": 0,
+"sy": 60,
+"w": 42,
+"h": 46,
+"ax": 21,
+"ay": 46,
+"over": false
+},
+"board": {
+"sx": 43,
+"sy": 60,
+"w": 13,
+"h": 22,
+"ax": 6,
+"ay": 22,
+"over": false
+},
+"statue": {
+"sx": 57,
+"sy": 60,
+"w": 25,
+"h": 63,
+"ax": 12,
+"ay": 63,
+"over": false
+},
+"panel_fossils": {
+"sx": 83,
+"sy": 60,
+"w": 88,
+"h": 23,
+"ax": 44,
+"ay": 23,
+"over": false
+},
+"panel_scorpion": {
+"sx": 172,
+"sy": 60,
+"w": 39,
+"h": 23,
+"ax": 19,
+"ay": 23,
+"over": false
+},
+"plaque": {
+"sx": 212,
+"sy": 60,
+"w": 39,
+"h": 22,
+"ax": 19,
+"ay": 22,
+"over": false
+},
+"window": {
+"sx": 252,
+"sy": 60,
+"w": 32,
+"h": 49,
+"ax": 16,
+"ay": 49,
+"over": false
+},
+"stanchion": {
+"sx": 285,
+"sy": 60,
+"w": 32,
+"h": 11,
+"ax": 16,
+"ay": 11,
+"over": false
+},
+"arch": {
+"sx": 318,
+"sy": 60,
+"w": 38,
+"h": 51,
+"ax": 19,
+"ay": 51,
+"over": false
+}
 }

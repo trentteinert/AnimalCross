@@ -1,0 +1,420 @@
+{
+"ceremonial_dagger": {
+"label": "Ceremonial dagger",
+"case": "case_1x1",
+"sx": 0,
+"sy": 0,
+"w": 6,
+"h": 12,
+"ix": 5,
+"iy": 13
+},
+"ceremonial_cutlass": {
+"label": "ceremonial cutlass",
+"case": "case_1x1",
+"sx": 7,
+"sy": 0,
+"w": 6,
+"h": 19,
+"ix": 5,
+"iy": 6
+},
+"mysterious_hat": {
+"label": "Mysterious hat",
+"case": "case_1x1",
+"sx": 14,
+"sy": 0,
+"w": 10,
+"h": 19,
+"ix": 3,
+"iy": 6
+},
+"decorative_wooden_comb": {
+"label": "Decorative Wooden comb",
+"case": "case_1x1",
+"sx": 25,
+"sy": 0,
+"w": 8,
+"h": 18,
+"ix": 4,
+"iy": 8
+},
+"fancy_broach": {
+"label": "Fancy brooch",
+"case": "case_1x1",
+"sx": 34,
+"sy": 0,
+"w": 8,
+"h": 14,
+"ix": 4,
+"iy": 11
+},
+"sun_mask": {
+"label": "Sun mask",
+"case": "case_1x1",
+"sx": 43,
+"sy": 0,
+"w": 12,
+"h": 17,
+"ix": 2,
+"iy": 8
+},
+"ancient_decorative_bowl": {
+"label": "Ancient decorative bowl",
+"case": "case_1x1",
+"sx": 56,
+"sy": 0,
+"w": 10,
+"h": 8,
+"ix": 3,
+"iy": 17
+},
+"ancient_bowl": {
+"label": "Ancient bowl",
+"case": "case_1x1",
+"sx": 67,
+"sy": 0,
+"w": 10,
+"h": 8,
+"ix": 3,
+"iy": 17
+},
+"ancient_coin": {
+"label": "Ancient coin",
+"case": "case_1x1",
+"sx": 78,
+"sy": 0,
+"w": 10,
+"h": 11,
+"ix": 3,
+"iy": 14
+},
+"clay_token": {
+"label": "Clay token",
+"case": "case_1x1",
+"sx": 89,
+"sy": 0,
+"w": 10,
+"h": 11,
+"ix": 3,
+"iy": 14
+},
+"signet_ring": {
+"label": "Signet ring",
+"case": "case_1x1",
+"sx": 100,
+"sy": 0,
+"w": 8,
+"h": 10,
+"ix": 4,
+"iy": 15
+},
+"ancient_decorative_vase": {
+"label": "Ancient decorative vase",
+"case": "case_1x1",
+"sx": 109,
+"sy": 0,
+"w": 10,
+"h": 13,
+"ix": 3,
+"iy": 13
+},
+"ancient_urn": {
+"label": "Ancient urn",
+"case": "case_1x1",
+"sx": 120,
+"sy": 0,
+"w": 10,
+"h": 13,
+"ix": 3,
+"iy": 13
+},
+"bust": {
+"label": "Bust",
+"case": "case_1x1",
+"sx": 131,
+"sy": 0,
+"w": 12,
+"h": 20,
+"ix": 2,
+"iy": 8
+},
+"bust_2": {
+"label": "Bust (2)",
+"case": "case_1x1",
+"sx": 144,
+"sy": 0,
+"w": 14,
+"h": 23,
+"ix": 1,
+"iy": 3
+},
+"standing_totems": {
+"label": "Standing totems",
+"case": "case_2x1",
+"sx": 159,
+"sy": 0,
+"w": 20,
+"h": 13,
+"ix": 6,
+"iy": 11
+},
+"jugs": {
+"label": "Clay jugs",
+"case": "case_2x1",
+"sx": 180,
+"sy": 0,
+"w": 25,
+"h": 18,
+"ix": 3,
+"iy": 6
+},
+"bone_flute": {
+"label": "Bone flute",
+"case": "case_2x1",
+"sx": 206,
+"sy": 0,
+"w": 24,
+"h": 8,
+"ix": 4,
+"iy": 16
+},
+"candle_holders": {
+"label": "Candle holders",
+"case": "case_2x1",
+"sx": 231,
+"sy": 0,
+"w": 23,
+"h": 12,
+"ix": 4,
+"iy": 12
+},
+"serving_plater": {
+"label": "Serving platter",
+"case": "case_2x1",
+"sx": 255,
+"sy": 0,
+"w": 22,
+"h": 12,
+"ix": 5,
+"iy": 13
+},
+"ancient_sickle": {
+"label": "Ancient sickle",
+"case": "case_2x1",
+"sx": 278,
+"sy": 0,
+"w": 22,
+"h": 13,
+"ix": 5,
+"iy": 11
+},
+"ancient_tablet": {
+"label": "Ancient Tablet",
+"case": "case_2x1",
+"sx": 301,
+"sy": 0,
+"w": 22,
+"h": 13,
+"ix": 5,
+"iy": 11
+},
+"layer_15_4": {
+"label": "Layer 15 (4)",
+"case": "case_2x1",
+"sx": 324,
+"sy": 0,
+"w": 18,
+"h": 19,
+"ix": 7,
+"iy": 5
+},
+"layer_15_5": {
+"label": "Layer 15 (5)",
+"case": "case_2x1",
+"sx": 343,
+"sy": 0,
+"w": 19,
+"h": 19,
+"ix": 6,
+"iy": 5
+},
+"empty_stand": {
+"label": "Empty Stand",
+"case": "case_2x1",
+"sx": 363,
+"sy": 0,
+"w": 18,
+"h": 9,
+"ix": 7,
+"iy": 15
+},
+"merchant_scale": {
+"label": "Merchant scale",
+"case": "case_2x1",
+"sx": 382,
+"sy": 0,
+"w": 20,
+"h": 13,
+"ix": 6,
+"iy": 12
+},
+"gem_rings": {
+"label": "Gem rings",
+"case": "case_2x2",
+"sx": 403,
+"sy": 0,
+"w": 16,
+"h": 16,
+"ix": 8,
+"iy": 19
+},
+"amulets": {
+"label": "Amulets",
+"case": "case_2x2",
+"sx": 420,
+"sy": 0,
+"w": 18,
+"h": 18,
+"ix": 7,
+"iy": 19
+},
+"arrow_heads": {
+"label": "Arrowheads",
+"case": "case_2x2",
+"sx": 439,
+"sy": 0,
+"w": 18,
+"h": 17,
+"ix": 7,
+"iy": 19
+},
+"decorative_thrown": {
+"label": "Decorative throne",
+"case": "case_2x2",
+"sx": 458,
+"sy": 0,
+"w": 18,
+"h": 30,
+"ix": 7,
+"iy": 6
+},
+"standing_sculpture": {
+"label": "Standing sculpture",
+"case": "case_3x2",
+"sx": 477,
+"sy": 0,
+"w": 25,
+"h": 60,
+"ix": 11,
+"iy": -29,
+"stages": [
+[
+0,
+61
+],
+[
+26,
+61
+],
+[
+52,
+61
+],
+[
+78,
+61
+],
+[
+104,
+61
+],
+[
+130,
+61
+]
+]
+},
+"carvel_monument": {
+"label": "Carved monument",
+"case": "case_3x2",
+"sx": 156,
+"sy": 61,
+"w": 33,
+"h": 49,
+"ix": 7,
+"iy": -10,
+"stages": [
+[
+190,
+61
+],
+[
+224,
+61
+]
+]
+},
+"ritual_site": {
+"label": "Ritual site",
+"case": "case_3x2",
+"sx": 258,
+"sy": 61,
+"w": 38,
+"h": 23,
+"ix": 5,
+"iy": 17,
+"stages": [
+[
+297,
+61
+],
+[
+336,
+61
+],
+[
+375,
+61
+],
+[
+414,
+61
+],
+[
+453,
+61
+],
+[
+0,
+122
+],
+[
+39,
+122
+],
+[
+78,
+122
+],
+[
+117,
+122
+],
+[
+156,
+122
+]
+]
+},
+"cerimonial_vase": {
+"label": "Ceremonial vases",
+"case": "case_3x2",
+"sx": 195,
+"sy": 122,
+"w": 36,
+"h": 33,
+"ix": 6,
+"iy": 3
+}
+}

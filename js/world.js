@@ -215,8 +215,8 @@ function blankMap(cave) { // a plain starter map: a grass island in the sea (or 
   return { v: 1, w: 64, h: 64, theme: cave ? 'cave' : 'day', tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pit: serializePit(), pier: null, structs: [], spawn: { x: 32 * TS, y: 32 * TS }, objects: [] };
 }
 const generateDefaultMap = () => blankMap(false), generateDefaultCave = () => blankMap(true);
-function serializeTiles() { const rows = []; for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
-function serializeMap() { return { v: 1, w: MW, h: MH, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pit: serializePit(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
+function serializeTiles() { const rows = []; if (MGRID) { for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += String.fromCharCode(48 + MGRID[ty * MW + tx]); rows.push(s); } return rows; }   /* the museum keeps its own tile ids */ for (let ty = 0; ty < MH; ty++) { let s = ''; for (let tx = 0; tx < MW; tx++) s += GRID[ty * MW + tx]; rows.push(s); } return rows; }
+function serializeMap() { return { v: 1, w: MW, h: MH, room: MAPDATA.room, tiles: serializeTiles(), deck: serializeDeck(), site: serializeSite(), pit: serializePit(), pier: null, theme: MAPDATA.theme || 'day', structs: [], spawn: MAPDATA.spawn, objects: MAPDATA.objects }; }
 function validMap(m) {
   if (!(m && m.v === 1 && Array.isArray(m.tiles) && m.spawn && Array.isArray(m.objects))) return false;
   const w = m.w || 64, h = m.h || 64; if (!Number.isInteger(w) || !Number.isInteger(h) || w < MAP_MIN || h < MAP_MIN || w > MAP_MAX || h > MAP_MAX) return false;
@@ -235,7 +235,7 @@ function instantiate(s) {
     case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
     case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
-    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n }; break;
+    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; break;
     case 'mexit': o = { k: 'mexit', to: s.to, sx: s.sx, sy: s.sy }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
@@ -314,7 +314,18 @@ function drawPits(c) {   // sunken ground: floors drawn lower on screen, north w
     }
   }
 }
+function museumRoom(fw, fh) {   // the museum room at any size, in 32px marble tiles: the template's ends, wall and bottom (with the exit corridor) are kept and its middle repeats (see tools/museum_interior_export.py)
+  const T = ASSET.mTiles.tmpl; fw = clamp(fw | 0, T.minW, 60); fh = clamp(fh | 0, T.minH, 60); const ml = 2 * (fw - 4), mt = 2 * (fh - 5), cols = 2 * fw + 8, rows = 2 * fh + 8, tiles = [];
+  for (let r = 0; r < rows; r++) {
+    const tr = r < 7 ? r : r < 7 + mt ? 7 + (r - 7) % 2 : 9 + r - 7 - mt; let s = '';
+    for (let c = 0; c < cols; c++) { const tc = c < 5 ? c : c < 5 + ml ? 5 + ((c - 5) + (r >= 7 && r < 7 + mt ? 6 * ((r - 7) >> 1) : 0)) % 16 : 21 + c - 5 - ml; s += String.fromCharCode(48 + T.grid[tr][tc]); }
+    tiles.push(s);
+  }
+  const rx = (5 + ml) * 16, by = (7 + mt) * 16;
+  return { w: fw, h: fh, cols, rows, tiles, spawn: { x: rx + T.spawn[0], y: by + T.spawn[1] }, exit: { x: rx + T.exit[0], y: by + T.exit[1] } };
+}
 function loadMap(map) {
+  if (map.theme === 'museum' && map.room && ASSET.mTiles && ASSET.mTiles.tmpl) { const R = museumRoom(map.room.w, map.room.h); map.w = R.cols; map.h = R.rows; map.tiles = R.tiles; }   // the room is rebuilt from its size, so it always matches the current tile set
   setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);
   const museum = map.theme === 'museum' && ASSET.mTiles; MGRID = museum ? new Uint16Array(MW * MH) : null; const walk = museum ? new Set(ASSET.mTiles.walk) : null;
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { const id = map.tiles[ty].charCodeAt(tx) - 48; if (museum) { MGRID[ty * MW + tx] = id; GRID[ty * MW + tx] = walk.has(id) ? 5 : 0; } else GRID[ty * MW + tx] = Math.min(6, Math.max(0, id)); }   // the museum's tiles are ids into its own tile set; the game only needs to know floor (walkable) from everything else
