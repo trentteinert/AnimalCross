@@ -48,6 +48,7 @@ function waterDepth(x, y) {   // 0 on land, rising smoothly through the shallows
 }
 function elevAt(x, y) {   // how many pixels above the ground you stand: the museum's steps rise to its porch (12 pixels, climbing steadily over the steps). You stand at a ground position and are DRAWN that many pixels higher, so the walls' collision and the floor's drawing are lined up through museumRow() / its inverse
   if (!W.objs) return 0;
+  const st = stairsAt(x, y); if (st) return Math.round(7 * clamp((st.yb - y) / (st.yb - st.y0), 0, 1));   // up the stairs: you rise as you climb
   for (const o of W.objs) if (o.k === 'museum' && o.spr.gmask) {
     const lx = Math.floor(x - (o.x - 107)), yg = y - (o.y - 167); if (lx < 0 || lx >= 215 || yg < 129 || yg >= 167) return 0;
     const e = yg >= 150 ? (167 - yg) * 12 / 17 : 12, r = Math.round(yg - e); if (r < 0 || r >= 167 || !o.spr.gmask[r * 215 + lx]) return 0;   // only where there is porch or steps under where you are drawn
@@ -235,7 +236,7 @@ function instantiate(s) {
     case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
     case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
-    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; if (s.n === 'noentry') o.sy = s.y + 40; break;   // the sign hangs in front of its doorway
+    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; if (s.n === 'noentry') o.sy = s.y + 40; if (s.n === 'arch' || s.n === 'arch_narrow') o.sy = -200; break;   // stairs are part of the floor: you are always drawn on top of them   // the sign hangs in front of its doorway
     case 'mexit': o = { k: 'mexit', to: s.to, sx: s.sx, sy: s.sy }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
@@ -255,8 +256,13 @@ function rebuildObjects() {
   W.objs = []; W.solids = []; W.trees = []; W.bushes = []; W.lamps = []; W.fires = []; W.glows = []; W.patches = []; 
   MAPDATA.objects.forEach(instantiate);
 }
+function computeStairs() {   // a stairs arch with no rope across it can be walked up: you climb from the floor into the doorway and on into the corridor beyond
+  W.stairs = []; if (!W.objs) return; const ropes = W.objs.filter(o => o.k === 'mprop' && o.n === 'stanchion');
+  for (const o of W.objs) if (o.k === 'mprop' && (o.n === 'arch' || o.n === 'arch_narrow') && !ropes.some(r => Math.abs(r.x - o.x) < 24 && Math.abs(r.y - o.y) < 16)) { let y0 = o.y - o.spr.height + 5; for (let k = 0; k < 40; k++) { if (typeAt(o.x, y0 - k) === 5) { y0 -= k; break; } } W.stairs.push({ x0: o.x - 11, x1: o.x + 11, y0, y1: o.y + 2, yb: o.y - 2 }); }   // up to the corridor floor above (through the frame at the top of the doorway)
+}
+const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
-  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); buildSiteRegions();
+  buildDist(); rebuildObjects(); computeStairs(); W.terrain = renderTerrain(); buildSiteRegions();
   let sx = 0, sy = 0, n = 0; for (let i = 0; i < GRID.length; i++) if (GRID[i] === 5) { sx += (i % MW) * TS + 8; sy += ((i / MW) | 0) * TS + 8; n++; }
   W.hub = n ? { x: sx / n, y: sy / n } : { x: W.spawn.x, y: W.spawn.y };
 }
@@ -377,7 +383,7 @@ function initWorld(map) { loadMap(map); }
 function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk into the shallows (deep water still stops everyone); 'stone': a kicked stone ignores water and ledges (the caller deals with falling in)   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
   let zmin = 99, zmax = -1;
-  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
+  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
