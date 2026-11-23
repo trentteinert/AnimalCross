@@ -54,12 +54,7 @@ paint([(crop(M[i]), 8) for i in (5, 6, 7, 8, 10, 11, 9)], 'shop_stall')   # one 
 paint([(Image.open(A + 'workbench.png'), 4)], 'workbench')
 paint([(Image.open(A + 'anvil.png'), 6)], 'anvil')
 paint([(Image.open(A + 'hammer.png'), 3)], 'hammer')
-F = Image.open(A + 'furnace.png').crop((0, 0, 48, 72)); body = F.copy(); bp = body.load()
-for y in range(72):
-    for x in range(48):
-        r, g, b, a = bp[x, y]
-        if a and y < 38: bp[x, y] = (0, 0, 0, 0)        # no smoke or sparks in the bump map
-paint([(body, 8)], 'furnace')
+paint([(Image.open(A + 'furnace_body.png'), 8)], 'furnace')
 
 # ---- cast shadows, from true heights ------------------------------------------------------------------------------------------------------------
 # Every pixel gets the height it really has above the ground (a post: how far up the screen it is; a roof: a slab at the top; a table top: flat at table height), and the sun's rays carry
@@ -87,5 +82,5 @@ cast([(crop(M[4]), lambda x, y: max(0, 58 - y)),                                
       (crop(M[9]), roof)], 'shop', 40)                                            # the thatch is a sloping slab above the posts
 cast([(Image.open(A + 'anvil.png'), lambda x, y: 16 - y)], 'anvil', 14)
 cast([(Image.open(A + 'hammer.png'), lambda x, y: 11 - y)], 'hammer', 8)
-cast([(body, lambda x, y: 72 - y)], 'furnace', 22)
+cast([(Image.open(A + 'furnace_body.png'), lambda x, y: 64 - y)], 'furnace', 22)
 print('ok')

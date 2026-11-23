@@ -232,7 +232,7 @@ function instantiate(s) {
     case 'shop': if (!SPR.shop) return; o = { k: 'shop', spr: SPR.shop }; break;
     case 'anvil': if (!SPR.anvil) return; o = { k: 'anvil', spr: SPR.anvil }; break;
     case 'hammer': if (!SPR.hammer) return; o = { k: 'hammer', spr: SPR.hammer }; break;
-    case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace[0], frames: SPR.furnace, ph: hash2(s.x | 0, s.y | 0, 7) * 5 }; break;
+    case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
     case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
     case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n }; break;
@@ -247,6 +247,7 @@ function instantiate(s) {
   if (sd) { o.box = sd[0]; if (sd[1]) o.ia = sd[1]; }
   W.objs.push(o); if (o.box) W.solids.push(o);
   if (o.k === 'museum') for (const [part, sy] of [['ground', -400], ['back', -21], ['cols', -11]]) W.objs.push({ k: 'museum' + part, x: o.x, y: o.y, sy: o.y + sy, spr: o.spr[part] || o.spr, part, owner: o });   // the building is drawn in three pieces at their own depths: the ground, the wall and roof (in front of you when you are south of the wall), the columns
+  if (o.k === 'furnace') W.solids.push({ k: 'furnace', x: o.x, y: o.y, box: [-39, -8, 20, 8] });   // the conveyor belt beside it is solid too
   if (o.k === 'mprop' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'mprop', x: o.x, y: o.y, box: b });   // cases, the stage and the board are solid where they are painted
   if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }

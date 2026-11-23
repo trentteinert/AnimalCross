@@ -25,7 +25,7 @@ function entrySpr(e) {
     case 'campfire': return SPR.campfire && SPR.campfire[0];
     case 'anvil': return SPR.anvil;
     case 'hammer': return SPR.hammer;
-    case 'furnace': return SPR.furnace && SPR.furnace[0];
+    case 'furnace': return SPR.furnace;
     case 'tree': return SPR.tree && SPR.tree.trunk;
     case 'decor': return SPR.decor[e.d];
   }

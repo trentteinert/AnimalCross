@@ -29,7 +29,7 @@ function bumpOf(spr, img) {   // read a bump image into a surface-direction map 
 function lightInit() {
   const I = ASSET.img, pairs = [[SPR.shop, 'shop_stall'], [SPR.shop && SPR.shop.merchant, 'shop_merchant'], [SPR.bench, 'workbench'], [SPR.anvil, 'anvil'], [SPR.hammer, 'hammer']];
   for (const [spr, n] of pairs) if (spr && I[n + '_bump']) { bumpOf(spr, I[n + '_bump']); spr.flat = n !== 'anvil' && n !== 'hammer'; }
-  if (SPR.furnace && I.furnace_bump) { bumpOf(SPR.furnace[0], I.furnace_bump); for (let i = 1; i < SPR.furnace.length; i++) { const f = SPR.furnace[i], b = SPR.furnace[0]; f.nrm = b.nrm; f.bumpv = b.bumpv; f.sunD = b.sunD; f.sunL = b.sunL; f.lw = b.lw; f.flat = true; } SPR.furnace[0].flat = true; }
+  if (SPR.furnace && I.furnace_bump) { bumpOf(SPR.furnace, I.furnace_bump); SPR.furnace.flat = true; }
 }
 function litProp(o, spr, x, y, fa) {   // after a prop is drawn: its sun shading now, its point lighting later
   if (!FEATURES.light || !spr.nrm) return;
@@ -39,7 +39,7 @@ function litProp(o, spr, x, y, fa) {   // after a prop is drawn: its sun shading
 function collectLights(now) {   // furnaces and campfires, with their flicker
   LIGHTS.length = 0; if (!FEATURES.light) return; const dark = 0.3 + 0.7 * (1 - SUN);
   for (const o of W.objs) {
-    if (o.k === 'furnace') { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ o, x: o.x - 4, y: o.y, h: 14, z: 7, r: 62, k: dark * fl, col: [255, 160, 70] }); }
+    if (o.k === 'furnace') { const fi = furnaceInfo(); if (fi.fire > 0) { const fl = 0.88 + 0.12 * Math.sin(now * 11 + o.x) + 0.05 * Math.sin(now * 23); LIGHTS.push({ o, x: o.x - 4, y: o.y, h: 10, z: 7, r: 62, k: dark * fl * fi.fire, col: [255, 160, 70] }); } }   // the furnace only lights the place while it is burning
     else if (o.k === 'campfire') { const fl = 0.85 + 0.15 * Math.sin(now * 13 + o.x) + 0.06 * Math.sin(now * 29); LIGHTS.push({ o, x: o.x, y: o.y, h: 7, z: 2, r: 70, k: dark * fl * 1.1, col: [255, 170, 80] }); }
   }
 }
@@ -125,7 +125,8 @@ function entEnd(cx, cy, now) {
       if (any) { eg.globalCompositeOperation = 'destination-out'; eg.drawImage(q.spr, q.x, q.y); eg.globalCompositeOperation = 'source-over'; }
       if (!LIGHTS.length || !LIGHTS.some(L => Math.abs(L.x - o.x) < L.r + 40 && Math.abs(L.y - o.y) < L.r + 40)) continue; const c = lightOverlay(q, now); if (!o._lany) continue; eg.globalAlpha = q.fa; eg.drawImage(c, q.x, q.y); eg.globalAlpha = 1; any = true;
     }
-    if (o.frames && (o.k === 'furnace' || o.k === 'campfire') && o.spr) { const s = o.spr, em = s._em || (s._em = emissive(s)); eg.drawImage(em, Math.round(o.x - s.ax - cx), Math.round(o.y - s.ay - cy)); any = true; }
+    if (o.k === 'furnace' && o._emis && o.spr) { eg.drawImage(o._emis, Math.round(o.x - o.spr.ax - cx), Math.round(o.y - o.spr.ay - cy)); any = true; }   // the flames glow while it burns
+    if (o.frames && o.k === 'campfire' && o.spr) { const s = o.spr, em = s._em || (s._em = emissive(s)); eg.drawImage(em, Math.round(o.x - s.ax - cx), Math.round(o.y - s.ay - cy)); any = true; }
   }
   eg.globalCompositeOperation = 'source-over'; g.globalCompositeOperation = 'lighter'; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(EM.c, 0, 0); g.setTransform(T); g.globalCompositeOperation = 'source-over';
   if (LIGHTS.length) { g.globalCompositeOperation = 'lighter'; charLight(ME, now); for (const n of NPCS) charLight(n, now); g.globalCompositeOperation = 'source-over'; }

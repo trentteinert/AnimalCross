@@ -104,8 +104,14 @@ inp.addEventListener('pointermove', e => {
   if (d > 12 && !joy.moved) { joy.moved = true; joyEl.style.left = joy.sx + 'px'; joyEl.style.top = joy.sy + 'px'; joyEl.classList.add('on'); }
   if (joy.moved) { joy.vx = dx / (d || 1); joy.vy = dy / (d || 1); joy.mag = d < 8 ? 0 : Math.min(1, (d - 6) / (R - 6)); const k = Math.min(d, R) / R * 6, qx = Math.round(joy.vx * k) * 3, qy = Math.round(joy.vy * k) * 3; knob.style.transform = `translate(${qx}px,${qy}px)`;  }
 });
+function tapBar(e) {   // tapping the finished bar on the belt picks it up (if you are close enough)
+  if (typeof furnaceInfo !== 'function' || furnaceInfo().st !== 'ready') return; const o = W.objs.find(q => q.k === 'furnace'); if (!o) return;
+  const b = barSpot(o), wx = e.clientX / Z + Math.round(cam.x), wy = e.clientY / Z + Math.round(cam.y);
+  if (Math.abs(wx - b.x) < 14 && Math.abs(wy - b.y) < 14) { if (Math.hypot(ME.x - b.x, ME.y - b.y) < 80) collectBar(); else { UI.toast('Walk closer to the furnace', 'info'); sfx('no'); } }
+}
 function joyEnd(e) {
   if (EDIT || e.pointerId !== joy.id) return;
+  if (!joy.moved && performance.now() - joy.t0 < 450 && !UI.isOpen) tapBar(e);
   joy.id = null; joy.mag = 0; joyEl.classList.remove('on'); knob.style.transform = '';
 }
 inp.addEventListener('pointerup', joyEnd); inp.addEventListener('pointercancel', joyEnd);
@@ -264,6 +270,7 @@ function drawEnt(o, cx, cy, now) {
       if (o.frames) o.spr = o.frames[Math.floor(now * 6 + o.ph) % o.frames.length];   // the furnace's flames flicker and its smoke curls: five frames, six a second
       const spr = o.spr; if (!spr) return;
       if (o.k === 'shop') { drawShop(o, cx, cy, now); return; }
+      if (o.k === 'furnace') { drawFurnace(o, cx, cy, now); return; }
       if (o.k === 'museum') return;   // the museum itself draws nothing: its three pieces do (below)
       if (o.part) { drawMuseum(o, cx, cy, now); return; }
       if (o.k === 'tree') { G0.globalAlpha = 0.3; G0.drawImage(o.shadow, Math.round(o.x - o.shadow.ax - cx + (o.sx || 0)), Math.round(o.y - o.shadow.ay - cy)); G0.globalAlpha = 1; }   // the crown's shadow on the ground
@@ -282,6 +289,17 @@ function drawEnt(o, cx, cy, now) {
 }
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
 const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
+function drawFurnace(o, cx, cy, now) {   // the furnace and its belt are still; the coals, flames, smoke and bar are drawn over them as the job goes
+  const s = o.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy), fi = furnaceInfo(), fa = behindAlpha(o); if (fa < 1) g.globalAlpha = fa;
+  g.drawImage(s, bx, by); g.globalAlpha = 1; litProp(o, s, bx, by, fa);
+  g.drawImage(fi.fire > 0 ? s.coals : s.coalsDim, bx, by);
+  const fl = fi.fire > 0 ? s.flames[Math.floor(now * 8) % 5] : null; o._emis = null;
+  if (fl) { g.globalAlpha = fi.fire; g.drawImage(fl, bx, by); g.globalAlpha = 1; o._emis = fl; g.globalAlpha = fi.fire; g.drawImage(s.smoke[Math.floor(now * 6) % 5], bx, by); g.globalAlpha = 1; }
+  if (fi.st === 'slide' || fi.st === 'ready') {
+    g.drawImage(s.bar[fi.frame], bx, by);
+    if (fi.st === 'ready') { const my = by + 40 + Math.round(Math.sin(now * 4) * 1.5), mx = bx + 40; g.fillStyle = '#f2b84b'; g.fillRect(mx, my, 5, 1); g.fillRect(mx + 1, my + 1, 3, 1); g.fillRect(mx + 2, my + 2, 1, 1); }   // a little bobbing arrow: it is ready
+  }
+}
 function drawMuseum(o, cx, cy, now) {   // one of the museum's pieces: the ground (steps, porch floor, side stairs), the back (wall, doors, roof) or the front (columns, the frieze over them, the banner swaying on its ropes)
   const s = o.owner.spr, bx = Math.round(o.x - s.ax - cx), by = Math.round(o.y - s.ay - cy);
   if (o.part === 'ground') g.drawImage(s.ground, bx, by);

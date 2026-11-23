@@ -48,6 +48,7 @@ const ICON = { camp: 'camp', dig: 'beach' };
 function targetInfo(t) {
   if (t.kind === 'camp') return { icon: 'camp', hint: 'Press to open camp' };
   if (t.kind === 'shop') return { icon: 'bag', hint: 'Press to browse the shop' };
+  if (t.kind === 'furnace') { const fi = furnaceInfo(); return { icon: STATION.furnace.icon, hint: fi.st === 'ready' ? 'Press to take the bar' : fi.st === 'idle' ? STATION.furnace.hint : 'Smelting…' }; }
   if (STATION[t.kind]) return { icon: STATION[t.kind].icon, hint: STATION[t.kind].hint };
   if (t.kind === 'museum') return { icon: 'camp', hint: 'Press to enter the museum' };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
@@ -143,6 +144,7 @@ function startAction() {
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
   if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
   if (t.kind === 'museum') { held = false; goArea('museum', 440, 236, 'l'); return; }
+  if (t.kind === 'furnace' && collectBar()) { held = false; return; }
   if (STATION[t.kind]) { held = false; UI.openCamp(t.kind === 'furnace' ? 'process' : 'craft', t.kind); return; }
   if (t.kind === 'dig') {
     if (!siteOpen(t.zone)) { UI.toast('You need the ' + toolFor(t.zone) + ' for ' + SITES[t.zone].n, 'info'); sfx('no'); return; }
@@ -427,9 +429,9 @@ UI.renderCamp = function (tab) {
     const rows = ARTIFACTS.filter(a => a.r === 0).map(a => {
       const ex = extrasOf(a.id), scrap = ex.reduce((s, x) => s + scrapFor(x), 0);
       return `<div class="row"><img src="${itemURL(a.id)}" alt=""><div class="grow"><b>${esc(a.name)}</b><small>${ex.length ? ex.length + ' spare → ' + scrap + ' scrap' : found(a.id) ? 'No spares (your best copy is kept)' : 'Not found yet'}</small></div>`
-        + `<button class="btn small ${ex.length ? '' : 'dis'}" data-act="process:${a.id}">Smelt</button></div>`;
+        + `<button class="btn small ${ex.length && !S.furnace ? '' : 'dis'}" data-act="process:${a.id}">Smelt</button></div>`;
     }).join('');
-    body = `<p class="note">Spare commons melt down into scrap, which the anvil needs for tools. Your best copy of each artifact is always kept, and uncommon and rare finds are never melted.</p><div class="list">${rows}</div>`;
+    const fi = furnaceInfo(); body = `<p class="note">${S.furnace ? (fi.st === 'ready' ? 'A bar is waiting on the belt. Walk up and take it.' : 'The furnace is busy smelting.') : 'Spare commons melt down into a bar of scrap, which comes out on the belt beside the furnace. Your best copy of each artifact is always kept, and uncommon and rare finds are never melted.'}</p><div class="list">${rows}</div>`;
   } else {
     const rows = RECIPES.filter(r => !st || (st === 'anvil' ? r.kind === 'mattock' : r.kind === 'brush')).map(recipeRow).join('');
     body = `<p class="note">${st === 'anvil' ? 'Forge better mattocks here.' : st === 'bench' ? 'Make better brushes here.' : ''} Using: ${esc(mattock().n)} · ${esc(brush().n)}. Recipes unlock when you first find the artifact named on them.</p><div class="list">${rows}</div>`;
@@ -460,11 +462,24 @@ function craft(id) {
   if (r.kind === 'mattock') { const z = SITES.findIndex((s, i) => i && s.tier === mattock().tier); if (z > 0) setTimeout(() => UI.note('New area unlocked', SITES[z].n), 600); }
   UI.refresh(); UI.renderCamp();
 }
-function processExtras(id) {
+const FURN = { burn: 4, wait: 1.2, slide: 1.1 };   // seconds: the furnace burns, goes quiet for a moment, then the bar slides out along the belt
+function furnaceInfo() {   // where the furnace is in its job (saved in S.furnace as { n: scrap in the bar, t0: when it started }, so it carries on if you close the game)
+  const j = S.furnace; if (!j) return { st: 'idle', fire: 0 }; const t = (Date.now() - j.t0) / 1000, w = FURN.burn + FURN.wait;
+  if (t < FURN.burn) return { st: 'burn', fire: 1, t }; if (t < w) return { st: 'wait', fire: 0.45, t };
+  if (t < w + FURN.slide) return { st: 'slide', fire: 0, frame: Math.min(4, Math.floor((t - w) / (FURN.slide / 5))), t }; return { st: 'ready', fire: 0, frame: 4, t };
+}
+function barSpot(o) { return { x: o.x - 76 + 42.5, y: o.y - 64 + 50.5 }; }   // where the finished bar rests on the belt
+function startSmelt(id) {   // melt the spare copies of one find into a bar of scrap
+  if (S.furnace) { UI.toast(furnaceInfo().st === 'ready' ? 'Take the bar off the belt first' : 'The furnace is busy', 'info'); sfx('no'); return; }
   const ex = extrasOf(id); if (!ex.length) { sfx('no'); return; }
   let scrap = 0; ex.forEach(x => { scrap += scrapFor(x); }); const keep = S.arts.filter(a => a.id === id).sort((p, q) => q.pct - p.pct)[0];
-  S.arts = S.arts.filter(a => a.id !== id); S.arts.push(keep); S.mats.scrap = (S.mats.scrap | 0) + scrap;
-  sfx('coin'); UI.toast(`Smelted ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''} → ${scrap} scrap`, 'gold'); UI.refresh(); UI.renderCamp();
+  S.arts = S.arts.filter(a => a.id !== id); S.arts.push(keep); S.furnace = { n: scrap, t0: Date.now() };
+  sfx('pop'); UI.close(); UI.toast(`Smelting ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''}…`, 'info'); UI.refresh();
+}
+function collectBar() {   // take the bar off the belt: it is worth its scrap
+  const fi = furnaceInfo(); if (fi.st !== 'ready') return false;
+  if (!bagFits('scrap')) { UI.toast('Your bag is full. Sell or donate some finds', 'info'); sfx('no'); return true; }
+  const n = S.furnace.n; S.mats.scrap = (S.mats.scrap | 0) + n; S.furnace = null; sfx('coin'); UI.toast(`+${n} scrap`, 'gold'); UI.refresh(); const o = W.objs.find(q => q.k === 'furnace'); if (o) { const b = barSpot(o); floater(b.x, b.y - 8, `+${n} scrap`, '#e8d9a2'); burst(b.x, b.y, '#e8c06a', 6, 30, 0.5, 40, 1); } return true;
 }
 UI.openTest = function () {   // testing tools: start the dig-and-collect loop again from nothing
   UI.open('gear', `${head('Test tools')}<p class="note">For testing. Both buttons ask you to tap twice, because they can't be undone.</p>
@@ -479,11 +494,11 @@ UI.onClick2 = function (a, p1) {
   switch (a) {
     case 'testmenu': UI.openTest(); break;
     case 'testreset': UI.testConfirm('tr1', 'Reset', () => {
-      S.col = {}; S.arts = []; S.mats = { nails: 0, boot: 0, fabric: 0, scrap: 0 }; S.gear = { mattock: 0, brush: 0 }; S.stats = { digs: 0, dry: 0 }; S.coins = 0; S.bag = 0; HOLES.length = 0; ME.hold = null; A = null; saveState(); UI.refresh(); UI.close(); UI.toast('Progress reset', 'info');
+      S.col = {}; S.arts = []; S.mats = { nails: 0, boot: 0, fabric: 0, scrap: 0 }; S.gear = { mattock: 0, brush: 0 }; S.stats = { digs: 0, dry: 0 }; S.coins = 0; S.bag = 0; S.furnace = null; HOLES.length = 0; ME.hold = null; A = null; saveState(); UI.refresh(); UI.close(); UI.toast('Progress reset', 'info');
     }); break;
     case 'testwipe': UI.testConfirm('tr2', 'Erase', () => { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem('littledig.proto.v1'); } catch (e) { } S = defaultState(); location.reload(); }); break;
     case 'ctab': UI.renderCamp(p1); break;
-    case 'process': processExtras(p1); break;
+    case 'process': startSmelt(p1); break;
     case 'craft': craft(p1); break;
     case 'stab': UI.renderShop(p1); break;
     case 'shopbuy': shopBuy(p1); break;
