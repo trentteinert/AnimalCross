@@ -356,7 +356,7 @@ const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
 const GHOST_BIG = new Set(['shop', 'camp', 'museumback', 'museumcols']);   // only walls and buildings show your outline when they hide you; benches, anvils, fires, plants and rocks do not
 function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
-  if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me' || o.k === 'tree' || o.k === 'decor') return 1;
+  if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me' || o.k === 'tree' || o.k === 'decor' || o.nosel) return 1;   // (the top of a doorway arch stays solid: you walk under it)
   const s = o.spr, over = o.y > ME.y && ME.x + 9 > o.x - s.ax && ME.x - 9 < o.x - s.ax + s.width && ME.y > o.y - s.ay && ME.y - 46 < o.y;
   o.fa = (o.fa == null ? 1 : o.fa) + ((over ? 0.38 : 1) - (o.fa == null ? 1 : o.fa)) * 0.18; return o.fa;
 }

@@ -110,6 +110,15 @@ def arch_prop(i, x0, y0, x1, y1):   # the doorway as drawn (dark hole in the wal
             if pa[x, y] != pf[x, y]: po[x, y] = pa[x, y]
     return out
 ARCHPIC = {'arch': arch_prop(3, *ARCHES[('west', 'arch')]), 'arch_narrow': arch_prop(19, *ARCHES[('welcome', 'arch')])}
+def arch_tip(pic, room, key):   # the curved top of the silver frame, same size and place as the doorway picture: drawn over the player, who walks under it
+    x0, y0, x1, y1 = ARCHES[(room, key)]; fr = layers[room][1].crop((x0 - 3, y0 - 3, x1 + 3, y1 + 3)).getchannel('A'); tip = Image.new('RGBA', pic.size); pp, ff, tt = pic.load(), fr.load(), tip.load()
+    left = {y: min((x for x in range(pic.width) if ff[x, y] and pp[x, y][3]), default=None) for y in range(pic.height)}; ext = min(v for v in left.values() if v is not None)
+    cut = next(y for y in range(pic.height) if left[y] == ext) + 5   # the dome ends where the frame's sides run straight; a few rows of the sides go with it
+    for y in range(cut):
+        for x in range(pic.width):
+            if ff[x, y] and pp[x, y][3]: tt[x, y] = pp[x, y]
+    return tip
+ARCHTIP = {'arch_tip': arch_tip(ARCHPIC['arch'], 'west', 'arch'), 'arch_narrow_tip': arch_tip(ARCHPIC['arch_narrow'], 'welcome', 'arch')}
 # a cell is walkable where the floor layer covers a good part of it
 def walkcell(cx, cy): m = floorm.crop((cx * 16, cy * 16, cx * 16 + 16, cy * 16 + 16)); return sum(1 for v in m.getdata() if v) >= 40
 cols, rows = (NW + DX + 15) // 16, (NH + 15) // 16
@@ -216,6 +225,7 @@ def layer_prop(i, dx=0, dy=0):   # a prop cut from one layer of the museum file,
     im = nshift(NI[i], dx, dy); b = im.getbbox(); return {'img': im.crop(b), 'over': None}, b
 for name, i in (('noentry', 6), ('stanchion', 7), ('exit_sign', 25)): props[name] = layer_prop(i)[0]
 for name, im in ARCHPIC.items(): bb = im.getbbox(); props[name] = {'img': im.crop(bb), 'over': None}; ARCHBB[name] = bb
+for name, im in ARCHTIP.items(): bb = ARCHBB[name[:-4]]; props[name] = {'img': im.crop(bb), 'over': None}   # same crop as the doorway, so it lines up
 
 # ------------------------------------------------------------------------------------------------ pack the sheets
 def pack(pics, width=512):   # shelf packing; returns positions

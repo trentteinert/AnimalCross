@@ -151,7 +151,7 @@ function placeAt(wx, wy) {
 }
 function hitTest(wx, wy) {
   const objs = W.objs.slice().sort((a, b) => b.y - a.y);
-  for (const o of objs) { const s = runtimeSpr(o); if (!s) continue; const x0 = o.x - s.ax, y0 = o.y - s.ay; if (wx >= x0 && wx < x0 + s.width && wy >= y0 && wy < y0 + s.height) return o; }
+  for (const o of objs) { if (o.nosel) continue; const s = runtimeSpr(o); if (!s) continue; const x0 = o.x - s.ax, y0 = o.y - s.ay; if (wx >= x0 && wx < x0 + s.width && wy >= y0 && wy < y0 + s.height) return o; }
   return null;
 }
 function deleteSel() {
@@ -202,7 +202,7 @@ function edUp() {
     if (ED.strokeChanged) { const keep = ED.sel && ED.sel.src; rebuildAll(); computeShore(); ED.sel = keep ? findRuntime(keep) : null; commit(); }
   } else if (ED.mv) {
     const m = ED.mv; ED.mv = null;
-    if (m.moved) { if (ED.sel && ED.sel.fl) { const k = ED.sel.src; rebuildAll(); ED.sel = findRuntime(k); } commit(); }
+    if (m.moved) { if (ED.sel && (ED.sel.fl || /^arch/.test(ED.sel.src.n || ''))) { const k = ED.sel.src; rebuildAll(); ED.sel = findRuntime(k); } commit(); }
   }
 }
 function edWheel(e) {

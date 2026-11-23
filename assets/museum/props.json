@@ -197,5 +197,23 @@
 "ax": 19,
 "ay": 52,
 "over": false
+},
+"arch_tip": {
+"sx": 439,
+"sy": 60,
+"w": 38,
+"h": 51,
+"ax": 19,
+"ay": 51,
+"over": false
+},
+"arch_narrow_tip": {
+"sx": 0,
+"sy": 124,
+"w": 38,
+"h": 52,
+"ax": 19,
+"ay": 52,
+"over": false
 }
 }
