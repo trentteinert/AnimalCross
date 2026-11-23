@@ -85,7 +85,9 @@ def nshift(im, dx, dy): o = Image.new('RGBA', im.size); o.paste(im, (DX + dx, DY
 layers = {}
 for r, (fl, fr) in ROOMS.items(): dx, dy = FIX.get(r, (0, 0)); layers[r] = (nshift(NI[fl], dx, dy), nshift(NI[fr], dx, dy))
 canvas = Image.new('RGBA', (NW, NH), VOID); floorm = Image.new('L', (NW, NH), 0)
-for i in sorted(i for r in ROOMS.values() for i in r):   # in the file's order: later layers are on top
+STAIRS = (3, 12, 13, 19)   # the stairs layers sit below their room's floor and frame, so the silver doorway frame is in front of them
+for i in sorted([i for r in ROOMS.values() for i in r] + list(STAIRS)):   # in the file's order: later layers are on top
+    if i in STAIRS: canvas.alpha_composite(nshift(NI[i], 0, 0)); continue
     r = next(k for k, v in ROOMS.items() if i in v); a, b = layers[r]; im = a if i == ROOMS[r][0] else b; canvas.alpha_composite(im)
 for r in ROOMS:
     floorm.paste(255, mask=layers[r][0].getchannel('A').point(lambda v: 255 if v > 0 else 0))
@@ -101,7 +103,7 @@ for r, d in PR.items():
             for x in range(x0 - 3, x1 + 3):
                 for y in range(y0 - 3, ft): canvas.putpixel((x, y), canvas.getpixel((ref, y)))
 def arch_prop(i, x0, y0, x1, y1):   # the doorway as drawn (dark hole in the wall plus the translucent stairs layer on top), as a picture you can place anywhere
-    comp = orig.copy(); comp.alpha_composite(nshift(NI[i], 0, 0)); box = (x0 - 3, y0 - 3, x1 + 3, y1 + 3); a = comp.crop(box); f = canvas.crop(box); out = Image.new('RGBA', a.size)
+    comp = orig; box = (x0 - 3, y0 - 3, x1 + 3, y1 + 3); a = comp.crop(box); f = canvas.crop(box); out = Image.new('RGBA', a.size)
     pa, pf, po = a.load(), f.load(), out.load()
     for y in range(a.height):
         for x in range(a.width):
@@ -270,7 +272,7 @@ put_arch('arch_narrow', 'welcome', 'arch')                                      
 ids = lambda c: [k for k, o in out.items() if o['case'] == c]
 FT = 400   # the wings' floor top
 for x, n in ((130, 'panel_fossils'), (204, 'panel_scorpion'), (256, 'plaque'), (300, 'window')): put(n, x, FT + WALLP_[n])
-for x, n in ((800, 'panel_fossils'), (880, 'plaque'), (990, 'window')): put(n, x, FT + WALLP_[n])
+for x, n in ((800, 'panel_fossils'), (880, 'plaque'), (1006, 'window')): put(n, x, FT + WALLP_[n])
 for i, k in enumerate(ids('case_2x2')): put('case_2x2', 96 + 64 * i, 464, k)                              # west wing: 2x2 cases, 2x1 cases, 1x1 cases
 c21 = ids('case_2x1')
 for i, k in enumerate(c21[:6]): put('case_2x1', 96 + 56 * i, 528, k)
