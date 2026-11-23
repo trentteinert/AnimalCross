@@ -83,7 +83,7 @@ function resizeMap(nw, nh, centred) { // grow or shrink the map; new ground is w
   const od = m.deck || []; m.deck = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && od[sy] ? od[sy][sx] : '0'; } m.deck.push(r); }
   const op = m.pit || []; m.pit = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && op[sy] ? op[sy][sx] : '0'; } m.pit.push(r); }
   const os = m.site || []; m.site = []; for (let y = 0; y < nh; y++) { let r = ''; for (let x = 0; x < nw; x++) { const sx = x - ox, sy = y - oy; r += sx >= 0 && sy >= 0 && sx < MW && sy < MH && os[sy] ? os[sy][sx] : '0'; } m.site.push(r); }
-  m.w = nw; m.h = nh; m.tiles = rows; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
+  m.w = nw; m.h = nh; m.tiles = rows; delete m.room; loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('Map is now ' + nw + ' x ' + nh + ' tiles. New ground is water; paint land onto it.');
 }
 function resizeMuseum(fw, fh) {   // the museum room: rebuilt at the new size; the exit and the spot you come in at move with the right wall
   const R = museumRoom(fw, fh), m = JSON.parse(snapshot()); m.room = { w: R.w, h: R.h }; m.w = R.cols; m.h = R.rows; m.tiles = R.tiles; m.deck = m.site = m.pit = null;
@@ -108,6 +108,7 @@ function paintAt(tx, ty) {
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
+    if (ED.tile >= 1000) { const id = ED.tile - 1000, i = y * MW + x; if (MGRID && MGRID[i] !== id) { MGRID[i] = id; GRID[i] = new Set(ASSET.mTiles.walk).has(id) ? 5 : 0; ED.dirty = true; ED.strokeChanged = true; } continue; }   // museum room: a tile from its own tile set
     if (ED.tile >= 400) { const id = ED.tile - 400; if (PIT[y * MW + x] !== id) { PIT[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 200) { const id = ED.tile - 200; if (SITE[y * MW + x] !== id) { SITE[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
     if (ED.tile >= 100) { const id = ED.tile - 100; if (DECK[y * MW + x] !== id) { DECK[y * MW + x] = id; ED.dirty = true; ED.strokeChanged = true; } continue; }
@@ -174,7 +175,7 @@ function edUp() {
   if (ED.pan) { ED.pan = null; return; }
   if (ED.stroke) {
     ED.stroke = null;
-    if (ED.strokeChanged) { const keep = ED.sel && ED.sel.src; rebuildAll(); computeShore(); ED.sel = keep ? findRuntime(keep) : null; commit(); }
+    if (ED.strokeChanged) { if (ED.tile >= 1000) delete MAPDATA.room; const keep = ED.sel && ED.sel.src; rebuildAll(); computeShore(); ED.sel = keep ? findRuntime(keep) : null; commit(); }
   } else if (ED.mv) {
     const m = ED.mv; ED.mv = null;
     if (m.moved) { if (ED.sel && ED.sel.fl) { const k = ED.sel.src; rebuildAll(); ED.sel = findRuntime(k); } commit(); }
@@ -195,6 +196,7 @@ function edKey(e) {
   if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); deleteSel(); return; }
   if (e.code === 'Escape') { ED.sel = null; refreshInspector(); return; }
   if (e.code === 'KeyG') { ED.grid = !ED.grid; updateBar(); return; }
+  if (ED.tile >= 1000 && /^Digit[1-7]$/.test(e.code)) return;
   if (/^Digit[1-7]$/.test(e.code)) { ED.tile = +e.code.slice(5) - 1; ED.tool = 'paint'; updateBar(); }
 }
 function edClick(e) {
@@ -202,6 +204,7 @@ function edClick(e) {
   switch (a) {
     case 'tool': ED.tool = p; if (p !== 'place') ED.place = ED.place; break;
     case 'tile': ED.tile = +p; ED.tool = 'paint'; break;
+    case 'mtile': ED.tile = 1000 + +p; ED.tool = 'paint'; break;
     case 'brush': ED.brush = +p; ED.tool = 'paint'; break;
     case 'pal': ED.place = EPAL[+p]; ED.tool = 'place'; break;
     case 'undo': undo(); break; case 'redo': redo(); break;
@@ -285,7 +288,7 @@ function edRender(now) {
   const m = ED.mouse;
   if (m.in && !ED.pan) {
     const tx = Math.floor(m.wx / TS), ty = Math.floor(m.wy / TS);
-    if (ED.tool === 'paint') { const b = ED.brush, o = Math.floor((b - 1) / 2); outline((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS, '#f2b84b'); g.fillStyle = TILE_COL[ED.tile]; g.globalAlpha = 0.35; g.fillRect((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS); g.globalAlpha = 1; }
+    if (ED.tool === 'paint') { const b = ED.brush, o = Math.floor((b - 1) / 2); outline((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS, '#f2b84b'); if (ED.tile >= 1000) { const id = ED.tile - 1000; g.globalAlpha = 0.6; for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) g.drawImage(ASSET.img.museum_tiles, (id & 15) * 16, (id >> 4) * 16, 16, 16, (tx - o + dx) * TS - cx, (ty - o + dy) * TS - cy, 16, 16); g.globalAlpha = 1; } else { g.fillStyle = TILE_COL[ED.tile]; g.globalAlpha = 0.35; g.fillRect((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS); g.globalAlpha = 1; } }
     else if (ED.tool === 'place' && ED.place) {
       const px = snapv(m.wx), py = snapv(m.wy);
       if (ED.place.k === 'patch') { g.fillStyle = 'rgba(255,170,210,0.9)'; for (let i = 0; i < 24; i++) { const a = i * 0.2618; g.fillRect(Math.round(px + Math.cos(a) * 24 - cx), Math.round(py + Math.sin(a) * 19 - cy), 1, 1); } }
@@ -305,7 +308,7 @@ function buildEditorUI() {
     + `<button class="edt" data-ed="tile:200" data-t="200"><span style="background:#4a6a3a"></span>Remove dig site</button>`
     + `<h4>Depth (pits and walkways going down)</h4>` + [[2, 'Pit floor, 1 down', '#6a4b2e'], [4, 'Pit floor, 2 down', '#4e3622'], [1, 'Ramp 0 to 1', '#8a6a40'], [3, 'Ramp 1 to 2', '#8a6a40'], [5, 'Ramp 2 to 3', '#8a6a40'], [6, 'Pit floor, 3 down', '#3e2c1c']].map(t => `<button class="edt" data-ed="tile:${400 + t[0]}" data-t="${400 + t[0]}"><span style="background:${t[2]}"></span>${t[1]}</button>`).join('')
     + `<button class="edt" data-ed="tile:400" data-t="400"><span style="background:#4a6a3a"></span>Remove depth (ground level)</button>`;
-  const MUS = W.theme === 'museum' && ASSET.mTiles && ASSET.mTiles.tmpl; EPAL = MUS ? museumPal() : PAL;
+  const MUS = W.theme === 'museum' && ASSET.mTiles && ASSET.mTiles.tmpl; EPAL = MUS ? museumPal() : PAL; if (MUS && ED.tile < 1000) ED.tile = 1000 + ASSET.mTiles.walk[0];
   const pal = EPAL.map((e, i) => `<button class="edp" data-ed="pal:${i}" data-p="${i}" title="${esc2(e.n)}"><img src="${palIcon(i)}" alt="${esc2(e.n)}"></button>`).join('');
   el.innerHTML = `
   <div class="edbar">
@@ -321,15 +324,21 @@ function buildEditorUI() {
       <button data-ed="tool:paint" data-tool="paint">Paint tiles</button><button data-ed="tool:place" data-tool="place">Place object</button>
       <button data-ed="tool:select" data-tool="select">Select / move</button><button data-ed="tool:spawn" data-tool="spawn">Spawn point</button>
     </div>
-    ${MUS ? '' : `<h4>Tiles</h4><div class="edtl">${tiles}</div>
+    ${MUS ? museumTilesHTML() : `<h4>Tiles</h4><div class="edtl">${tiles}</div>
     <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>`}
     <h4>Objects</h4><div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
-    ${MUS ? `<h4>Room</h4><label class="edth">Size (marble tiles, 32px)<span class="edsz"><input id="edRW" type="number" min="${ASSET.mTiles.tmpl.minW}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).w}"> × <input id="edRH" type="number" min="${ASSET.mTiles.tmpl.minH}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).h}"></span></label><div class="edtools"><button data-ed="mroom">Apply size</button></div><p class="mut">The room grows to the right and down; the exit corridor stays on the right wall, near the bottom.</p>` : `<h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>`}
+    ${MUS ? `<h4>Room</h4><label class="edth">Size (marble tiles, 32px)<span class="edsz"><input id="edRW" type="number" min="${ASSET.mTiles.tmpl.minW}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).w}"> × <input id="edRH" type="number" min="${ASSET.mTiles.tmpl.minH}" max="60" value="${(MAPDATA.room || ASSET.mTiles.tmpl).h}"></span></label><div class="edtools"><button data-ed="mroom">Apply size</button></div><p class="mut">The room grows to the right and down; the exit corridor stays on the right wall, near the bottom. This rebuilds the walls and floor.</p><h4>Free size (16px tiles)</h4><label class="edth"><span class="edsz"><input id="edMW" type="number" min="16" max="200" value="${MW}"> × <input id="edMH" type="number" min="16" max="200" value="${MH}"></span></label><div class="edtools"><button data-ed="resize">Apply size</button></div><p class="mut">Adds or removes tiles at the right and bottom (new tiles are empty void) and keeps what you painted.</p><input type="hidden" id="edGrow" value="tl">` : `<h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>`}
     <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Piers and bridges are decking tiles: paint them like any tile. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
+}
+function museumTilesHTML() {   // every tile of the museum tile set, to paint walls, frames, floor and corridors with
+  const T = ASSET.mTiles, A = ASSET.img.museum_tiles, walk = new Set(T.walk), btn = id => { const c = mk(16, 16); c.g.drawImage(A, (id & 15) * 16, (id >> 4) * 16, 16, 16, 0, 0, 16, 16); return `<button class="edm" data-ed="mtile:${id}" data-t="${1000 + id}" title="tile ${id}"><img src="${c.toDataURL()}"></button>`; };
+  const ids = [...Array(T.count).keys()];
+  return `<h4>Floor tiles (walkable)</h4><div class="edmt">${ids.filter(i => walk.has(i)).map(btn).join('')}</div><h4>Walls, frame, void (solid)</h4><div class="edmt">${ids.filter(i => !walk.has(i)).map(btn).join('')}</div><p class="mut">Painting tiles frees the room from the size boxes below; use Free size to add or remove tiles.</p>
+    <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>`;
 }
 function areaOptions() { const list = ['island', 'museum']; if (!list.includes(AREA)) list.push(AREA); return list.map(a => `<option value="${a}" ${a === AREA ? 'selected' : ''}>${a}</option>`).join('') + '<option value="__new">New area...</option>'; }
 function updateBar() {
@@ -337,7 +346,7 @@ function updateBar() {
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';
   $('#edSave').textContent = ED.unsaved ? 'Save to project *' : 'Save to project';
   $$('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === ED.tool)); $$('.edt').forEach(b => b.classList.toggle('on', +b.dataset.t === ED.tile && ED.tool === 'paint'));
-  $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === EPAL[+b.dataset.p] && ED.tool === 'place'));
+  $$('.edm').forEach(b => b.classList.toggle('on', +b.dataset.t === ED.tile && ED.tool === 'paint')); $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === EPAL[+b.dataset.p] && ED.tool === 'place'));
 }
 function refreshInspector(quick) {
   const el = $('#edInsp'); if (!el) return; const s = ED.sel;
@@ -367,6 +376,7 @@ function injectEditorCSS() {
   .edside h4{margin:12px 0 6px;font-size:11px;color:#9db0cf;font-weight:400;text-transform:uppercase;letter-spacing:.06em}.edside h4:first-child{margin-top:0}
   .edtools{display:flex;flex-wrap:wrap;gap:5px}.edtl{display:flex;flex-direction:column;gap:4px}.edt{display:flex!important;align-items:center;gap:8px;text-align:left}.edt span{width:16px;height:16px;display:block;box-shadow:0 0 0 1px #0f1624}
   .edt kbd{margin-left:auto;color:#9db0cf;font-size:11px}.edbr{display:flex;gap:5px}
+  .edmt{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}.edm{padding:2px!important;display:grid;place-items:center}.edm img{width:28px;height:28px;image-rendering:pixelated}
   .edpal{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.edp{padding:3px!important;display:grid;place-items:center}.edp img{width:40px;height:40px;image-rendering:pixelated}
   #edInsp{display:flex;flex-direction:column;gap:6px}#edInsp label{display:flex;flex-direction:column;gap:3px;color:#9db0cf}#edInsp select,#edInsp textarea{background:#101826;color:#f5e9cf;border:0;padding:5px;resize:vertical}
   .mut{color:#9db0cf;margin:0}.edhelp{color:#9db0cf;font-size:11.5px;line-height:1.45;margin-top:14px}
