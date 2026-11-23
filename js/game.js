@@ -260,6 +260,7 @@ const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional n
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'leaf': drawLeaf(o.l, cx, cy); return;
+    case 'archwall': { const s = o.strip; g.drawImage(W.terrain, s.x, s.y, s.w, s.h, Math.round(s.x - cx), Math.round(s.y - cy), s.w, s.h); return; }   // a strip of the wall copied over the player (see computeStairs)
     case 'me': case 'npc': {
       const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U) - (o === ME ? Math.round(ME.elev || 0) : 0); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
