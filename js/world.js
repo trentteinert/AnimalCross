@@ -314,18 +314,49 @@ function drawPits(c) {   // sunken ground: floors drawn lower on screen, north w
     }
   }
 }
-function museumRoom(fw, fh) {   // the museum room at any size, in 32px marble tiles: the template's ends, wall and bottom (with the exit corridor) are kept and its middle repeats (see tools/museum_interior_export.py)
-  const T = ASSET.mTiles.tmpl; fw = clamp(fw | 0, T.minW, 60); fh = clamp(fh | 0, T.minH, 60); const ml = 2 * (fw - 4), mt = 2 * (fh - 5), cols = 2 * fw + 8, rows = 2 * fh + 8, tiles = [];
-  for (let r = 0; r < rows; r++) {
-    const tr = r < 7 ? r : r < 7 + mt ? 7 + (r - 7) % 2 : 9 + r - 7 - mt; let s = '';
-    for (let c = 0; c < cols; c++) { const tc = c < 5 ? c : c < 5 + ml ? 5 + ((c - 5) + (r >= 7 && r < 7 + mt ? 6 * ((r - 7) >> 1) : 0)) % 16 : 21 + c - 5 - ml; s += String.fromCharCode(48 + T.grid[tr][tc]); }
-    tiles.push(s);
+function museumLayout(room) {   // the museum room from a floor plan: room.floor is rows of 0/1 per 32px marble block, room.exits are the corridor blocks. Walls, frame, corners, floor edges and the exit corridor are picked automatically from the tiles drawn in the template (tileset.json tmpl, see tools/museum_interior_export.py)
+  const T = ASSET.mTiles.tmpl.grid, bw = clamp(room.w | 0, 2, 60), bh = clamp(room.h | 0, 2, 60), cols = 2 * bw + 8, rows = 2 * bh + 8;
+  const fl = []; for (let y = 0; y < bh; y++) fl.push(((room.floor && room.floor[y]) || '1'.repeat(bw)).padEnd(bw, '0'));
+  const fb = (x, y) => x >= 0 && y >= 0 && x < bw && y < bh && fl[y][x] === '1';
+  const F = (cx, cy) => cx >= 3 && cy >= 5 && fb((cx - 3) >> 1, (cy - 5) >> 1);
+  const K = (cx, cy) => { if (F(cx, cy)) return 0; for (let k = 1; k <= 5; k++) if (F(cx, cy + k)) return k; return 0; };   // a wall cell: how far below it the floor starts (1 to 5) = which row of the back wall it is
+  const out = [];
+  for (let cy = 0; cy < rows; cy++) {
+    const row = [];
+    for (let cx = 0; cx < cols; cx++) {
+      let id = 1;
+      if (F(cx, cy)) {
+        const bx = (cx - 3) >> 1, by = (cy - 5) >> 1, qx = (cx - 3) & 1, qy = (cy - 5) & 1, L = !fb(bx - 1, by), R = !fb(bx + 1, by), Tt = !fb(bx, by - 1), Bt = !fb(bx, by + 1);
+        const tc = L ? 3 + qx : R ? 25 + qx : 5 + 2 * Math.floor(hash2(bx, by, 7) * 10) + qx, B = hash2(bx, by, 9) < 0.5;
+        const tr = Tt ? (qy ? 6 : 5) : Bt ? 15 + qy : B ? 7 + qy : (qy ? 6 : 9);
+        id = T[tr][tc];
+      } else {
+        const k = K(cx, cy);
+        if (k) { const kl = K(cx - 1, cy) !== k, kr = K(cx + 1, cy) !== k; id = T[5 - k][kl ? 3 : kr ? 26 : 4]; }
+        else if (F(cx, cy - 1)) id = !F(cx - 1, cy - 1) ? T[17][3] : !F(cx + 1, cy - 1) ? T[17][26] : T[17][4];
+        else if (F(cx + 1, cy - 1) && !F(cx + 1, cy)) id = T[17][2];
+        else if (F(cx - 1, cy - 1) && !F(cx - 1, cy)) id = T[17][27];
+        else if (F(cx + 1, cy) || K(cx + 1, cy)) id = K(cx + 1, cy) ? (K(cx + 1, cy) === 5 ? T[0][2] : T[1][2]) : (!F(cx + 1, cy + 1) ? T[16][2] : T[5][2]);
+        else if (F(cx - 1, cy) || K(cx - 1, cy)) id = K(cx - 1, cy) ? (K(cx - 1, cy) === 5 ? T[0][27] : T[1][27]) : (!F(cx - 1, cy + 1) ? T[16][27] : T[5][27]);
+      }
+      row.push(id);
+    }
+    out.push(row);
   }
-  const rx = (5 + ml) * 16, by = (7 + mt) * 16;
-  return { w: fw, h: fh, cols, rows, tiles, spawn: { x: rx + T.spawn[0], y: by + T.spawn[1] }, exit: { x: rx + T.exit[0], y: by + T.exit[1] } };
+  const exits = (room.exits && room.exits.length ? room.exits : [{ x: bw, y: bh - 2 }]).filter(e => e.x >= 1 && e.x <= bw && e.y >= 0 && e.y < bh).slice(0, 1), ex = [];
+  for (const e of exits) {   // the exit corridor: its walls, frame and the floor beside it, stamped from the template
+    const cc = 3 + 2 * e.x, cr = 5 + 2 * e.y;
+    for (let dr = 0; dr < 8; dr++) for (let dc = 0; dc < 3; dc++) { const x = cc - 1 + dc, y = cr - 4 + dr; if (x >= 0 && y >= 0 && x < cols && y < rows) out[y][x] = T[9 + dr][26 + dc]; }
+    ex.push({ x: cc * 16 + 30, y: cr * 16 + 28, sx: cc * 16 + 8 });
+  }
+  const e0 = ex[0] || { x: 3 * 16 + 30, y: 5 * 16 + 28, sx: 3 * 16 + 8 };
+  return { w: bw, h: bh, cols, rows, tiles: out.map(r => r.map(v => String.fromCharCode(48 + v)).join('')), floor: fl, exits, exitPos: ex, spawn: { x: e0.sx, y: e0.y } };
 }
 function loadMap(map) {
-  if (map.theme === 'museum' && map.room && ASSET.mTiles && ASSET.mTiles.tmpl) { const R = museumRoom(map.room.w, map.room.h); map.w = R.cols; map.h = R.rows; map.tiles = R.tiles; }   // the room is rebuilt from its size, so it always matches the current tile set
+  if (map.theme === 'museum' && ASSET.mTiles && ASSET.mTiles.tmpl) {   // the room is rebuilt from its floor plan, so it always matches the current tile set
+    if (!map.room) map.room = { w: 12, h: 6 }; const R = museumLayout(map.room); map.room = { w: R.w, h: R.h, floor: R.floor.map(r => r), exits: R.exits }; map.w = R.cols; map.h = R.rows; map.tiles = R.tiles; map.spawn = R.spawn;
+    map.objects = (map.objects || []).filter(o => o.k !== 'mexit').concat(R.exitPos.map(e => ({ k: 'mexit', x: e.x, y: e.y, to: 'island' })));
+  }
   setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);
   const museum = map.theme === 'museum' && ASSET.mTiles; MGRID = museum ? new Uint16Array(MW * MH) : null; const walk = museum ? new Set(ASSET.mTiles.walk) : null;
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) { const id = map.tiles[ty].charCodeAt(tx) - 48; if (museum) { MGRID[ty * MW + tx] = id; GRID[ty * MW + tx] = walk.has(id) ? 5 : 0; } else GRID[ty * MW + tx] = Math.min(6, Math.max(0, id)); }   // the museum's tiles are ids into its own tile set; the game only needs to know floor (walkable) from everything else
