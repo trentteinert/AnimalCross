@@ -278,7 +278,7 @@ function drawEnt(o, cx, cy, now) {
       const zo = o.pz > 0.02 ? Math.round(o.pz * PIT_U) : 0; if (zo) { g.save(); const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } g.translate(0, zo); }   // a stone that has dropped into a pit is drawn lower, and the higher ground in front hides its bottom
       if (o.ang) { const q = Math.round(o.ang / 1.5708) & 3, w = spr.width, h = spr.height; g.save(); g.translate(Math.round(o.x - cx), Math.round(o.y - cy) - h / 2); g.rotate(q * Math.PI / 2); g.drawImage(spr, -w / 2, -h / 2); g.restore(); } else if (Math.abs(o.lean) > 0.04) { const px = Math.round(o.x - spr.ax - cx), py = Math.round(o.y - spr.ay - cy), H = spr.height; for (let r = 0; r < H; r += 2) g.drawImage(spr, 0, r, spr.width, Math.min(2, H - r), px + Math.round(o.lean * Math.pow(1 - (r + 1) / H, 1.5) * 3), py + r, spr.width, Math.min(2, H - r)); } else if (o.sq > 0.02) { const sw = Math.round(spr.width * (1 + 0.14 * o.sq)), sh = Math.round(spr.height * (1 - 0.32 * o.sq)); g.drawImage(spr, Math.round(o.x - cx - spr.ax * sw / spr.width), Math.round(o.y - cy - spr.ay * sh / spr.height), sw, sh); } else g.drawImage(spr, Math.round(o.x - spr.ax - cx), Math.round(o.y - spr.ay - cy)); g.globalAlpha = 1;
       if (o.k === 'mprop' && o.item && SPR.mitem && SPR.mitem[o.item]) { const it = SPR.mitem[o.item], pic = o.st > 0 && it.stages ? it.stages[Math.min(o.st, it.stages.length) - 1] : it; g.drawImage(pic, Math.round(o.x - spr.ax - cx) + it.ix, Math.round(o.y - spr.ay - cy) + it.iy); }   // the item on display (o.st: a permanent exhibit's build stage, 0 = finished)
-      if (o.k === 'mprop' && spr.over) {
+      if (o.k === 'mprop' && spr.over && MUSEUM_GLASS) {
         const qx = Math.round(o.x - spr.ax - cx), qy = Math.round(o.y - spr.ay - cy); g.globalAlpha = spr.overA;
         if (spr.overB) { g.drawImage(spr.overG, qx, qy); g.globalCompositeOperation = 'multiply'; g.drawImage(spr.overB, qx, qy); g.globalCompositeOperation = 'source-over'; } else g.drawImage(spr.over, qx, qy);
         g.globalAlpha = 1;
@@ -288,6 +288,7 @@ function drawEnt(o, cx, cy, now) {
     }
   }
 }
+const MUSEUM_GLASS = false;   // the glass over the display cases is switched off for now (set to true to bring it back)
 let SUN = 1;   // how strong cast shadows and sun shading are: 1 = full daylight, 0 = none (night). Follows the clock when FEATURES.light is on
 const shadowStrength = () => FEATURES.shadows === false ? 0 : SUN;
 function drawFurnace(o, cx, cy, now) {   // the furnace and its belt are still; the coals, flames, smoke and bar are drawn over them as the job goes

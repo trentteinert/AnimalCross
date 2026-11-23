@@ -31,7 +31,7 @@ function mpropPic(pn, item, st) {   // a museum prop as one picture (case + what
   const s = SPR.mprop && SPR.mprop[pn]; if (!s) return null; const it = item && SPR.mitem && SPR.mitem[item], pic = it ? (st > 0 && it.stages ? it.stages[Math.min(st, it.stages.length) - 1] : it) : null;
   const top = it ? Math.min(0, it.iy) : 0, h = Math.max(s.height, it ? it.iy + it.height : 0) - top, c = mk(s.width, h); c.g.drawImage(s, 0, -top);
   if (pic) c.g.drawImage(pic, it.ix, it.iy - top);
-  if (s.over) { c.g.globalAlpha = s.overA; if (s.overB) { c.g.drawImage(s.overG, 0, -top); c.g.globalCompositeOperation = 'multiply'; c.g.drawImage(s.overB, 0, -top); c.g.globalCompositeOperation = 'source-over'; } else c.g.drawImage(s.over, 0, -top); c.g.globalAlpha = 1; }
+  if (s.over && MUSEUM_GLASS) { c.g.globalAlpha = s.overA; if (s.overB) { c.g.drawImage(s.overG, 0, -top); c.g.globalCompositeOperation = 'multiply'; c.g.drawImage(s.overB, 0, -top); c.g.globalCompositeOperation = 'source-over'; } else c.g.drawImage(s.over, 0, -top); c.g.globalAlpha = 1; }
   c.ax = s.ax; c.ay = s.ay - top; return mpCache[key] = c;
 }
 const LABELS = { mprop: 'Museum', camp: 'Camp', shop: 'Stall', bench: 'Workbench', campfire: 'Campfire', anvil: 'Anvil', hammer: 'Hammer', furnace: 'Furnace', tree: 'Tree', decor: 'Scenery' };
