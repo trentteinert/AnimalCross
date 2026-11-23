@@ -235,7 +235,7 @@ function instantiate(s) {
     case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
     case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
-    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; break;
+    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; if (s.n === 'noentry') o.sy = s.y + 40; break;   // the sign hangs in front of its doorway
     case 'mexit': o = { k: 'mexit', to: s.to, sx: s.sx, sy: s.sy }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
@@ -353,8 +353,8 @@ function museumLayout(room) {   // the museum room from a floor plan: room.floor
   return { w: bw, h: bh, cols, rows, tiles: out.map(r => r.map(v => String.fromCharCode(48 + v)).join('')), floor: fl, exits, exitPos: ex, spawn: { x: e0.sx, y: e0.y } };
 }
 function loadMap(map) {
-  if (map.theme === 'museum' && ASSET.mTiles && ASSET.mTiles.tmpl) {   // the room is rebuilt from its floor plan, so it always matches the current tile set
-    if (!map.room) map.room = { w: 12, h: 6 }; const R = museumLayout(map.room); map.room = { w: R.w, h: R.h, floor: R.floor.map(r => r), exits: R.exits }; map.w = R.cols; map.h = R.rows; map.tiles = R.tiles; map.spawn = R.spawn;
+  if (map.theme === 'museum' && map.room && ASSET.mTiles && ASSET.mTiles.tmpl) {   // a room built in the editor is rebuilt from its floor plan, so it always matches the current tile set (the museum as drawn is a plain tile map)
+    const R = museumLayout(map.room); map.room = { w: R.w, h: R.h, floor: R.floor.map(r => r), exits: R.exits }; map.w = R.cols; map.h = R.rows; map.tiles = R.tiles; map.spawn = R.spawn;
     map.objects = (map.objects || []).filter(o => o.k !== 'mexit').concat(R.exitPos.map(e => ({ k: 'mexit', x: e.x, y: e.y, to: 'island' })));
   }
   setMapSize(map.w || 64, map.h || 64); GRID = new Uint8Array(MW * MH);

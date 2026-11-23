@@ -2,7 +2,7 @@
 // Map editor: open the game with ?edit. Paint tiles, place objects, drag out the pier, set the spawn point.
 // Edits autosave to a browser draft; "Save to project" writes maps/island.json (needs server.py), "Export" downloads it.
 const ED = {
-  on: false, zoom: 3, cam: { x: 0, y: 0 }, tool: 'paint', mt: 'floor', tile: 3, brush: 1, place: null, sel: null, snap: 8, grid: true,
+  on: false, zoom: 3, cam: { x: 0, y: 0 }, tool: 'paint', mt: 'floor', mtile: 0, tile: 3, brush: 1, place: null, sel: null, snap: 8, grid: true,
   undo: [], redo: [], cur: '', keys: {}, mouse: { sx: 0, sy: 0, wx: 0, wy: 0, in: false }, dirty: false, stroke: null, strokeChanged: false,
   pan: null, mv: null, msg: '', msgT: 0, last: 0, lastWheel: 0, unsaved: false
 };
@@ -17,8 +17,8 @@ const PAL = [
 ];
 let EPAL = PAL;   // the palette in use: the museum has its own (cases with every item, wall panels, stage...)
 function museumPal() {   // cases (empty; pick what goes in them from the list above) and everything else that stands in the room
-  const P = [], M = ASSET.mProps || {}, nice = { case_1x1: '1x1 case', case_2x1: '2x1 case', case_2x2: '2x2 case', case_3x2: '3x2 case (permanent exhibit)', case_3x3: '3x3 case (old)', case_3x1: '3x1 case (old)', case_1x2: '1x2 case (old)', stage: 'Stage', board: 'Information board', statue: 'Statue', panel_fossils: 'Fossil panel', panel_scorpion: 'Scorpion panel', plaque: 'Plaque', window: 'Window', stanchion: 'Stairs rope', arch: 'Stairs arch' };
-  for (const n of ['case_1x1', 'case_2x1', 'case_2x2', 'case_3x2', 'stage', 'board', 'statue', 'panel_fossils', 'panel_scorpion', 'plaque', 'window', 'arch', 'stanchion']) if (M[n]) P.push({ k: 'mprop', pn: n, n: nice[n] });
+  const P = [], M = ASSET.mProps || {}, nice = { case_1x1: '1x1 case', case_2x1: '2x1 case', case_2x2: '2x2 case', case_3x2: '3x2 case (permanent exhibit)', case_3x3: '3x3 case (old)', case_3x1: '3x1 case (old)', case_1x2: '1x2 case (old)', stage: 'Stage', board: 'Information board', statue: 'Statue', panel_fossils: 'Fossil panel', panel_scorpion: 'Scorpion panel', plaque: 'Plaque', window: 'Window', stanchion: 'Stairs rope', arch: 'Stairs arch', arch_narrow: 'Stairs arch (narrow)', noentry: 'No entry sign', exit_sign: 'Exit sign' };
+  for (const n of ['case_1x1', 'case_2x1', 'case_2x2', 'case_3x2', 'stage', 'board', 'statue', 'panel_fossils', 'panel_scorpion', 'plaque', 'window', 'arch', 'arch_narrow', 'noentry', 'stanchion', 'exit_sign']) if (M[n]) P.push({ k: 'mprop', pn: n, n: nice[n] });
   return P;
 }
 function itemSelectHTML() {
@@ -118,15 +118,17 @@ function paintBlock(tx, ty) {   // museum: add or remove one 32px marble block o
   const m = MAPDATA.objects.find(o => o.k === 'mexit'); if (m && R.exitPos[0]) { m.x = R.exitPos[0].x; m.y = R.exitPos[0].y; }
   ED.dirty = true; ED.strokeChanged = true;
 }
-const WALLP = { panel_fossils: -14, panel_scorpion: -14, plaque: -14, window: -10, arch: 0, stanchion: 6 };   // pictures that hang on the back wall: how far their bottom is above the floor's top edge
+const WALLP = { panel_fossils: -14, panel_scorpion: -14, plaque: -14, window: -10, arch: 0, arch_narrow: 0, noentry: -23, stanchion: 6, exit_sign: -24 };   // pictures that hang on the back wall: how far their bottom is above the floor's top edge
 function wallY(n, x, y) {   // snap a wall picture so it sits on the wall behind the floor under it
   if (!(n in WALLP) || !GRID) return null; const cx = clamp(Math.floor(x / TS), 0, MW - 1); let cy = clamp(Math.floor(y / TS), 0, MH - 1);
   if (GRID[cy * MW + cx] === 5) { while (cy > 0 && GRID[(cy - 1) * MW + cx] === 5) cy--; }
   else { let f = -1; for (let k = 1; k <= 8 && cy + k < MH; k++) if (GRID[(cy + k) * MW + cx] === 5) { f = cy + k; break; } if (f < 0) return null; cy = f; while (cy > 0 && GRID[(cy - 1) * MW + cx] === 5) cy--; }
   return cy * TS + WALLP[n];
 }
+const isRawMus = () => W.theme === 'museum' && MAPDATA && !MAPDATA.room && MGRID;
 function paintAt(tx, ty) {
   if (isMus()) { paintBlock(tx, ty); return; }
+  if (isRawMus()) { const b = ED.brush, o = Math.floor((b - 1) / 2), walk = new Set(ASSET.mTiles.walk); for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) { const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue; const i = y * MW + x; if (MGRID[i] !== ED.mtile) { MGRID[i] = ED.mtile; GRID[i] = walk.has(ED.mtile) ? 5 : 0; ED.dirty = true; ED.strokeChanged = true; } } return; }   // the museum as drawn: paint its own tiles
   const b = ED.brush, o = Math.floor((b - 1) / 2);
   for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) {
     const x = tx - o + dx, y = ty - o + dy; if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
@@ -227,6 +229,8 @@ function edClick(e) {
     case 'tool': ED.tool = p; if (p !== 'place') ED.place = ED.place; break;
     case 'tile': ED.tile = +p; ED.tool = 'paint'; break;
     case 'mt': ED.mt = p; ED.tool = 'paint'; break;
+    case 'mtile': ED.mtile = +p; ED.tool = 'paint'; break;
+    case 'autoroom': if (confirm('Replace the whole museum with a new room that builds its own walls? (You can undo this.)')) { const m = JSON.parse(snapshot()); m.room = { w: 12, h: 6 }; m.objects = m.objects.filter(o => o.k === 'mexit'); loadMap(m); ED.sel = null; commit(); refreshInspector(); msg('A new room built from its floor plan. Reload the editor to see its tools.'); } break;
     case 'brush': ED.brush = +p; ED.tool = 'paint'; break;
     case 'pal': ED.place = EPAL[+p]; ED.tool = 'place'; break;
     case 'undo': undo(); break; case 'redo': redo(); break;
@@ -295,7 +299,7 @@ function edRender(now) {
   const cx = Math.round(ED.cam.x), cy = Math.round(ED.cam.y);
   g.fillStyle = '#121a27'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy);
   if (fxOn()) fxWater(cx, cy, now);
-  const L = W.objs.filter(o => o.x > cx - 80 && o.x < cx + VW + 80 && o.y > cy - 10 && o.y < cy + VH + 100).sort((a, b) => a.y - b.y);
+  const L = W.objs.filter(o => o.x > cx - 80 && o.x < cx + VW + 80 && o.y > cy - 10 && o.y < cy + VH + 100).sort((a, b) => (a.sy ?? a.y) - (b.sy ?? b.y));
   for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now);
   if (ED.grid) {
     g.fillStyle = 'rgba(255,255,255,0.11)'; const lw = 1 / Z;
@@ -312,6 +316,7 @@ function edRender(now) {
   if (m.in && !ED.pan) {
     const tx = Math.floor(m.wx / TS), ty = Math.floor(m.wy / TS);
     if (ED.tool === 'paint' && isMus()) { const bx = Math.floor((tx - 3) / 2), by = Math.floor((ty - 5) / 2); outline(48 + bx * 32 - cx, 80 + by * 32 - cy, 32, 32, ED.mt === 'floor' ? '#6fd08c' : ED.mt === 'exit' ? '#f2b84b' : '#e8483a'); }
+    else if (ED.tool === 'paint' && isRawMus()) { const b = ED.brush, o = Math.floor((b - 1) / 2); g.globalAlpha = 0.6; for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) g.drawImage(ASSET.img.museum_tiles, (ED.mtile & 15) * 16, (ED.mtile >> 4) * 16, 16, 16, (tx - o + dx) * TS - cx, (ty - o + dy) * TS - cy, 16, 16); g.globalAlpha = 1; outline((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS, '#f2b84b'); }
     else if (ED.tool === 'paint') { const b = ED.brush, o = Math.floor((b - 1) / 2); outline((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS, '#f2b84b'); if (ED.tile >= 1000) { const id = ED.tile - 1000; g.globalAlpha = 0.6; for (let dy = 0; dy < b; dy++) for (let dx = 0; dx < b; dx++) g.drawImage(ASSET.img.museum_tiles, (id & 15) * 16, (id >> 4) * 16, 16, 16, (tx - o + dx) * TS - cx, (ty - o + dy) * TS - cy, 16, 16); g.globalAlpha = 1; } else { g.fillStyle = TILE_COL[ED.tile]; g.globalAlpha = 0.35; g.fillRect((tx - o) * TS - cx, (ty - o) * TS - cy, b * TS, b * TS); g.globalAlpha = 1; } }
     else if (ED.tool === 'place' && ED.place) {
       const px = snapv(m.wx), py = snapv(m.wy);
@@ -348,15 +353,22 @@ function buildEditorUI() {
       <button data-ed="tool:paint" data-tool="paint">${W.theme === 'museum' ? 'Build room' : 'Paint tiles'}</button><button data-ed="tool:place" data-tool="place">Place object</button>
       <button data-ed="tool:select" data-tool="select">Select / move</button><button data-ed="tool:spawn" data-tool="spawn">Spawn point</button>
     </div>
-    ${MUS ? '' : `<h4>Tiles</h4><div class="edtl">${tiles}</div>
+    ${MUS && !MAPDATA.room ? museumRawHTML() : MUS ? '' : `<h4>Tiles</h4><div class="edtl">${tiles}</div>
     <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>`}
     <h4>Objects</h4>${MUS ? itemSelectHTML() : ''}<div class="edpal">${pal}</div>
     <h4>Selected</h4><div id="edInsp"></div>
-    ${MUS ? museumRoomHTML() : `<h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>`}
+    ${MUS && !MAPDATA.room ? '' : MUS ? museumRoomHTML() : `<h4>Map</h4><label class="edth">Size (tiles)<span class="edsz"><input id="edMW" type="number" min="32" max="200" value="${MW}"> × <input id="edMH" type="number" min="32" max="200" value="${MH}"></span></label><label class="edth">Grow from<select id="edGrow"><option value="c">Centre (map stays in the middle)</option><option value="tl">Top-left (add water right / bottom)</option></select></label><div class="edtools"><button data-ed="resize">Apply size</button></div><label class="edth">Look<select id="edTheme"><option value="day">Overworld</option><option value="cave">Cave (dark, glowing)</option></select></label><div class="edtools"><button data-ed="reset">Reset to default</button><button data-ed="reloadfile">Discard draft</button></div>`}
     <p class="edhelp">Pan: right-drag, middle-drag, Space+drag, or WASD. Zoom: mouse wheel. Undo: Ctrl+Z. Delete: Del. Save: Ctrl+S. Tiles: keys 1-7. Piers and bridges are decking tiles: paint them like any tile. Grid: G.</p>
   </div>
   <div class="edstatus" id="edStatus"></div>`;
   document.body.appendChild(el);
+}
+function museumRawHTML() {   // the museum as drawn: paint its own tiles
+  const T = ASSET.mTiles, A = ASSET.img.museum_tiles, walk = new Set(T.walk), btn = id => { const c = mk(16, 16); c.g.drawImage(A, (id & 15) * 16, (id >> 4) * 16, 16, 16, 0, 0, 16, 16); return `<button class="edm" data-ed="mtile:${id}" data-t="${id}" title="tile ${id}"><img src="${c.toDataURL()}"></button>`; };
+  const ids = [...Array(T.count).keys()];
+  return `<h4>Floor tiles (walkable)</h4><div class="edmt">${ids.filter(i => walk.has(i)).map(btn).join('')}</div><h4>Walls, frame, void (solid)</h4><div class="edmt">${ids.filter(i => !walk.has(i)).map(btn).join('')}</div>
+    <h4>Brush size</h4><div class="edbr">${[1, 2, 3, 5].map(n => `<button data-ed="brush:${n}" data-b="${n}">${n}x${n}</button>`).join('')}</div>
+    <div class="edtools" style="margin-top:8px"><button data-ed="autoroom">New auto-built room</button></div><p class="mut">This is the museum as you drew it. A new auto-built room places walls and corners for you, but only makes one room.</p>`;
 }
 function museumRoomHTML() {
   const r = MAPDATA.room || { w: 12, h: 6 }, tm = ASSET.mTiles.tmpl;
@@ -370,7 +382,7 @@ function updateBar() {
   $('#edUndo').disabled = !ED.undo.length; $('#edRedo').disabled = !ED.redo.length; $('#edGrid').classList.toggle('on', ED.grid); $('#edZoom').textContent = ED.zoom + 'x';
   $('#edSave').textContent = ED.unsaved ? 'Save to project *' : 'Save to project';
   $$('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === ED.tool)); $$('.edt').forEach(b => b.classList.toggle('on', +b.dataset.t === ED.tile && ED.tool === 'paint'));
-  $$('[data-mt]').forEach(b => b.classList.toggle('on', b.dataset.mt === ED.mt && ED.tool === 'paint')); $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === EPAL[+b.dataset.p] && ED.tool === 'place'));
+  $$('.edm').forEach(b => b.classList.toggle('on', +b.dataset.t === ED.mtile && ED.tool === 'paint')); $$('[data-mt]').forEach(b => b.classList.toggle('on', b.dataset.mt === ED.mt && ED.tool === 'paint')); $$('.edbr button').forEach(b => b.classList.toggle('on', +b.dataset.b === ED.brush)); $$('.edp').forEach(b => b.classList.toggle('on', ED.place === EPAL[+b.dataset.p] && ED.tool === 'place'));
 }
 function refreshInspector(quick) {
   const el = $('#edInsp'); if (!el) return; const s = ED.sel;

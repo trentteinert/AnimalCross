@@ -143,7 +143,7 @@ function startAction() {
   if (A || UI.isOpen || !target) return; const t = target; faceTo(t); ME.face = FACE_OF_DIR[ME.dir]; ME.faceDir = ME.dir; ME.hold = null;
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
   if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
-  if (t.kind === 'museum') { held = false; goArea('museum', 0, 0, 'l'); return; }
+  if (t.kind === 'museum') { held = false; goArea('museum', 0, 0, 'u'); return; }
   if (t.kind === 'furnace' && collectBar()) { held = false; return; }
   if (STATION[t.kind]) { held = false; UI.openCamp(t.kind === 'furnace' ? 'process' : 'craft', t.kind); return; }
   if (t.kind === 'dig') {

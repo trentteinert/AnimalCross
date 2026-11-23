@@ -388,7 +388,7 @@ function loop(ts) {
 const areaDraftKey = a => a === 'island' ? MAP_DRAFT_KEY : MAP_DRAFT_KEY + '.' + a;
 const defaultFor = a => a === 'cave' ? generateDefaultCave() : generateDefaultMap();
 const AREAHOLES = {};
-function checkExits() { if (fading || !W.objs) return; for (const o of W.objs) if (o.k === 'museum' && Math.abs(ME.x - o.x) < 17 && ME.y - (ME.elev || 0) <= o.y - 21 && ME.y - (ME.elev || 0) >= o.y - 45) { goArea('museum', 0, 0, 'l'); return; }   // walking into the museum's doors takes you in
+function checkExits() { if (fading || !W.objs) return; for (const o of W.objs) if (o.k === 'museum' && Math.abs(ME.x - o.x) < 17 && ME.y - (ME.elev || 0) <= o.y - 21 && ME.y - (ME.elev || 0) >= o.y - 45) { goArea('museum', 0, 0, 'u'); return; }   // walking into the museum's doors takes you in
   for (const o of W.objs) if (o.k === 'mexit' && Math.abs(ME.x - o.x) < 10 && Math.abs(ME.y - o.y) < 32) { goArea(o.to, o.to === 'island' && MDOOR ? MDOOR.x : o.sx, o.to === 'island' && MDOOR ? MDOOR.y : o.sy, 'd'); return; } }   // walking into the museum's exit takes you outside, at its door
 function goArea(to, sx, sy, dir) { // fade out, load the other map, drop the player at its target spot
   if (fading) return; fading = true; const f = $('#fade'); f.classList.add('on'); sfx('pop');

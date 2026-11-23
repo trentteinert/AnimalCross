@@ -59,42 +59,85 @@ def stack(I, ids, W, H, L=None):   # layers over each other; with L, each layer'
 def key(im):   # a picture's pixels, cropped, as a lookup key
     b = im.getbbox(); return hashlib.md5(im.crop(b).tobytes()).hexdigest() + str(b[2] - b[0]) + 'x' + str(b[3] - b[1]) if b else None
 
-# ------------------------------------------------------------------------------------------------ the room
-W, H, L, I = read(SRC + 'Museum_interior.aseprite'); DX, DY = 9, -4
+# ------------------------------------------------------------------------------------------------ the props' source: the first interior file
+W, H, L, I = read(SRC + 'Museum_interior_v1.aseprite'); DX, DY = 9, -4
 def sh(im): o = Image.new('RGBA', im.size); o.paste(im, (DX, DY)); return o
 S = {i: sh(im) for i, im in I.items()}
 byname = lambda n: next(i for i, l in enumerate(L) if l['name'] == n)
-room = stack(S, [1, 3, 4, 5], W, H)   # void, marble floor, walls and frame, the EXIT sign in the corridor
+room = stack(S, [1, 3, 4, 5], W, H)
 withArch = stack(S, [1, 2, 3, 4, 5], W, H)
 clean = room.copy(); px = clean.load()
-for x in range(350 + DX, 412 + DX):   # the arch is a prop now (so it can go anywhere): the wall behind it is filled from a plain stretch of wall
+for x in range(350 + DX, 412 + DX):   # the arch is a prop (so it can go anywhere): the wall behind it is filled from a plain stretch of wall
     for y in range(0, 80): px[x, y] = room.getpixel((200, y))
 arch = Image.new('RGBA', (W, H)); ap = arch.load(); wa = withArch.load()
 for y in range(H):
     for x in range(W):
         if wa[x, y] != px[x, y]: ap[x, y] = wa[x, y]
-# 16x16 cells of the clean room; floor cells (and the exit corridor's floor) are walkable
-TC, TR = 32, 20
-walkc = {(c, r) for c in range(3, 27) for r in range(5, 17)} | {(c, r) for c in (27, 28) for r in (13, 14)}
-tset, tid, tmpl = [], {}, []
-for r in range(TR):
-    row = []
-    for c in range(TC):
-        t = clean.crop((c * 16, r * 16, c * 16 + 16, r * 16 + 16)); k = (hashlib.md5(t.tobytes()).hexdigest(), (c, r) in walkc)
+
+# ------------------------------------------------------------------------------------------------ the museum: Museum_interior.aseprite (west wing, east wing, welcome center, the ? room and the season exhibit)
+NW, NH, NL, NI = read(SRC + 'Museum_interior.aseprite')
+nid = lambda name, nth=0: [i for i, l in enumerate(NL) if l['name'] == name][nth]
+VOID = (22, 23, 26, 255)
+# every room is a floor layer and a frame layer; their arches, no-entry signs and ropes are separate layers (props, placed where you drew them)
+ROOMS = {'west': (4, 5), 'season': (9, 10), 'east': (14, 15), 'welcome': (20, 21), 'what': (23, 24)}
+FIX = {'season': (0, -5)}   # the season exhibit was drawn 5px off the 16px grid the other rooms sit on (copy and paste): moved up 5px
+def nshift(im, dx, dy): o = Image.new('RGBA', im.size); o.paste(im, (DX + dx, DY + dy)); return o
+layers = {}
+for r, (fl, fr) in ROOMS.items(): dx, dy = FIX.get(r, (0, 0)); layers[r] = (nshift(NI[fl], dx, dy), nshift(NI[fr], dx, dy))
+canvas = Image.new('RGBA', (NW, NH), VOID); floorm = Image.new('L', (NW, NH), 0)
+for i in sorted(i for r in ROOMS.values() for i in r):   # in the file's order: later layers are on top
+    r = next(k for k, v in ROOMS.items() if i in v); a, b = layers[r]; im = a if i == ROOMS[r][0] else b; canvas.alpha_composite(im)
+for r in ROOMS:
+    floorm.paste(255, mask=layers[r][0].getchannel('A').point(lambda v: 255 if v > 0 else 0))
+# props: arches, signs, ropes. Their layers go (pixel for pixel) where you drew them, so the wall behind each is filled from a plain stretch of the same wall
+PR = {'west': {'arch': 3, 'noentry': 6, 'rope': 7}, 'east': {'arch': 12, 'arch2': 13, 'noentry': 16, 'rope': 17}, 'welcome': {'arch': 19}}
+ARCHBB = {}; ARCHES = {}; orig = canvas.copy()
+for r, d in PR.items():
+    for k, i in d.items():
+        if k.startswith('arch'):
+            bb = NI[i].getbbox(); ft = layers[r][0].getbbox()[1] - 0   # floor top of that room (shifted)
+            x0, y0, x1, y1 = bb[0] + DX, bb[1] + DY, bb[2] + DX, bb[3] + DY; ref = layers[r][0].getbbox()[0] + 48   # a plain wall column of the same room
+            ARCHES[(r, k)] = (x0, y0, x1, y1)
+            for x in range(x0 - 3, x1 + 3):
+                for y in range(y0 - 3, ft): canvas.putpixel((x, y), canvas.getpixel((ref, y)))
+def arch_prop(i, x0, y0, x1, y1):   # the doorway as drawn (dark hole in the wall plus the translucent stairs layer on top), as a picture you can place anywhere
+    comp = orig.copy(); comp.alpha_composite(nshift(NI[i], 0, 0)); box = (x0 - 3, y0 - 3, x1 + 3, y1 + 3); a = comp.crop(box); f = canvas.crop(box); out = Image.new('RGBA', a.size)
+    pa, pf, po = a.load(), f.load(), out.load()
+    for y in range(a.height):
+        for x in range(a.width):
+            if pa[x, y] != pf[x, y]: po[x, y] = pa[x, y]
+    return out
+ARCHPIC = {'arch': arch_prop(3, *ARCHES[('west', 'arch')]), 'arch_narrow': arch_prop(19, *ARCHES[('welcome', 'arch')])}
+# a cell is walkable where the floor layer covers a good part of it
+def walkcell(cx, cy): m = floorm.crop((cx * 16, cy * 16, cx * 16 + 16, cy * 16 + 16)); return sum(1 for v in m.getdata() if v) >= 40
+cols, rows = (NW + DX + 15) // 16, (NH + 15) // 16
+used = Image.new('L', (NW, NH), 0)
+for r, (a, b) in layers.items(): used.paste(255, mask=a.getchannel('A').point(lambda v: 255 if v else 0)); used.paste(255, mask=b.getchannel('A').point(lambda v: 255 if v else 0))
+ub = used.getbbox(); cx0, cy0, cx1, cy1 = max(0, ub[0] // 16 - 2), max(0, ub[1] // 16 - 2), min(cols, (ub[2] + 15) // 16 + 2), min(rows, (ub[3] + 15) // 16 + 2)
+walkset = {(c, r) for r in range(rows) for c in range(cols) if walkcell(c, r)}
+tset, tid, grid = [], {}, {}
+for cy in range(rows):
+    for cx in range(cols):
+        t = canvas.crop((cx * 16, cy * 16, cx * 16 + 16, cy * 16 + 16)); k = (hashlib.md5(t.tobytes()).hexdigest(), (cx, cy) in walkset)
         if k not in tid: tid[k] = len(tset); tset.append(t)
-        row.append(tid[k])
-    tmpl.append(row)
+        grid[(cx, cy)] = tid[k]
+# the template for rooms built in the editor is the first file's room (west wing as it was drawn, 32x20 cells), added to the same tile set
+walkc = {(c, r) for c in range(3, 27) for r in range(5, 17)} | {(c, r) for c in (27, 28) for r in (13, 14)}
+def tile_id(t, w):
+    k = (hashlib.md5(t.tobytes()).hexdigest(), w)
+    if k not in tid: tid[k] = len(tset); tset.append(t)
+    return tid[k]
+tmpl = [[tile_id(clean.crop((c * 16, r * 16, c * 16 + 16, r * 16 + 16)), (c, r) in walkc) for c in range(32)] for r in range(20)]
+for r in range(20):   # the old canvas edge (column 0, the strip under the room) was see-through: plain void now
+    tmpl[r][0] = tmpl[r][1] = tile_id(Image.new('RGBA', (16, 16), VOID), False)
+for c in range(32): tmpl[19][c] = tile_id(Image.new('RGBA', (16, 16), VOID), False)
 walk = sorted(v for k, v in tid.items() if k[1])
 COLS = 16; ts = Image.new('RGBA', (COLS * 16, ((len(tset) + COLS - 1) // COLS) * 16))
 for i, t in enumerate(tset): ts.paste(t, ((i % COLS) * 16, (i // COLS) * 16))
 ts.save('assets/museum/tileset.png')
-TM = {'cols': TC, 'rows': TR, 'grid': tmpl,
-      'left': 5, 'mid': [5, 21], 'right': 21,   # columns: 0-4 left end (void, frame, first marble tile), 5-20 repeat (8 marble tiles), 21-31 right end (3 marble tiles, exit corridor, void)
-      'top': 7, 'midr': [7, 9], 'bottom': 9,      # rows: 0-6 wall and first marble row, 7-8 repeat, 9-19 four marble rows (the exit corridor is in them) and the frame
-      'minW': 4, 'minH': 5, 'w': 12, 'h': 6,       # room size in 32px marble tiles: smallest, and the size drawn in the file
-      'spawn': [104, 92], 'exit': [126, 92]}       # where you come in and the exit trigger, from the start of the right end / the bottom part
-print('room tiles', len(tset), 'walkable', len(walk))
-json.dump({'size': 16, 'cols': COLS, 'count': len(tset), 'walk': walk, 'tmpl': TM, 'note': 'the room is built from tmpl (see tools/museum_interior_export.py): the left/right ends and top/bottom are kept, the middle repeats'}, open('assets/museum/tileset.json', 'w'), separators=(',', ':'))
+TM = {'cols': 32, 'rows': 20, 'grid': tmpl, 'minW': 4, 'minH': 5, 'w': 12, 'h': 6}
+print('tiles', len(tset), 'walkable', len(walk), 'map', cx1 - cx0, 'x', cy1 - cy0)
+json.dump({'size': 16, 'cols': COLS, 'count': len(tset), 'walk': walk, 'tmpl': TM, 'note': 'ids are cells of the museum drawn in Museum_interior.aseprite (tools/museum_interior_export.py); tmpl is the west wing, used to build rooms in the editor'}, open('assets/museum/tileset.json', 'w'), separators=(',', ':'))
 
 # ------------------------------------------------------------------------------------------------ cases and their items
 CASES = {'case_1x1': 'Artifacts_1x1', 'case_2x1': 'Artifacts_2x1', 'case_2x2': 'Artifacts_2x2', 'case_3x2': 'Artifacts_3x2'}
@@ -167,7 +210,10 @@ for n, (b, o) in ROOMP.items():
     bi = mp(b, n == 'window'); oi = mp(o) if o else None; boxes = [x.getbbox() for x in (bi, oi) if x is not None and x.getbbox()]
     x0, y0, x1, y1 = min(q[0] for q in boxes), min(q[1] for q in boxes), max(q[2] for q in boxes), max(q[3] for q in boxes)
     props[n] = {'img': bi.crop((x0, y0, x1, y1)), 'over': oi.crop((x0, y0, x1, y1)) if oi else None, 'blend': L[o[0]]['blend'] if o else 0, 'op': L[o[0]]['op'] if o else 255, 'at': ((x0 + x1) // 2 + DX, y1 + DY)}
-ab = arch.getbbox(); props['arch'] = {'img': arch.crop(ab), 'over': None, 'at': ((ab[0] + ab[2]) // 2, ab[3])}
+def layer_prop(i, dx=0, dy=0):   # a prop cut from one layer of the museum file, exactly as drawn
+    im = nshift(NI[i], dx, dy); b = im.getbbox(); return {'img': im.crop(b), 'over': None}, b
+for name, i in (('noentry', 6), ('stanchion', 7), ('exit_sign', 25)): props[name] = layer_prop(i)[0]
+for name, im in ARCHPIC.items(): bb = im.getbbox(); props[name] = {'img': im.crop(bb), 'over': None}; ARCHBB[name] = bb
 
 # ------------------------------------------------------------------------------------------------ pack the sheets
 def pack(pics, width=512):   # shelf packing; returns positions
@@ -204,40 +250,37 @@ for sid, it in items.items():
 sheet.save('assets/museum/items.png'); json.dump(out, open('assets/museum/items.json', 'w'), indent=0)
 for c in CASES: print(c, [s for s, o in out.items() if o['case'] == c])
 
+WALLP_ = {'panel_fossils': -14, 'panel_scorpion': -14, 'plaque': -14, 'window': -10}   # how far their bottom is above the floor's top edge (same as the editor)
 import sys
 if '--map' not in sys.argv: print('(maps/museum.json left alone; run with --map to rebuild the sample room)'); sys.exit()
 # ------------------------------------------------------------------------------------------------ the map: a room with every item on display
-def build(fw, fh):
-    cols, rows = 2 * fw + 8, 2 * fh + 8; ml, mt = 2 * (fw - 4), 2 * (fh - 5); g = []
-    for r in range(rows):
-        tr = r if r < 7 else 7 + (r - 7) % 2 if r < 7 + mt else 9 + r - 7 - mt; row = []
-        for c in range(cols):
-            if c < 5: tc = c
-            elif c < 5 + ml: tc = 5 + ((c - 5) + (6 * ((r - 7) // 2) if 7 <= r < 7 + mt else 0)) % 16
-            else: tc = 21 + c - 5 - ml
-            row.append(tmpl[tr][tc])
-        g.append(''.join(chr(48 + v) for v in row))
-    rx, by = (5 + ml) * 16, (7 + mt) * 16
-    return cols, rows, g, (rx + 104, by + 92), (rx + 126, by + 92)
-FW, FH = 20, 11
-cols, rows, grid, sp, ex = build(FW, FH)
+ox, oy = cx0 * 16, cy0 * 16
 objs = []
 def put(n, x, y, item=None):
-    o = {'k': 'mprop', 'n': n, 'x': x, 'y': y}
+    o = {'k': 'mprop', 'n': n, 'x': int(x - ox), 'y': int(y - oy)}
     if item: o['item'] = item
     objs.append(o)
-# back wall: panels, plaque, window, the closed stairs, the stage
-put('panel_fossils', 120, 66); put('panel_scorpion', 194, 66); put('plaque', 246, 66); put('window', 300, 70); put('arch', 360, 80); put('stanchion', 360, 86); put('window', 420, 70)
-put('panel_fossils', 520, 66); put('plaque', 590, 66)
-put('stage', 470, 130)
-# the permanent exhibits wing (left): the four big cases
-ids = lambda c: [s for s, o in out.items() if o['case'] == c]
-for i, s in enumerate(ids('case_3x2')): put('case_3x2', 88 + (i % 2) * 88, 176 + (i // 2) * 96, s)
-# the hall: 2x2, 2x1 and 1x1 cases in rows
-for i, s in enumerate(ids('case_2x2')): put('case_2x2', 296 + i * 56, 192, s)
-for i, s in enumerate(ids('case_2x1')): put('case_2x1', 296 + (i % 6) * 48, 256 + (i // 6) * 56, s)
-for i, s in enumerate(ids('case_1x1')): put('case_1x1', 280 + (i % 8) * 32, 368 + (i // 8) * 48, s)
-objs.append({'k': 'mexit', 'x': ex[0], 'y': ex[1], 'to': 'island'})
-zero = ['0' * cols] * rows
-json.dump({'v': 1, 'w': cols, 'h': rows, 'theme': 'museum', 'room': {'w': FW, 'h': FH}, 'tiles': grid, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': sp[0], 'y': sp[1]}, 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
-print('maps/museum.json', cols, 'x', rows, 'tiles,', len(objs), 'objects')
+def put_layer(n, i, dx=0, dy=0):   # a prop where its layer was drawn
+    b = nshift(NI[i], dx, dy).getbbox(); put(n, b[0] + (b[2] - b[0]) // 2, b[3])
+def put_arch(n, room, k):
+    x0, y0, x1, y1 = ARCHES[(room, k)]; bb = ARCHBB[n]; put(n, x0 - 3 + bb[0] + (bb[2] - bb[0]) // 2, y0 - 3 + bb[3])
+put_arch('arch', 'west', 'arch'); put_layer('noentry', 6); put_layer('stanchion', 7)                                  # west wing: the closed stairs
+put_arch('arch', 'east', 'arch'); put_layer('noentry', 16); put_layer('stanchion', 17); put_arch('arch', 'east', 'arch2')      # east wing: closed stairs, and the stairs up to the season exhibit
+put_arch('arch_narrow', 'welcome', 'arch')                                                                                  # welcome center: the stairs up to the ? room
+ids = lambda c: [k for k, o in out.items() if o['case'] == c]
+FT = 400   # the wings' floor top
+for x, n in ((130, 'panel_fossils'), (204, 'panel_scorpion'), (256, 'plaque'), (300, 'window')): put(n, x, FT + WALLP_[n])
+for x, n in ((800, 'panel_fossils'), (880, 'plaque'), (990, 'window')): put(n, x, FT + WALLP_[n])
+for i, k in enumerate(ids('case_2x2')): put('case_2x2', 96 + 64 * i, 464, k)                              # west wing: 2x2 cases, 2x1 cases, 1x1 cases
+c21 = ids('case_2x1')
+for i, k in enumerate(c21[:6]): put('case_2x1', 96 + 56 * i, 528, k)
+c11 = ids('case_1x1')
+for i, k in enumerate(c11[:10]): put('case_1x1', 96 + 32 * i, 584, k)
+for i, k in enumerate(ids('case_3x2')): put('case_3x2', 770 + 60 * i, 480, k)                           # east wing: the permanent exhibits, then more cases
+for i, k in enumerate(c21[6:]): put('case_2x1', 700 + 56 * i, 552, k)
+for i, k in enumerate(c11[10:]): put('case_1x1', 700 + 36 * i, 584, k)
+objs.append({'k': 'mexit', 'x': 544 - ox, 'y': 620 - oy, 'to': 'island'})
+mw, mh = cx1 - cx0, cy1 - cy0; chars = lambda row: ''.join(chr(48 + v) for v in row)
+tiles = [chars([grid[(cx0 + x, cy0 + y)] for x in range(mw)]) for y in range(mh)]; zero = ['0' * mw] * mh
+json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 560 - oy}, 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
+print('maps/museum.json', mw, 'x', mh, 'tiles,', len(objs), 'objects')

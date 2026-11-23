@@ -162,13 +162,40 @@
 "ay": 11,
 "over": false
 },
-"arch": {
+"noentry": {
 "sx": 318,
 "sy": 60,
+"w": 24,
+"h": 26,
+"ax": 12,
+"ay": 26,
+"over": false
+},
+"exit_sign": {
+"sx": 343,
+"sy": 60,
+"w": 17,
+"h": 10,
+"ax": 8,
+"ay": 10,
+"over": false
+},
+"arch": {
+"sx": 361,
+"sy": 60,
 "w": 38,
-"h": 51,
+"h": 57,
 "ax": 19,
-"ay": 51,
+"ay": 57,
+"over": false
+},
+"arch_narrow": {
+"sx": 400,
+"sy": 60,
+"w": 38,
+"h": 58,
+"ax": 19,
+"ay": 58,
 "over": false
 }
 }
