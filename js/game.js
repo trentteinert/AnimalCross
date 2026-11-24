@@ -260,7 +260,11 @@ const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional n
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'leaf': drawLeaf(o.l, cx, cy); return;
-    case 'archwall': { const s = o.strip; g.drawImage(W.terrain, s.x, s.y, s.w, s.h, Math.round(s.x - cx), Math.round(s.y - cy), s.w, s.h); return; }   // a strip of the wall copied over the player (see computeStairs)
+    case 'archwall': {   // the wall above an open doorway: its top edge covers your legs as you pass through, and while you are on the stairs, everything of you above the top of the arch is behind the wall
+      const s = o.strip; g.drawImage(W.terrain, s.x, s.y, s.w, s.h, Math.round(s.x - cx), Math.round(s.y - cy), s.w, s.h);
+      if (stairsAt(ME.x, ME.y) && ME.y >= s.y) { ME.behindWall = true; const t = Math.max(0, s.y - 80); g.drawImage(W.terrain, s.x, t, s.w, s.y - t, Math.round(s.x - cx), Math.round(t - cy), s.w, s.y - t); }
+      return;
+    }   // a strip of the wall copied over the player (see computeStairs)
     case 'me': case 'npc': {
       const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U) - (o === ME ? Math.round(ME.elev || 0) : 0); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
@@ -339,7 +343,7 @@ function render(now) {
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
   lightGround(cx, cy, now);   // night tint and the glow on the ground (light.js), then the things standing on it are drawn on their own layer
   entBegin();
-  L.sort((a, b) => (a.sy == null ? a.y : a.sy) - (b.sy == null ? b.y : b.sy)); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
+  ME.behindWall = false; L.sort((a, b) => (a.sy == null ? a.y : a.sy) - (b.sy == null ? b.y : b.sy)); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   entEnd(cx, cy, now);   // tint that layer, add the light on props and people, lay it over the ground
   { const tcn = FEATURES.light ? nightTint() : null; for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = tcn ? tintHex(p.col, tcn) : p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1; }   // dust and leaves, drawn over the finished scene in the night's tint
@@ -366,7 +370,7 @@ function render(now) {
   g.textAlign = 'center'; g.font = '6px "Pixelify Sans", monospace'; g.lineJoin = 'round';
   drawHoldText(cx, cy);
   for (const o of L) if (o.k === 'me' || o.k === 'npc') {
-    if (o === ME && ME.hold) continue;
+    if (o === ME && (ME.hold || ME.behindWall)) continue;   // (no name over the wall while you are behind it)
     if (o === ME) { g.save(); g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)) + Math.round(pitZ(o.x, o.y) * PIT_U) - Math.round(ME.elev || 0)); }
     const nm = o === ME ? S.name : o.name, x = Math.round(o.x - cx), y = Math.round(o.y - 46 - cy);
     g.lineWidth = 2.2; g.strokeStyle = 'rgba(20,16,24,0.85)'; g.strokeText(nm, x, y); g.fillStyle = o === ME ? '#ffd877' : '#f5e9cf'; g.fillText(nm, x, y);
