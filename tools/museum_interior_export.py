@@ -191,7 +191,17 @@ for cn, fn in CASES.items():
     entries = []
     for i in src:
         n = AL[i]['name']
-        if AL[i]['type'] == 1 and n not in EXHIBITS:   # a set (jugs, rings, arrowheads...): every piece is its own collectible, for the collection log
+        if AL[i]['type'] == 1 and n in EXHIBITS:   # the parts of the permanent exhibits are collectibles too (no 'percent intact': you have the piece or you do not)
+            lv = {AL[j]['name']: j for j in leaves(AL, i)}
+            def put(k, label, im, setname): PIECES[k] = {'label': label, 'set': setname, 'img': im}
+            if n == 'Standing sculpture':
+                for nm_, k_ in (('Head', 'head'), ('Torso', 'torso'), ('Left arm', 'left_arm'), ('Rightarm', 'right_arm'), ('Left leg', 'left_leg'), ('Right leg', 'right_leg')): put('ex_statue_' + k_, 'Statue ' + nm_.replace('Rightarm', 'Right arm'), AI[lv[nm_]], 'statue')
+            elif n == 'Carvel monument':   # the three stages you drew (bottom, middle, complete) are the three pieces; each is shown as its own stage picture
+                put('ex_monument_base', 'Monument base', AI[lv['Carved monument bottom']], 'monument'); put('ex_monument_middle', 'Monument middle', AI[lv['Carved monument middle']], 'monument'); put('ex_monument_top', 'Monument top', AI[lv['Carved monument complete']], 'monument')
+            elif n == 'Ritual site':
+                put('ex_ritual_center', 'Ritual centerpiece', AI[lv['Ritual site center']], 'ritual')
+                for q, nm_ in enumerate(['Stone I', 'Stone 2', 'Stone 3', 'Stone 4', 'Stone 5', 'Stone 6', 'Stone 7', 'Stone 8', 'Stone 9']): put('ex_ritual_stone%d' % (q + 1), 'Ritual stone %d' % (q + 1), AI[lv[nm_]], 'ritual')
+        elif AL[i]['type'] == 1 and n not in EXHIBITS:   # a set (jugs, rings, arrowheads...): every piece is its own collectible, for the collection log
             for j in leaves(AL, i):
                 if AI[j].getbbox(): PIECES[slug(AL[j]['name'])] = {'label': AL[j]['name'], 'set': slug(n), 'img': AI[j]}
         if AL[i]['type'] == 1 and n in SPLIT: entries += [(AL[j]['name'], [j], None) for j in kids(AL, i)]

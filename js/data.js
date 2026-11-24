@@ -63,12 +63,32 @@ const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" 
   { id: 'ruby_amulet', art: 'ruby_amulet', name: 'Ruby Amulet', r: 2, desc: 'Red and, somehow, still warm.' },
   { id: 'diamond_amulet', art: 'diamond_amulet', name: 'Diamond Amulet', r: 2, desc: 'Clear as a promise.' }];
 const ART_BY_R = [0, 1, 2].map(r => ARTIFACTS.filter(a => a.r === r));   // a find first picks its rarity (by dig site tier and depth), then which one of that rarity
+const EXHIBITS = [   // pieces of the museum's permanent exhibits: found while digging like artifacts, but a piece is simply collected (no 'percent intact'). `art` is the piece in assets/museum/pieces.json
+  { id: 'ex_statue_head', art: 'ex_statue_head', name: 'Statue Head', set: 'Statue', ex: true, r: 1, desc: 'A calm face, searching for a body.' },
+  { id: 'ex_statue_torso', art: 'ex_statue_torso', name: 'Statue Torso', set: 'Statue', ex: true, r: 1, desc: 'The middle of something grand.' },
+  { id: 'ex_statue_left_arm', art: 'ex_statue_left_arm', name: 'Statue Left Arm', set: 'Statue', ex: true, r: 1, desc: 'Reaching for a handshake from long ago.' },
+  { id: 'ex_statue_right_arm', art: 'ex_statue_right_arm', name: 'Statue Right Arm', set: 'Statue', ex: true, r: 1, desc: 'Still pointing at something.' },
+  { id: 'ex_statue_left_leg', art: 'ex_statue_left_leg', name: 'Statue Left Leg', set: 'Statue', ex: true, r: 1, desc: 'Mid-stride, and then it stopped.' },
+  { id: 'ex_statue_right_leg', art: 'ex_statue_right_leg', name: 'Statue Right Leg', set: 'Statue', ex: true, r: 1, desc: 'The other half of a very long walk.' },
+  { id: 'ex_monument_base', art: 'ex_monument_base', name: 'Monument Base', set: 'Monument', ex: true, r: 1, desc: 'Heavy enough to hold up a legend.' },
+  { id: 'ex_monument_middle', art: 'ex_monument_middle', name: 'Monument Middle', set: 'Monument', ex: true, r: 1, desc: 'Carved with something important.' },
+  { id: 'ex_monument_top', art: 'ex_monument_top', name: 'Monument Top', set: 'Monument', ex: true, r: 1, desc: 'The crown of the carved monument.' },
+  { id: 'ex_ritual_center', art: 'ex_ritual_center', name: 'Ritual Centerpiece', set: 'Ritual site', ex: true, r: 1, desc: 'The heart of the circle.' },
+  { id: 'ex_ritual_stone1', art: 'ex_ritual_stone1', name: 'Ritual Stone 1', set: 'Ritual site', ex: true, r: 1, desc: 'The first of nine that keep the circle.' },
+  { id: 'ex_ritual_stone2', art: 'ex_ritual_stone2', name: 'Ritual Stone 2', set: 'Ritual site', ex: true, r: 1, desc: 'The second of nine that keep the circle.' },
+  { id: 'ex_ritual_stone3', art: 'ex_ritual_stone3', name: 'Ritual Stone 3', set: 'Ritual site', ex: true, r: 1, desc: 'The third of nine that keep the circle.' },
+  { id: 'ex_ritual_stone4', art: 'ex_ritual_stone4', name: 'Ritual Stone 4', set: 'Ritual site', ex: true, r: 1, desc: 'The fourth of nine that keep the circle.' },
+  { id: 'ex_ritual_stone5', art: 'ex_ritual_stone5', name: 'Ritual Stone 5', set: 'Ritual site', ex: true, r: 1, desc: 'The fifth of nine that keep the circle.' },
+  { id: 'ex_ritual_stone6', art: 'ex_ritual_stone6', name: 'Ritual Stone 6', set: 'Ritual site', ex: true, r: 1, desc: 'The sixth of nine that keep the circle.' },
+  { id: 'ex_ritual_stone7', art: 'ex_ritual_stone7', name: 'Ritual Stone 7', set: 'Ritual site', ex: true, r: 1, desc: 'The seventh of nine that keep the circle.' },
+  { id: 'ex_ritual_stone8', art: 'ex_ritual_stone8', name: 'Ritual Stone 8', set: 'Ritual site', ex: true, r: 1, desc: 'The eighth of nine that keep the circle.' },
+  { id: 'ex_ritual_stone9', art: 'ex_ritual_stone9', name: 'Ritual Stone 9', set: 'Ritual site', ex: true, r: 1, desc: 'The ninth of nine that keep the circle.' }];
 const SALVAGE = [     // crafting materials: found while digging (scrap comes from processing extra commons at camp)
   { id: 'nails', name: 'Rusty Nails', desc: 'Iron, if you squint.' },
   { id: 'boot', name: 'Worn Boot', desc: 'Only the one. Of course.' },
   { id: 'fabric', name: 'Torn Fabric', desc: 'Used to be a flag, or a sock.' },
   { id: 'scrap', name: 'Scrap', desc: 'What a spare common find is worth at camp.' }];
-const ITEM = {}; ARTIFACTS.concat(SALVAGE).forEach(i => ITEM[i.id] = i);
+const ITEM = {}; ARTIFACTS.concat(SALVAGE, EXHIBITS).forEach(i => ITEM[i.id] = i);
 const MATTOCKS = [   // spd: dig speed. tier: the deepest dig site tier it can work
   { n: 'Bronze Mattock', tier: 1, spd: 1, col: '#c08a40' },
   { n: 'Iron Mattock', tier: 2, spd: 1.4, col: '#8a919c' },

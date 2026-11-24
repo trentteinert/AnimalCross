@@ -20,9 +20,13 @@ function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (
   const st = S.stats, F = wild ? WILD_FINDS : DIG_FINDS; let kind;
   if (!wild && (!st.sdigs || st.dry >= 3)) kind = 'artifact';   // at a marked site the very first dig, and every fourth dry one, always turns up an artifact
   else { const r = Math.random(); kind = r < F.artifact ? 'artifact' : r < F.artifact + F.salvage ? 'salvage' : 'dirt'; }
+  if (kind === 'artifact' && st.sdigs && Math.random() < (wild ? 0.03 : 0.14)) {   // now and then the find is a piece of one of the museum's permanent exhibits (no percent: you simply get it; pieces you do not have yet turn up more often)
+    const ex = EXHIBITS.map(e => found(e.id) ? 1 : 3), e = EXHIBITS[pickW(ex)];
+    return { kind: 'artifact', ex: true, id: e.id, pct: 100, potential: 100, wild };
+  }
   if (kind === 'artifact') {
     const w = (wild ? ART_WILD : ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
-    const tier = pickW(w), a = !wild && !st.sdigs ? ARTIFACTS[0] : ART_BY_R[tier][Math.floor(Math.random() * ART_BY_R[tier].length)];
+    const rar = pickW(w), a = !wild && !st.sdigs ? ARTIFACTS[0] : ART_BY_R[rar][Math.floor(Math.random() * ART_BY_R[rar].length)];
     const potential = clamp(Math.round((wild ? rnd(28, 66) : rnd(40, 88)) - a.r * 4 + brush().pres + depth * 6), 5, 100);   // the best this find could be: rarer things are a little more fragile, brushes help. How well you brush decides how much of it you keep
     return { kind, id: a.id, pct: potential, potential, wild };
   }
@@ -32,8 +36,9 @@ function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (
 const finalPct = (potential, P) => clamp(Math.round(potential * (0.5 + 0.5 * P) + (P > 0.9 ? (P - 0.9) * 100 : 0)), 5, 100);   // careful brushing keeps the find intact (P is 0 to 1); a near perfect brush adds a little extra
 function recordFind(res) {
   const st = S.stats; st.digs++; if (!res.wild) st.sdigs = (st.sdigs | 0) + 1;
-  if (res.kind === 'artifact') { st.afound = (st.afound | 0) + 1; if (res.pct >= 80) st.great = (st.great | 0) + 1; } else if (res.kind === 'salvage') st.salv = (st.salv | 0) + res.n;   // counters for the journal's tasks
-  if (res.kind === 'artifact') {
+  if (res.kind === 'artifact' && !res.ex) { st.afound = (st.afound | 0) + 1; if (res.pct >= 80) st.great = (st.great | 0) + 1; } else if (res.kind === 'salvage') st.salv = (st.salv | 0) + res.n;   // counters for the journal's tasks
+  if (res.ex) { if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 100 }); res.isNew = c.n === 0; c.n++; res.unlocks = []; }   // exhibit pieces go straight into the museum collection: not in the bag, nothing to sell
+  else if (res.kind === 'artifact') {
     if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
     if (bagFits(res.id)) S.arts.push({ id: res.id, pct: res.pct }); else res.lost = true;   // a full bag leaves the find behind (it still counts in your collection)
@@ -194,7 +199,7 @@ function finishBrush(a, cancelled, outcome) {   // how well you brushed sets how
   const pg = a.pg; let P = clamp((pg.sc + (cancelled ? 0.2 * Math.max(0, a.bdur - a.bt) : 0)) / Math.max(0.5, cancelled ? a.bdur : a.bt), 0, 1), r = a.res;
   if (outcome === 'win') P = Math.max(P, 0.85); else if (outcome === 'lose' || cancelled) P = Math.min(P, 0.2);   // a win keeps the find nearly whole; a miss earns no bonus
   r.P = P; r.win = outcome === 'win';
-  if (r.kind === 'artifact') r.pct = finalPct(r.potential, P); else if (r.kind === 'salvage' && r.win) r.n += 1;
+  if (r.kind === 'artifact' && !r.ex) r.pct = finalPct(r.potential, P); else if (r.kind === 'salvage' && r.win) r.n += 1;
   if (outcome) { floater(a.x, a.y - 12, r.win ? 'Clean!' : 'Rough job', r.win ? '#8fe09a' : '#ff9a8a'); sfx(r.win ? 'catch' : 'no'); }
   UI.gauge(null);
 }
@@ -209,10 +214,11 @@ function actState() {
 function showFind(res, hx, hy) {   // the find is held up over your head with its name and how intact it is
   if (res.kind === 'dirt') { floater(hx, hy - 8, 'Just dirt and pebbles', '#d8c8a8'); sfx('no'); UI.refresh(); return; }
   ME.hold = { res, t: 0, dur: res.kind === 'artifact' ? 4 : 2.6 };
-  const rr = res.kind === 'artifact' ? ARTIFACTS.find(a => a.id === res.id).r : 0;
+  const rr = res.kind === 'artifact' ? ITEM[res.id].r : 0;
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
   if (res.lost) { setTimeout(() => { floater(ME.x, ME.y - 46, 'Bag full!', '#ff9a8a'); sfx('no'); }, 700); UI.toast('Your bag is full. Sell something to the merchant', 'info'); }
+  if (res.ex && res.isNew) setTimeout(() => UI.note('New exhibit piece', ITEM[res.id].name), 1400);
   if (res.unlocks && res.unlocks.length) setTimeout(() => UI.note('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
 }
@@ -275,7 +281,7 @@ function drawHoldText(cx, cy) {   // over the held find: its name in the rarity 
   const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (ME.elev || 0) - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
   g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   const line = (t, yy, c, f) => { g.font = f; g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(t, x + 1, yy + 1); g.fillText(t, x, yy + 1); g.fillText(t, x + 1, yy); g.fillStyle = c; g.fillText(t, x, yy); };
-  if (big) { line(r.pct + '% intact', y, pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); line(txt, y - 9, col, 'bold 7px "Pixelify Sans", monospace'); }
+  if (big) { line(r.ex ? 'Exhibit piece' : r.pct + '% intact', y, r.ex ? '#e8d49a' : pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); line(txt, y - 9, col, 'bold 7px "Pixelify Sans", monospace'); }
   else line(txt, y, col, 'bold 7px "Pixelify Sans", monospace');
   g.globalAlpha = 1; g.font = '6px "Pixelify Sans", monospace';
 }
