@@ -102,7 +102,7 @@ function exhibitPic(set) {   // a canvas of the whole exhibit (null until the mu
     if (k >= 0) { const s = SPR.mprop[nm[k]]; c.g.drawImage(s, Math.round((c.width - s.width) / 2), c.height - s.height); }
     return EXPIC[key] = c;
   }
-  const ps = objs.filter(o => o.show && ITEM[o.show] && ITEM[o.show].set === set && SPR.mprop[o.n]).sort((a, b) => (a.sy != null ? a.sy : a.y) - (b.sy != null ? b.sy : b.y));
+  const seenV = new Set(), ps = objs.filter(o => o.show && ITEM[o.show] && ITEM[o.show].set === set && SPR.mprop[o.n] && (set !== 'Vases' || (!seenV.has(o.show) && seenV.add(o.show)))).sort((a, b) => (a.sy != null ? a.sy : a.y) - (b.sy != null ? b.sy : b.y));
   if (!ps.length) return null;
   const key = set + ps.map(o => exFound(o.show) ? 1 : 0).join(''); if (EXPIC[key]) return EXPIC[key];
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -114,7 +114,7 @@ function exhibitPic(set) {   // a canvas of the whole exhibit (null until the mu
     t.g.clearRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over'; t.g.drawImage(s, dx, dy); t.g.globalCompositeOperation = 'source-in'; t.g.fillStyle = '#9a7464'; t.g.fillRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over';
     c.g.drawImage(t, 0, 0);
   }
-  return EXPIC[key] = set === 'Vases' ? squeezeCols(c, 3) : c;   // (the two vases stand far apart: pushed together so they are not tiny)
+  return EXPIC[key] = set === 'Vases' ? squeezeCols(c, 3) : c;   // (each vase stands twice in the museum: one of each here, pushed together)   // (the two vases stand far apart: pushed together so they are not tiny)
 }
 function squeezeCols(c, gap) {   // empty columns between things narrowed to `gap`
   const d = c.g.getImageData(0, 0, c.width, c.height).data, used = [];

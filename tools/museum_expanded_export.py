@@ -359,22 +359,19 @@ place([106], 'ritual_dots', None, 0, sy=ry + 0.5); place([107], 'ritual_glass', 
 # the ceremonial vases stand on four pedestals: every separate vase in the two layers is one object
 for i in (110, 111, 109): place([i], 'vase_pedestal', 'Vase pedestal', 0.4)
 b108 = S[108].getbbox(); pimg108 = S[108].crop(b108)
-for ex_i, exid in ((113, 'cerimonial_vase'), (114, 'painted_cerimonial_vase')):
-    im = S[ex_i]; seen = set(); px = im.load()
-    for y in range(im.height):
-        for x in range(im.width):
-            if px[x, y][3] and (x, y) not in seen:
-                comp = [(x, y)]; seen.add((x, y)); st = [(x, y)]
-                while st:
-                    a, c = st.pop()
-                    for da in (-2, -1, 0, 1, 2):
-                        for dc in (-2, -1, 0, 1, 2):
-                            q = (a + da, c + dc)
-                            if 0 <= q[0] < im.width and 0 <= q[1] < im.height and px[q][3] and q not in seen: seen.add(q); st.append(q); comp.append(q)
-                x0 = min(p[0] for p in comp); x1 = max(p[0] for p in comp) + 1; y0 = min(p[1] for p in comp); y1 = max(p[1] for p in comp) + 1
-                sub = Image.new('RGBA', (x1 - x0, y1 - y0))
-                for p in comp: sub.putpixel((p[0] - x0, p[1] - y0), px[p])
-                n = reg(sub, 'vase_' + ('painted' if 'painted' in exid else 'plain'), 'Ceremonial vase', 0); put(n, (x0 + x1) // 2, y1, show=exid, sy=S[110].getbbox()[3] - oy + 0.3)   # (drawn over the pedestals)
+# the two vase layers both hold copies (the painted one is in both): the vases as drawn (both layers over each other) are split into the separate vases, and each is
+# the plain or the painted vase by its look (the painted one has the red pattern)
+both = stack(S, [113, 114], EW, EH); ba = np.array(both); xs_ = np.where((ba[:, :, 3] > 0).any(axis=0))[0]; runs = []; r0 = rp = int(xs_[0])
+for x in xs_[1:]:
+    if x > rp + 2: runs.append((r0, rp + 1)); r0 = int(x)
+    rp = int(x)
+runs.append((r0, rp + 1))
+for x0, x1 in runs:
+    sub_ = ba[:, x0:x1]; m_ = sub_[:, :, 3] > 0; ys_ = np.where(m_.any(axis=1))[0]; y0, y1 = int(ys_.min()), int(ys_.max()) + 1
+    painted = int(((sub_[:, :, 0] > 150) & (sub_[:, :, 1] < 110) & m_).sum()) > 10; exid = 'painted_cerimonial_vase' if painted else 'cerimonial_vase'
+    n = reg(both.crop((x0, y0, x1, y1)), 'vase_painted' if painted else 'vase_plain', 'Painted ceremonial vase' if painted else 'Ceremonial vase', 0)
+    put(n, (x0 + x1) // 2, y1, show=exid, sy=S[110].getbbox()[3] - oy + 0.3)   # (drawn over the pedestals)
+print('vases', [(x0, x1) for x0, x1 in runs])
 # the other pedestal sprite (two pedestals in one layer)
 place([108], 'vase_pedestal_pair', 'Vase pedestals', 0.4)
 

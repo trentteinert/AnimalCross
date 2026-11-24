@@ -60,8 +60,17 @@ function jfit(src, key, maxH, maxW) {   // a picture as an <img>: doubled if it 
 }
 function jitemIcon(id, big, tier) {   // big: the card (the find in its full art); 'mid': a tier tile; otherwise the small slot picture
   const it = ITEM[id], tp = big && tierPic(id, tier), ar = tp || (big && it && it.art && artPic(it.art));
-  if (ar) return jfit(ar, tp ? id + '#' + tier : 'm' + it.art, tp || big === 'mid' ? (big === 'mid' ? 14 : 22) : 34, big === 'mid' ? 18 : 60);
+  if (ar) return jfit(ar, tp ? id + '#' + tier : 'm' + it.art, tp || big === 'mid' ? (big === 'mid' ? 13 : 22) : 34, big === 'mid' ? 15 : 60);   // (a tier tile is 19 x 17: at least a pixel clear all round)
+  if (!big && it && it.art) { const hi = slotIcon(id, tier); if (hi) return `<img class="ji" src="${dataURL(hi, 'si' + id + '#' + (tier | 0))}" alt="" style="width:${jc(11)};height:${jc(11)}">`; }
   const ic = itemIcon(id, tier), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id, tier)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`;
+}
+function slotIcon(id, tier) {   // a find in an 11 x 11 slot: the slot's 1 pixel border plus 1 pixel clear inside it leaves 7 x 7, drawn at twice the detail (a 22 x 22 picture)
+  const tk = hasTiers(id) ? clamp(tier | 0 || 1, 1, 3) : 0, ck = 'si' + id + '#' + tk; if (iconCache[ck]) return iconCache[ck];
+  const src = (tk && tierPic(id, tk)) || artPic(ITEM[id].art); if (!src) return null;
+  const sc = Math.min(1, 14 / src.width, 14 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc)), c = mk(22, 22);
+  c.g.imageSmoothingEnabled = sc < 1; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, 4 + Math.floor((14 - w) / 2), 4 + Math.floor((14 - h) / 2), w, h);
+  if (sc < 1) { const d = c.g.getImageData(0, 0, 22, 22), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); }
+  return iconCache[ck] = c;
 }
 const bestTier = id => { const t = S.col[id] && S.col[id].tiers; return t ? Math.max(1, ...Object.keys(t).map(Number)) : 1; };   // the highest tier of a find you have
 const tierRec = (id, t) => { const c = S.col[id]; if (!c || !(c.n > 0)) return null; if (c.tiers) return c.tiers[t] || null; return t === 1 ? c : null; };
@@ -173,9 +182,9 @@ function pageCom(side, sx) {
   if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 46 - 35, 84, 55, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
   let h = ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT EXHIBIT', sx);
   EXHIBIT_SETS.forEach(([set, label], k) => {   // the four permanent exhibits of the east wing: a picture of each (missing pieces faint) and its name and count on the plaque below
-    const bx = sx + 3 + (k % 2) * 37, by = 40 + (k >> 1) * 41, pieces = EXHIBITS.filter(e => e.set === set), have = pieces.filter(e => found(e.id)).length, pic = exhibitPic(set);
-    if (pic) h += jbox(bx + 1, by + 1, 32, 27, `<span class="jexp">${jfit(pic, 'ex' + set + pieces.map(e => exFound(e.id) ? 1 : 0).join(''), 27, 32)}</span>`, 'jc');
-    h += jbox(bx + 4, by + 30, 27, 7, `<span class="jh jexl">${label} ${have}/${pieces.length}</span>`, 'jc');
+    const bx = sx + 5 + (k % 2) * 36, by = [42, 83][k >> 1], py = [70, 112][k >> 1], pieces = EXHIBITS.filter(e => e.set === set), have = pieces.filter(e => found(e.id)).length, pic = exhibitPic(set);
+    if (pic) h += jbox(bx, by, 31, 26, `<span class="jexp">${jfit(pic, 'ex' + set + pieces.map(e => exFound(e.id) ? 1 : 0).join(''), 26, 31)}</span>`, 'jc');   // (the slot's inside less a pixel all round, clear of the plaque)
+    h += jbox(bx + 2, py, 27, 7, `<span class="jh jexl">${label} ${have}/${pieces.length}</span>`, 'jc');
   });
   return h;
 }
