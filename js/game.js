@@ -261,6 +261,14 @@ function wallClip(cx, cy) {   // rectangles (on screen) where the wall of an ope
   if (!W.objs) return null;
   for (const o of W.objs) if (o.k === 'archwall') {
     const s = o.strip, dome = s.y + s.h, x = Math.round(s.x - cx);
+    if (s.pw) {   // a doorway through a wall: the dark top edge hides you across its whole width, the wall face and the frame everywhere but in the doorway itself (the carpet's columns)
+      if (ME.y >= s.y && ME.y <= o.y + 2 && ME.x >= s.x - 2 && ME.x <= s.x + s.w + 2) {
+        const p0 = Math.round(s.pw[0] - cx), p1 = Math.round(s.pw[1] - cx), r = [[x, s.y - cy, s.w, s.bandb - s.y]];
+        for (let c = 0; c < s.w; c++) { const sx = x + c; if (sx >= p0 && sx < p1) continue; r.push([sx, s.bandb - cy, 1, dome - s.bandb + (s.cols ? s.cols[c] : 0)]); }
+        if (ME.y <= dome) ME.behindWall = true; return r;
+      }
+      continue;
+    }
     if (ME.y >= s.y && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 14) {
       if (ME.y <= dome) ME.behindWall = true;   // (your feet are in the wall: no shadow or name there)
       const r = [[x, s.y - cy, s.w, s.h]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r;

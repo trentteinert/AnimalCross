@@ -268,7 +268,7 @@ function computeStairs() {   // a stairs arch with no rope across it can be walk
     if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
 function passageWalls() {   // a doorway cut through a wall (two rooms side by side): the wall's top edge and its face down to the curve of the arch hide you as you walk through, like the stairs' wall
-  if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, cols: q.cols } });
+  if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, cols: q.cols, pw: q.pw, bandb: q.bandb } });
 }
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
@@ -404,6 +404,7 @@ function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk
   for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   if (MGRID && wade !== 'stone') for (const o of [[-hw, 2], [hw, 2], [-hw, -hh], [hw, -hh]]) { const px = x + o[0], py = y + o[1]; if (!stairsAt(px, py) && museumSolidPix(px, py)) return true; }
+  if (MAPDATA && MAPDATA.archwalls && wade !== 'stone') for (const q of MAPDATA.archwalls) { const dm = q.y + q.h; for (const px of [x - hw, x + hw]) if (px >= q.x && px < q.x + q.w && y - hh < dm && y > q.y && (px < q.pw[0] || px >= q.pw[1])) return true; }   // the wall beside a doorway (down to the arch): you can only walk through the doorway itself
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
     const bx = o.x + o.box[0], by = o.y + o.box[1]; if (x < bx - 16 || x > bx + o.box[2] + 16 || y < by - 16 || y > by + o.box[3] + 16) continue;   // only the solids near you (judged by their own edges, so a wide building is not skipped)
