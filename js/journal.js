@@ -46,6 +46,7 @@ function jitemIcon(id, big) {
   if (ar) { const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1; return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`; }
   const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
 function jlist(tab) { return tab === 'salv' ? SALVAGE : tab === 'ex' ? EXHIBITS : ARTIFACTS; }
+const LOG_REVEAL = true;   // testing: the collection log shows every find in full (not as a silhouette), with its name and text. Set to false for the real thing
 const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.stats.sdigs | 0], ['BAG', () => bagUsed() + '/' + bagCap()], ['COINS', () => S.coins | 0],
   ['COLLECTION', () => ARTIFACTS.filter(a => found(a.id)).length + '/' + ARTIFACTS.length], ['BEST FIND', () => (S.arts.reduce((m, a) => Math.max(m, a.pct), 0) || '-') + (S.arts.length ? '%' : '')], ['SALVAGE', () => Object.values(S.mats).reduce((a, b) => a + (b | 0), 0)]];
 
@@ -54,15 +55,15 @@ function pageLog(side, sx) {
     const list = jlist(JR.tab.log), cs = jp('clog_grid').cells; let h = jart('clog_grid', sx);
     h += [['art', 'ARTIFACTS', 'clog_tab_a', 0], ['salv', 'SALVAGE', 'clog_tab_b', 0], ['ex', 'EXHIBIT', 'clog_tab_b', 26]].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]), ox = t[3]; return jimg(t[2], sx - JR_ORG.l + ox, 1, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l + ox, pc.y + 1, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
     const np = Math.ceil(list.length / (cs.length - 2)), per = np > 1 ? cs.length - 2 : cs.length, pg = Math.min(JR.pgl | 0, np - 1), off = pg * per;   // more finds than slots: the last two slots of a page are its arrows
-    cs.forEach((c, k) => { const it = k < per ? list[off + k] : null, r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
+    cs.forEach((c, k) => { const it = k < per ? list[off + k] : null, r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) || LOG_REVEAL ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
     if (np > 1) for (const [k, dir] of [[cs.length - 2, -1], [cs.length - 1, 1]]) { const r = jrect('clog_grid', k, sx), ok = pg + dir >= 0 && pg + dir < np; h += jbox(r[0], r[1], r[2], r[3], `<span>${dir < 0 ? '&lsaquo;' : '&rsaquo;'}</span><em class="jpgn">${dir > 0 ? pg + 1 + '/' + np : ''}</em>`, 'jslot jpgb' + (ok ? '' : ' off'), ok ? `data-act="jpg:${dir}"` : ''); }
     return h;
   }
-  const it = jlist(JR.tab.log)[JR.sel] || jlist(JR.tab.log)[0], ok = it && found(it.id), c = it && S.col[it.id];
+  const it = jlist(JR.tab.log)[JR.sel] || jlist(JR.tab.log)[0], ok = it && found(it.id), show = ok || (it && LOG_REVEAL), c = it && S.col[it.id];
   let h = jart('clog_right', sx) + jart('clog_card', sx) + jart('clog_box', sx);
   if (it) {
     const card = jp('clog_card'), box = jp('clog_box'), rar = it.r != null ? RAR[it.r] : null;
-    h += jbox(sx + card.x - 134, card.y, card.w, card.h, `<div class="jcard"><span class="${ok ? '' : 'jdim'}">${jitemIcon(it.id, true)}</span><b style="color:${ok && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${ok ? it.name : '???'}</b><i>${ok ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${ok ? it.desc : ''}</p></div>`, 'jfill');
+    h += jbox(sx + card.x - 134, card.y, card.w, card.h, `<div class="jcard"><span class="${show ? '' : 'jdim'}">${jitemIcon(it.id, true)}</span><b style="color:${show && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${show ? it.name : '???'}</b><i>${show ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${show ? it.desc : ''}</p></div>`, 'jfill');
     const st = it.ex ? (ok ? `<span>FOUND <b>${c.n}</b></span><span class="jgot">YOU GOT THIS</span>` : '<span>NOT FOUND</span>') : it.r != null ? (ok ? `<span>FOUND <b>${c.n}</b></span><span>BEST <b>${c.best}%</b></span><div class="jbar"><i style="width:${c.best}%"></i></div>` : '<span>BEST <b>-</b></span>') : `<span>HAVE <b>${S.mats[it.id] | 0}</b></span>`;
     h += jbox(sx + box.x - 134, box.y, box.w, box.h, `<div class="jstat">${st}</div>`, 'jfill');
   }
