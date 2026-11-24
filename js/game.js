@@ -261,7 +261,7 @@ function wallClip(cx, cy) {   // rectangles (on screen) where the wall of an ope
   if (!W.objs) return null;
   for (const o of W.objs) if (o.k === 'archwall') {
     const s = o.strip, dome = s.y + s.h, x = Math.round(s.x - cx);
-    if (ME.y > dome && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 11) { ME.behindWall = true; const r = [[x, -1e4, s.w, dome - cy + 1e4]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r; }
+    if (ME.y > dome && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 11) { ME.behindWall = true; const r = [[x, -16, s.w, dome - cy + 16]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r; }
     if (ME.y >= s.y && ME.y <= dome && Math.abs(ME.x - o.x) <= 14) return [[x, s.y - cy, s.w, s.h]];
   }
   return null;
@@ -273,7 +273,7 @@ function drawEnt(o, cx, cy, now) {
     case 'me': case 'npc': {
       const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U) - (o === ME ? Math.round(ME.elev || 0) : 0); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
-      if (o === ME) { const wc = wallClip(cx, cy); if (wc) { g.beginPath(); g.rect(-1e4, -1e4, 2e4, 2e4); for (const r of wc) g.rect(r[0], r[1], r[2], r[3]); g.clip('evenodd'); } }   // behind the wall: the part of you the wall hides is not drawn
+      if (o === ME) { const wc = wallClip(cx, cy); if (wc) { g.beginPath(); g.rect(-16, -16, VW + 32, VH + 32); for (const r of wc) g.rect(r[0], r[1], r[2], r[3]); g.clip('evenodd'); } }   // behind the wall: the part of you the wall hides is not drawn
       if (o === ME) g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)));
       g.translate(0, zo); drawChar(o, cx, cy, now); g.restore(); break;
     }
