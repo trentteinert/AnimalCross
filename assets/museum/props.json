@@ -12,86 +12,122 @@
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
-"case_2x1": {
+"case_1x1_empty": {
 "sx": 34,
+"sy": 0,
+"w": 16,
+"h": 43,
+"ax": 8,
+"ay": 43,
+"over": false
+},
+"case_2x1": {
+"sx": 51,
 "sy": 0,
 "w": 32,
 "h": 42,
 "ax": 16,
 "ay": 42,
 "over": true,
-"ox": 67,
+"ox": 84,
 "oy": 0,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
+"case_2x1_empty": {
+"sx": 117,
+"sy": 0,
+"w": 32,
+"h": 42,
+"ax": 16,
+"ay": 42,
+"over": false
+},
 "case_2x2": {
-"sx": 100,
+"sx": 150,
 "sy": 0,
 "w": 32,
 "h": 55,
 "ax": 16,
 "ay": 55,
 "over": true,
-"ox": 133,
+"ox": 183,
 "oy": 0,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
+"case_2x2_empty": {
+"sx": 216,
+"sy": 0,
+"w": 32,
+"h": 55,
+"ax": 16,
+"ay": 55,
+"over": false
+},
 "case_3x2": {
-"sx": 166,
+"sx": 249,
 "sy": 0,
 "w": 48,
 "h": 54,
 "ax": 24,
 "ay": 54,
 "over": true,
-"ox": 215,
+"ox": 298,
 "oy": 0,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
+"case_3x2_empty": {
+"sx": 347,
+"sy": 0,
+"w": 48,
+"h": 54,
+"ax": 24,
+"ay": 54,
+"over": false
+},
 "case_3x3": {
-"sx": 264,
+"sx": 396,
 "sy": 0,
 "w": 48,
 "h": 59,
 "ax": 24,
 "ay": 59,
 "over": true,
-"ox": 313,
+"ox": 445,
 "oy": 0,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
 "case_3x1": {
-"sx": 362,
-"sy": 0,
+"sx": 0,
+"sy": 60,
 "w": 48,
 "h": 42,
 "ax": 24,
 "ay": 42,
 "over": true,
-"ox": 411,
-"oy": 0,
+"ox": 49,
+"oy": 60,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
 "case_1x2": {
-"sx": 460,
-"sy": 0,
+"sx": 98,
+"sy": 60,
 "w": 16,
 "h": 55,
 "ax": 8,
 "ay": 55,
 "over": true,
-"ox": 477,
-"oy": 0,
+"ox": 115,
+"oy": 60,
 "overBlend": "multiply",
 "overAlpha": 0.388
 },
 "stage": {
-"sx": 0,
+"sx": 132,
 "sy": 60,
 "w": 42,
 "h": 46,
@@ -100,7 +136,7 @@
 "over": false
 },
 "board": {
-"sx": 43,
+"sx": 175,
 "sy": 60,
 "w": 13,
 "h": 22,
@@ -109,7 +145,7 @@
 "over": false
 },
 "statue": {
-"sx": 57,
+"sx": 189,
 "sy": 60,
 "w": 25,
 "h": 63,
@@ -118,7 +154,7 @@
 "over": false
 },
 "panel_fossils": {
-"sx": 83,
+"sx": 215,
 "sy": 60,
 "w": 88,
 "h": 23,
@@ -127,7 +163,7 @@
 "over": false
 },
 "panel_scorpion": {
-"sx": 172,
+"sx": 304,
 "sy": 60,
 "w": 39,
 "h": 23,
@@ -136,7 +172,7 @@
 "over": false
 },
 "plaque": {
-"sx": 212,
+"sx": 344,
 "sy": 60,
 "w": 39,
 "h": 22,
@@ -145,7 +181,7 @@
 "over": false
 },
 "window": {
-"sx": 252,
+"sx": 384,
 "sy": 60,
 "w": 32,
 "h": 49,
@@ -154,7 +190,7 @@
 "over": false
 },
 "stanchion": {
-"sx": 285,
+"sx": 417,
 "sy": 60,
 "w": 32,
 "h": 11,
@@ -163,7 +199,7 @@
 "over": false
 },
 "noentry": {
-"sx": 318,
+"sx": 450,
 "sy": 60,
 "w": 24,
 "h": 26,
@@ -172,7 +208,7 @@
 "over": false
 },
 "exit_sign": {
-"sx": 343,
+"sx": 475,
 "sy": 60,
 "w": 17,
 "h": 10,
@@ -181,8 +217,8 @@
 "over": false
 },
 "arch": {
-"sx": 361,
-"sy": 60,
+"sx": 0,
+"sy": 124,
 "w": 38,
 "h": 51,
 "ax": 19,
@@ -190,8 +226,8 @@
 "over": false
 },
 "arch_narrow": {
-"sx": 400,
-"sy": 60,
+"sx": 39,
+"sy": 124,
 "w": 31,
 "h": 36,
 "ax": 15,
@@ -199,8 +235,8 @@
 "over": false
 },
 "arch_tip": {
-"sx": 432,
-"sy": 60,
+"sx": 71,
+"sy": 124,
 "w": 38,
 "h": 51,
 "ax": 19,
@@ -208,8 +244,8 @@
 "over": false
 },
 "arch_narrow_tip": {
-"sx": 471,
-"sy": 60,
+"sx": 110,
+"sy": 124,
 "w": 31,
 "h": 36,
 "ax": 15,

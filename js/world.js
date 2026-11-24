@@ -236,7 +236,7 @@ function instantiate(s) {
     case 'furnace': if (!SPR.furnace) return; o = { k: 'furnace', spr: SPR.furnace }; break;
     case 'campfire': if (!SPR.campfire) return; o = { k: 'campfire', spr: SPR.campfire[0], frames: SPR.campfire, ph: hash2(s.x | 0, s.y | 0, 9) * 4 }; break;
     case 'museum': if (!SPR.museum) return; o = { k: 'museum', spr: SPR.museum }; MDOOR = { x: s.x, y: s.y + 10 }; break;
-    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0 }; if (s.n === 'noentry') o.sy = s.y + 40; if (s.n === 'arch' || s.n === 'arch_narrow') o.sy = -200; break;   // stairs are part of the floor: you are always drawn on top of them   // the sign hangs in front of its doorway
+    case 'mprop': if (!SPR.mprop || !SPR.mprop[s.n]) return; o = { k: 'mprop', spr: SPR.mprop[s.n], n: s.n, item: s.item || null, st: s.st | 0, show: s.show || null, bare: !!s.bare, ix: s.ix | 0, iy: s.iy | 0 }; if (s.sy != null) o.sy = s.sy; if (s.n === 'noentry') o.sy = s.y + 40; if (s.n === 'arch' || s.n === 'arch_narrow') o.sy = -200; break;   // stairs are part of the floor: you are always drawn on top of them   // the sign hangs in front of its doorway
     case 'mexit': o = { k: 'mexit', to: s.to, sx: s.sx, sy: s.sy }; break;
     case 'bench': if (!SPR.bench) return; o = { k: 'bench', spr: SPR.bench }; break;
     case 'decor': if (!SPR.decor[s.d]) return; o = { k: 'decor', spr: SPR.decor[s.d] }; break;
@@ -389,9 +389,10 @@ function initWorld(map) { loadMap(map); }
 let MSOL = null;
 function museumSolidPix(x, y) {   // the museum's walls and frame are solid where they are painted: the dark frame inside a floor tile at the room's edge is not floor
   if (!MSOL) { const A = ASSET.img.museum_tiles, c = mk(A.width, A.height); c.g.drawImage(A, 0, 0); MSOL = { d: c.g.getImageData(0, 0, A.width, A.height).data, w: A.width, cache: {} }; }
+  const ps = MAPDATA && MAPDATA.passages; if (ps) for (const q of ps) if (x >= q[0] && x < q[2] && y >= q[1] && y < q[3]) return false;   // a doorway through a wall's dark edge
   const tx = Math.floor(x / 16), ty = Math.floor(y / 16); if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) return true; const id = MGRID[ty * MW + tx];
   const sx = (id & 15) * 16 + (Math.floor(x) & 15), sy = (id >> 4) * 16 + (Math.floor(y) & 15), i = (sy * MSOL.w + sx) * 4, d = MSOL.d;
-  return d[i + 3] < 10 || 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2] < 130;
+  return d[i + 3] < 10 || 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2] < 100;   // (dark slate frame and void; the carpets are lighter)
 }
 function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk into the shallows (deep water still stops everyone); 'stone': a kicked stone ignores water and ledges (the caller deals with falling in)   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;

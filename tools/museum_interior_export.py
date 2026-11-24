@@ -207,6 +207,7 @@ for cn, fn in CASES.items():
     bimg = stack(AI, base, w, h); gimg = stack(AI, [glass], w, h); bb = AI[base[0]].getbbox(); gb = gimg.getbbox(); ub = bimg.getbbox()
     x0, y0, x1, y1 = min(ub[0], gb[0]), min(ub[1], gb[1]), max(ub[2], gb[2]), max(ub[3], gb[3])
     props[cn] = {'img': bimg.crop((x0, y0, x1, y1)), 'over': gimg.crop((x0, y0, x1, y1)), 'blend': AL[glass]['blend'], 'op': AL[glass]['op']}
+    props[cn + '_empty'] = {'img': stack(AI, [i for i in base if 'pill' not in nm(i)], w, h).crop((x0, y0, x1, y1)), 'over': None}   # the display with nothing in it: just the base (no pillow), shown until the player has something to put there
     bx0, btop, bw = bb[0] - x0, bb[1] - y0, bb[2] - bb[0]
     # the items: every other child of the case group (and, for 3x2, the ceremonial vases group next to it)
     src = [i for i in kids(AL, grp) if i not in base and i != glass and 'pill' not in nm(i)] + [i for i, l in enumerate(AL) if l['parent'] is None and l['type'] == 1 and i != grp and leaves(AL, i)]

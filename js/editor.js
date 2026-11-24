@@ -19,6 +19,7 @@ let EPAL = PAL;   // the palette in use: the museum has its own (cases with ever
 function museumPal() {   // cases (empty; pick what goes in them from the list above) and everything else that stands in the room
   const P = [], M = ASSET.mProps || {}, nice = { case_1x1: '1x1 case', case_2x1: '2x1 case', case_2x2: '2x2 case', case_3x2: '3x2 case (permanent exhibit)', case_3x3: '3x3 case (old)', case_3x1: '3x1 case (old)', case_1x2: '1x2 case (old)', stage: 'Stage', board: 'Information board', statue: 'Statue', panel_fossils: 'Fossil panel', panel_scorpion: 'Scorpion panel', plaque: 'Plaque', window: 'Window', stanchion: 'Stairs rope', arch: 'Stairs arch', arch_narrow: 'Stairs arch (narrow)', noentry: 'No entry sign', exit_sign: 'Exit sign' };
   for (const n of ['case_1x1', 'case_2x1', 'case_2x2', 'case_3x2', 'stage', 'board', 'statue', 'panel_fossils', 'panel_scorpion', 'plaque', 'window', 'arch', 'arch_narrow', 'noentry', 'stanchion', 'exit_sign']) if (M[n]) P.push({ k: 'mprop', pn: n, n: nice[n] });
+  if (ASSET.mDecor) for (const n of Object.keys(ASSET.mDecor).sort((a, b) => ASSET.mDecor[a].label.localeCompare(ASSET.mDecor[b].label))) if (M[n] || SPR.mprop[n]) P.push({ k: 'mprop', pn: n, n: ASSET.mDecor[n].label });   // everything in decor.json: furniture, plants, windows, the exhibits
   return P;
 }
 function itemSelectHTML() {

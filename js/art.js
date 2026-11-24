@@ -42,6 +42,24 @@ function shadowSpr(w, h) {
 const iconCache = {};
 const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boot: [0, 1], fabric: [1, 1], scrap: [2, 1] };   // 8x8 painted icons in assets/props/items.png (column, row)
 const artPic = n => (SPR.mpiece && SPR.mpiece[n]) || (SPR.mitem && SPR.mitem[n]) || null;   // a find's picture: a single piece, or a whole display item
+const MUSEUM_REVEAL = true;   // testing: the museum shows everything (every case full, every exhibit piece) whether or not you have found it. false = only what you have found (until donating exists)
+const showOK = id => MUSEUM_REVEAL || found(id);
+function itemVisible(id) {   // is any of what a case holds yours?
+  if (MUSEUM_REVEAL) return true;
+  const d = ASSET.mItems && ASSET.mItems[id]; if (d && d.parts) { if (!GAME_OF_ART) { GAME_OF_ART = {}; for (const a of ARTIFACTS) GAME_OF_ART[a.art] = a.id; } return d.parts.some(q => found(GAME_OF_ART[q.k])); }
+  return found(id);
+}
+function museumSpr(o) {   // the picture of a museum object: nothing if it is an exhibit piece you do not have, the empty display for a case with nothing of yours in it
+  if (o.show && !showOK(o.show)) return null;
+  if (/^case_/.test(o.n) && !/_empty$/.test(o.n)) { const vis = o.item ? itemVisible(o.item) : !o.bare; if (!vis && SPR.mprop[o.n + '_empty']) return SPR.mprop[o.n + '_empty']; }
+  return o.spr;
+}
+function caseItem(o) {   // what stands in a case: {pic, ix, iy} (a set from items.json, or a single piece where it was drawn)
+  if (!o.item || !itemVisible(o.item)) return null;
+  const d = ASSET.mItems && ASSET.mItems[o.item];
+  if (d) { const base = SPR.mitem && SPR.mitem[o.item]; const pic = base && (mitemPic(o.item, o.st) || base); return pic ? { pic, ix: base.ix, iy: base.iy } : null; }
+  const pic = SPR.mtierF && SPR.mtierF[o.item] ? SPR.mtierF[o.item][clamp(shownTier(o.item), 1, 3) - 1] : null; return pic ? { pic, ix: o.ix | 0, iy: o.iy | 0 } : null;
+}
 const shownTier = id => (S.don && S.don[id]) || bestTier(id);   // the tier a display case shows for a find: the best one you have donated (until donating exists: the best you have found)
 let GAME_OF_ART = null;
 function mitemPic(id, st) {   // what stands in a display case: the item as drawn for the museum, but made of each piece in the best tier you have of it (a ring in bronze, silver or gold...)
@@ -50,8 +68,8 @@ function mitemPic(id, st) {   // what stands in a display case: the item as draw
   const d = ASSET.mItems && ASSET.mItems[id]; if (!d || !d.parts || !SPR.mtierF) return base;
   if (!GAME_OF_ART) { GAME_OF_ART = {}; for (const a of ARTIFACTS) GAME_OF_ART[a.art] = a.id; }
   const parts = d.parts.map(q => { const gid = GAME_OF_ART[q.k]; return gid && SPR.mtierF[gid] ? { gid, q } : null; }); if (parts.some(q => !q)) return base;
-  const tiers = parts.map(q => clamp(shownTier(q.gid), 1, 3)), key = 'd' + id + '|' + tiers.join('');
-  if (!iconCache[key]) { const c = mk(base.width, base.height); parts.forEach((q, i) => c.g.drawImage(SPR.mtierF[q.gid][tiers[i] - 1], q.q.dx, q.q.dy)); c.ix = base.ix; c.iy = base.iy; iconCache[key] = c; }
+  const tiers = parts.map(q => MUSEUM_REVEAL || found(q.gid) ? clamp(shownTier(q.gid), 1, 3) : 0), key = 'd' + id + '|' + tiers.join('');   // (a piece of a set you do not have is not drawn)
+  if (!iconCache[key]) { const c = mk(base.width, base.height); parts.forEach((q, i) => { if (tiers[i]) c.g.drawImage(SPR.mtierF[q.gid][tiers[i] - 1], q.q.dx, q.q.dy); }); c.ix = base.ix; c.iy = base.iy; iconCache[key] = c; }
   return iconCache[key];
 }
 const hasTiers = id => !!(typeof SPR !== 'undefined' && SPR.mtier && SPR.mtier[id]);
@@ -170,6 +188,9 @@ function buildSprites() {
         for (let i = 0; i < w * h * 4; i += 4) { const a = gd.data[i + 3]; if (!a) continue; if (bd[i + 3] > 8) { oi.data[i] = gd.data[i]; oi.data[i + 1] = gd.data[i + 1]; oi.data[i + 2] = gd.data[i + 2]; oi.data[i + 3] = a; } else { gi.data[i] = F[0] * gd.data[i] / 255; gi.data[i + 1] = F[1] * gd.data[i + 1] / 255; gi.data[i + 2] = F[2] * gd.data[i + 2] / 255; gi.data[i + 3] = a; } }
         ob.g.putImageData(oi, 0, 0); og.g.putImageData(gi, 0, 0); c.overB = ob; c.overG = og;
       } } SPR.mprop[n] = c; } }   // things inside the museum: cases, stage, board, wall panels, windows
+  if (SPR.mprop && ASSET.img.museum_decor && ASSET.mDecor) for (const n in ASSET.mDecor) {   // furniture, plants, windows, the welcome desk and the exhibits' cases and pieces (assets/museum/decor.json)
+    const d = ASSET.mDecor[n], c = cut(ASSET.img.museum_decor, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ax = d.ax; c.ay = d.ay; c.label = d.label; if (d.solid) c.col = maskBoxes(c, d.ax, d.h, false, 1 - d.solid); SPR.mprop[n] = c;
+  }
   if (ASSET.img.museum_tiers && ASSET.mTiers) { SPR.mtier = {}; SPR.mtierF = {}; for (const n in ASSET.mTiers) { const cq = q => cut(ASSET.img.museum_tiers, { x: q[0], y: q[1], w: q[2], h: q[3] }); SPR.mtier[n] = ASSET.mTiers[n].t.map(cq); SPR.mtierF[n] = ASSET.mTiers[n].f.map(cq); } }   // t: the finds without their stands (the log's icons); f: as drawn, stand and all (the display cases)   // every artifact in its three tiers (assets/museum/tiers.json)
   if (ASSET.img.museum_pieces && ASSET.mPieces) { SPR.mpiece = {}; for (const n in ASSET.mPieces) { const d = ASSET.mPieces[n]; SPR.mpiece[n] = cut(ASSET.img.museum_pieces, { x: d.sx, y: d.sy, w: d.w, h: d.h }); } }   // every piece of a set on its own (the collection log)
   if (ASSET.img.museum_items && ASSET.mItems) { SPR.mitem = {}; for (const n in ASSET.mItems) { const d = ASSET.mItems[n], c = cut(ASSET.img.museum_items, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ix = d.ix; c.iy = d.iy; c.label = d.label; c.case = d.case;
