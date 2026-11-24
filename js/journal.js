@@ -16,7 +16,7 @@ JR.warm = function () {   // the first time the book opens (and each page the fi
   if (JR.warmed) return; JR.warmed = true; const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 800 }) : setTimeout(f, 60)), steps = [];
   steps.push(() => { if (document.fonts) { document.fonts.load('400 14px "Pixelify Sans"'); document.fonts.load('600 14px "Pixelify Sans"'); } });
   (JR.imgs || []).forEach(im => steps.push(() => { if (im.decode) im.decode().catch(() => { }); }));   // every piece of the book decoded now, not when it is first on screen
-  steps.push(() => { ARTIFACTS.concat(SALVAGE).forEach(i => { const u = itemURL(i.id), im = new Image(); im.src = u; if (im.decode) im.decode().catch(() => { }); }); });   // the item icons are drawn and turned into pictures once
+  steps.push(() => { ARTIFACTS.concat(EXHIBITS, SALVAGE).forEach(i => { const u = itemURL(i.id), im = new Image(); im.src = u; if (im.decode) im.decode().catch(() => { }); }); });   // the item icons are drawn and turned into pictures once
   steps.push(() => { if (typeof heroSprite === 'function' && HERO.base) for (let f = 0; f < 8; f++) for (let fr = 0; fr < 5; fr++) heroSprite(f, fr); });   // all the portrait's turning frames
   steps.push(() => {   // draw every page once, invisibly, so the layout and the first paint are done too
     const el = document.getElementById('jr'); if (!el || UI.cur === 'journal') return; const keep = [JR.page, JR.side, JR.sel], pages = JR_PAGES.map(p => p[0]).concat('edit');
@@ -45,15 +45,16 @@ function jitemIcon(id, big) {
   const ar = big && ITEM[id] && ITEM[id].art && artPic(ITEM[id].art);   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
   if (ar) { const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1; return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`; }
   const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
-function jlist(tab) { return tab === 'salv' ? SALVAGE : tab === 'ex' ? EXHIBITS : ARTIFACTS; }
+const ALL_ART = ARTIFACTS.concat(EXHIBITS);   // the exhibit pieces are the special, rarer ones at the end of the artifacts: they all end up in the museum's exhibits, so they are not on a page of their own
+function jlist(tab) { return tab === 'salv' ? SALVAGE : ALL_ART; }
 const LOG_REVEAL = true;   // testing: the collection log shows every find in full (not as a silhouette), with its name and text. Set to false for the real thing
 const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.stats.sdigs | 0], ['BAG', () => bagUsed() + '/' + bagCap()], ['COINS', () => S.coins | 0],
-  ['COLLECTION', () => ARTIFACTS.filter(a => found(a.id)).length + '/' + ARTIFACTS.length], ['BEST FIND', () => (S.arts.reduce((m, a) => Math.max(m, a.pct), 0) || '-') + (S.arts.length ? '%' : '')], ['SALVAGE', () => Object.values(S.mats).reduce((a, b) => a + (b | 0), 0)]];
+  ['COLLECTION', () => ALL_ART.filter(a => found(a.id)).length + '/' + ALL_ART.length], ['BEST FIND', () => (S.arts.reduce((m, a) => Math.max(m, a.pct), 0) || '-') + (S.arts.length ? '%' : '')], ['SALVAGE', () => Object.values(S.mats).reduce((a, b) => a + (b | 0), 0)]];
 
 function pageLog(side, sx) {
   if (side === 'l') {
     const list = jlist(JR.tab.log), cs = jp('clog_grid').cells; let h = jart('clog_grid', sx);
-    h += [['art', 'ARTIFACTS', 'clog_tab_a', 0], ['salv', 'SALVAGE', 'clog_tab_b', 0], ['ex', 'EXHIBIT', 'clog_tab_b', 26]].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]), ox = t[3]; return jimg(t[2], sx - JR_ORG.l + ox, 1, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l + ox, pc.y + 1, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
+    h += [['art', 'ARTIFACTS', 'clog_tab_a', 0], ['salv', 'SALVAGE', 'clog_tab_b', 0]].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]), ox = t[3]; return jimg(t[2], sx - JR_ORG.l + ox, 1, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l + ox, pc.y + 1, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
     const np = Math.ceil(list.length / (cs.length - 2)), per = np > 1 ? cs.length - 2 : cs.length, pg = Math.min(JR.pgl | 0, np - 1), off = pg * per;   // more finds than slots: the last two slots of a page are its arrows
     cs.forEach((c, k) => { const it = k < per ? list[off + k] : null, r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) || LOG_REVEAL ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
     if (np > 1) for (const [k, dir] of [[cs.length - 2, -1], [cs.length - 1, 1]]) { const r = jrect('clog_grid', k, sx), ok = pg + dir >= 0 && pg + dir < np; h += jbox(r[0], r[1], r[2], r[3], `<span>${dir < 0 ? '&lsaquo;' : '&rsaquo;'}</span><em class="jpgn">${dir > 0 ? pg + 1 + '/' + np : ''}</em>`, 'jslot jpgb' + (ok ? '' : ' off'), ok ? `data-act="jpg:${dir}"` : ''); }

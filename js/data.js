@@ -51,8 +51,6 @@ const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" 
   { id: 'shield', art: 'shield', name: 'Shield', r: 1, desc: 'Dented in all the right places.' },
   { id: 'bust', art: 'bust', name: 'Marble Bust', r: 1, desc: 'Very serious about its nose.' },
   { id: 'bust_2', art: 'bust_2', name: 'Noble Bust', r: 1, desc: 'Looks like it has opinions on taxes.' },
-  { id: 'cerimonial_vase', art: 'cerimonial_vase', name: 'Ceremonial Vase', r: 1, desc: 'Plain, patient, and waiting for flowers.' },
-  { id: 'painted_cerimonial_vase', art: 'painted_cerimonial_vase', name: 'Painted Ceremonial Vase', r: 1, desc: 'Painted for an occasion long since over.' },
   { id: 'coin', art: 'ancient_coin', name: 'Stamped Coin', r: 2, desc: 'The stamp is a little crooked.' },
   { id: 'sun_mask', art: 'sun_mask', name: 'Sun Mask', r: 2, desc: 'It smiles like it knows the weather.' },
   { id: 'decorative_thrown', art: 'decorative_thrown', name: 'Decorative Throne', r: 2, desc: 'Not comfortable. Definitely important.' },
@@ -66,6 +64,8 @@ const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" 
   { id: 'diamond_amulet', art: 'diamond_amulet', name: 'Diamond Amulet', r: 2, desc: 'Clear as a promise.' }];
 const ART_BY_R = [0, 1, 2].map(r => ARTIFACTS.filter(a => a.r === r));   // a find first picks its rarity (by dig site tier and depth), then which one of that rarity
 const EXHIBITS = [   // pieces of the museum's permanent exhibits: found while digging like artifacts, but a piece is simply collected (no 'percent intact'). `art` is the piece in assets/museum/pieces.json
+  { id: 'cerimonial_vase', art: 'cerimonial_vase', name: 'Ceremonial Vase', set: 'Vases', ex: true, r: 1, desc: 'Plain, patient, and waiting for flowers.' },
+  { id: 'painted_cerimonial_vase', art: 'painted_cerimonial_vase', name: 'Painted Ceremonial Vase', set: 'Vases', ex: true, r: 1, desc: 'Painted for an occasion long since over.' },
   { id: 'ex_statue_head', art: 'ex_statue_head', name: 'Statue Head', set: 'Statue', ex: true, r: 1, desc: 'A calm face, searching for a body.' },
   { id: 'ex_statue_torso', art: 'ex_statue_torso', name: 'Statue Torso', set: 'Statue', ex: true, r: 1, desc: 'The middle of something grand.' },
   { id: 'ex_statue_left_arm', art: 'ex_statue_left_arm', name: 'Statue Left Arm', set: 'Statue', ex: true, r: 1, desc: 'Reaching for a handshake from long ago.' },
