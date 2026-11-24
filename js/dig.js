@@ -15,6 +15,10 @@ const pctCol = p => p >= 70 ? '#8fe09a' : p >= 40 ? '#ffd877' : '#ff9a8a';
 const DIG_FINDS = { artifact: 0.45, salvage: 0.40 }, WILD_FINDS = { artifact: 0.07, salvage: 0.33 };   // marked sites: nearly half the digs turn up an artifact. Open ground: rarely (the rest is dirt and pebbles)
 const ART_W = { 1: [60, 28, 12], 2: [42, 36, 22], 3: [28, 40, 32] }, ART_WILD = [86, 13, 1];   // common / uncommon / rare, by dig site tier (open ground is almost all commons)
 const SALV_IDS = ['nails', 'fabric', 'boot'], SALV_W = [45, 30, 25];
+const TIER_W = { 0: [93, 6, 1], 1: [78, 18, 4], 2: [58, 31, 11], 3: [40, 40, 20] };   // T1 / T2 / T3 by dig site tier (open ground is almost all basic); digging deeper shifts it up
+function rollTier(site, depth, wild) {
+  const w = (TIER_W[wild ? 0 : site] || TIER_W[1]).slice(); w[0] *= Math.max(0.3, 1 - 0.2 * depth); w[1] *= 1 + 0.4 * depth; w[2] *= 1 + 1.0 * depth; return pickW(w) + 1;
+}
 function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (units): deeper strata give rarer finds that are better preserved. wild: ordinary ground, not a marked site
   depth = depth || 0;
   const st = S.stats, F = wild ? WILD_FINDS : DIG_FINDS; let kind;
@@ -28,7 +32,7 @@ function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (
     const w = (wild ? ART_WILD : ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
     const rar = pickW(w), a = !wild && !st.sdigs ? ARTIFACTS[0] : ART_BY_R[rar][Math.floor(Math.random() * ART_BY_R[rar].length)];
     const potential = clamp(Math.round((wild ? rnd(28, 66) : rnd(40, 88)) - a.r * 4 + brush().pres + depth * 6), 5, 100);   // the best this find could be: rarer things are a little more fragile, brushes help. How well you brush decides how much of it you keep
-    return { kind, id: a.id, pct: potential, potential, wild };
+    return { kind, id: a.id, pct: potential, potential, wild, tier: hasTiers(a.id) ? rollTier(tier, depth, wild) : 1 };
   }
   if (kind === 'salvage') return { kind, id: SALV_IDS[pickW(SALV_W)], n: 1 + (Math.random() < 0.4 ? 1 : 0), wild };
   return { kind, wild };
@@ -40,8 +44,10 @@ function recordFind(res) {
   if (res.ex) { if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 100 }); res.isNew = c.n === 0; c.n++; res.unlocks = []; }   // exhibit pieces go straight into the museum collection: not in the bag, nothing to sell
   else if (res.kind === 'artifact') {
     if (!res.wild) st.dry = 0; const c = S.col[res.id] || (S.col[res.id] = { n: 0, best: 0 });
+    const tk = (res.tier | 0) || 1, ct = (c.tiers = c.tiers || {}); if (!ct[1] && c.n > 0) ct[1] = { n: c.n, best: c.best };   // finds from before there were tiers count as the first tier
+    const ctt = ct[tk] || (ct[tk] = { n: 0, best: 0 }); res.isNewTier = ctt.n === 0 && c.n > 0; ctt.n++; if (res.pct > ctt.best) ctt.best = res.pct;
     res.isNew = c.n === 0; res.isBest = c.n > 0 && res.pct > c.best; c.n++; if (res.pct > c.best) c.best = res.pct;
-    if (bagFits(res.id)) S.arts.push({ id: res.id, pct: res.pct }); else res.lost = true;   // a full bag leaves the find behind (it still counts in your collection)
+    if (bagFits(res.id)) S.arts.push({ id: res.id, pct: res.pct, tier: (res.tier | 0) || 1 }); else res.lost = true;   // a full bag leaves the find behind (it still counts in your collection)
     res.unlocks = res.isNew ? RECIPES.filter(r => r.unlock === res.id) : [];
   } else { if (!res.wild) st.dry++; if (res.kind === 'salvage') { st.seen = st.seen || {}; res.isNew = !st.seen[res.id]; st.seen[res.id] = 1; if (bagFits(res.id)) S.mats[res.id] = (S.mats[res.id] | 0) + res.n; else res.lost = true; } }
 }
@@ -218,6 +224,7 @@ function showFind(res, hx, hy) {   // the find is held up over your head with it
   sfx(rr >= 1 ? 'rare' : 'catch'); vib(rr >= 1 ? [20, 40, 30] : 20);
   burst(ME.x, ME.y - 30, res.kind === 'artifact' ? RAR[rr].c : '#d8c8a8', 8 + rr * 8, 60 + rr * 15, 0.9, 50, rr >= 1 ? 2 : 1);
   if (res.lost) { setTimeout(() => { floater(ME.x, ME.y - 46, 'Bag full!', '#ff9a8a'); sfx('no'); }, 700); UI.toast('Your bag is full. Sell something to the merchant', 'info'); }
+  if (res.isNewTier) setTimeout(() => UI.note('New tier found', tierName(res.id, res.tier) + ' ' + ITEM[res.id].name), 1400);
   if (res.ex && res.isNew) setTimeout(() => UI.note('New exhibit piece', ITEM[res.id].name), 1400);
   if (res.unlocks && res.unlocks.length) setTimeout(() => UI.note('Recipe unlocked', res.unlocks.map(r => r.name).join(', ')), 1400);
   UI.refresh();
@@ -269,8 +276,8 @@ function drawMarker(cx, cy, now) {   // the bobbing arrow over a camp or other t
   g.fillStyle = '#f2b84b'; g.fillRect(px - 2, py, 5, 1); g.fillRect(px - 1, py + 1, 3, 1); g.fillRect(px, py + 2, 1, 1);
 }
 function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and bobs
-  if (ME.hold.pose) { const h = ME.hold, ic = itemIcon(h.res.id), u = Math.min(1, h.t / 0.2), fade = clamp((h.dur - h.t) / 0.35, 0, 1); g.globalAlpha = fade; g.drawImage(ic, Math.round(e.x + h.pose.hands[0] - ic.width / 2 - cx), Math.round(e.y + h.pose.hands[1] - ic.height / 2 - cy + (1 - u) * 4), ic.width, ic.height); g.globalAlpha = 1; return; }   // held between the hands of the reward pose
-  const h = ME.hold, r = h.res, ic = itemIcon(r.id), big = r.kind === 'artifact', u = Math.min(1, h.t / 0.24), k = 2.70158, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
+  if (ME.hold.pose) { const h = ME.hold, ic = itemIcon(h.res.id, h.res.tier), u = Math.min(1, h.t / 0.2), fade = clamp((h.dur - h.t) / 0.35, 0, 1); g.globalAlpha = fade; g.drawImage(ic, Math.round(e.x + h.pose.hands[0] - ic.width / 2 - cx), Math.round(e.y + h.pose.hands[1] - ic.height / 2 - cy + (1 - u) * 4), ic.width, ic.height); g.globalAlpha = 1; return; }   // held between the hands of the reward pose
+  const h = ME.hold, r = h.res, ic = itemIcon(r.id, r.tier), big = r.kind === 'artifact', u = Math.min(1, h.t / 0.24), k = 2.70158, eb = 1 + k * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
   const fade = clamp((h.dur - h.t) / 0.35, 0, 1), sz = Math.round(ic.width * (big ? 3 : 2) * eb), bob = Math.round(Math.sin(now * 4)), top = Math.round(e.y - 44 - sz + bob - cy);
   g.globalAlpha = fade;
   if (big && r.pct >= 80) { g.fillStyle = 'rgba(255,240,170,0.9)'; for (let i = 0; i < 4; i++) { const a = now * 2 + i * 1.57, rr = sz * 0.55 + 4; g.fillRect(Math.round(e.x - cx + Math.cos(a) * rr), Math.round(top + sz / 2 + Math.sin(a) * rr * 0.7), 2, 2); } }
@@ -278,7 +285,7 @@ function drawHoldIcon(e, cx, cy, now) {   // the find rises above your head and 
 }
 function drawHoldText(cx, cy) {   // over the held find: its name in the rarity colour and, for artifacts, how intact it is, each with a thin dark shadow
   if (!ME.hold) return; const h = ME.hold, r = h.res, it = ITEM[r.id], big = r.kind === 'artifact', x = Math.round(ME.x - cx);
-  const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (ME.elev || 0) - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? it.name : '+' + r.n + ' ' + it.name;
+  const y = Math.round(ME.y + pitZ(ME.x, ME.y) * PIT_U - (ME.elev || 0) - (h.pose ? 45 : 44 + 16 * (big ? 3 : 2)) - cy), col = big ? RAR[it.r].c : '#d8c8a8', txt = big ? (r.tier > 1 ? tierName(r.id, r.tier) + ' ' : '') + it.name : '+' + r.n + ' ' + it.name;
   g.globalAlpha = clamp((h.dur - h.t) / 0.35, 0, 1) * (h.t > 0.2 ? 1 : h.t / 0.2); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   const line = (t, yy, c, f) => { g.font = f; g.fillStyle = 'rgba(14,10,8,0.9)'; g.fillText(t, x + 1, yy + 1); g.fillText(t, x, yy + 1); g.fillText(t, x + 1, yy); g.fillStyle = c; g.fillText(t, x, yy); };
   if (big) { line(r.ex ? 'Exhibit piece' : r.pct + '% intact', y, r.ex ? '#e8d49a' : pctCol(r.pct), 'bold 7px "Pixelify Sans", monospace'); line(txt, y - 9, col, 'bold 7px "Pixelify Sans", monospace'); }
@@ -406,9 +413,10 @@ function drawMattock(e, cx, cy, now) {   // placeholder dig animation: the chara
 const chipIcon = id => `<img src="${itemURL(id)}" alt="">`;
 UI.matsHTML = () => ['nails', 'fabric', 'boot', 'scrap'].map(id => `<span class="mt" title="${ITEM[id].name}">${chipIcon(id)}<b>${S.mats[id] | 0}</b></span>`).join('') + `<span class="mt${bagUsed() >= bagCap() ? ' full' : ''}" title="Bag slots"><img src="${actURL('bag')}" alt=""><b>${bagUsed()}/${bagCap()}</b></span><span class="mt coin" title="Coins"><b>${S.coins | 0}</b></span>`;   // materials, bag slots used and coins
 function extrasOf(id) {   // spare copies of a common find: everything except your best one
-  const list = S.arts.filter(a => a.id === id).sort((p, q) => q.pct - p.pct); return list.slice(1);
+  const list = S.arts.filter(a => a.id === id).sort(byBest); return list.slice(1);
 }
-const scrapFor = a => 1 + (a.pct >= 60 ? 1 : 0);
+const byBest = (p, q) => ((q.tier | 0) || 1) - ((p.tier | 0) || 1) || q.pct - p.pct;   // your best copy: the highest tier, then the most intact
+const scrapFor = a => 1 + (a.pct >= 60 ? 1 : 0) + (((a.tier | 0) || 1) - 1);
 const costHTML = cost => Object.keys(cost).map(id => `<span class="cst ${(S.mats[id] | 0) >= cost[id] ? 'ok' : 'no'}">${chipIcon(id)}${S.mats[id] | 0}/${cost[id]}</span>`).join('');
 
 UI.openBook = function () {
@@ -434,7 +442,7 @@ UI.renderCamp = function (tab) {
   if (tab === 'process') {
     const rows = ARTIFACTS.filter(a => a.r === 0).map(a => {
       const ex = extrasOf(a.id), scrap = ex.reduce((s, x) => s + scrapFor(x), 0);
-      return `<div class="row"><img src="${itemURL(a.id)}" alt=""><div class="grow"><b>${esc(a.name)}</b><small>${ex.length ? ex.length + ' spare → ' + scrap + ' scrap' : found(a.id) ? 'No spares (your best copy is kept)' : 'Not found yet'}</small></div>`
+      return `<div class="row"><img src="${itemURL(a.id, (S.col[a.id] && S.col[a.id].tiers ? Math.max(...Object.keys(S.col[a.id].tiers).map(Number)) : 1))}" alt=""><div class="grow"><b>${esc(a.name)}</b><small>${ex.length ? ex.length + ' spare → ' + scrap + ' scrap' : found(a.id) ? 'No spares (your best copy is kept)' : 'Not found yet'}</small></div>`
         + `<button class="btn small ${ex.length && !S.furnace ? '' : 'dis'}" data-act="process:${a.id}">Smelt</button></div>`;
     }).join('');
     const fi = furnaceInfo(); body = `<p class="note">${S.furnace ? (fi.st === 'ready' ? 'A bar is waiting on the belt. Walk up and take it.' : 'The furnace is busy smelting.') : 'Spare commons melt down into a bar of scrap, which comes out on the belt beside the furnace. Your best copy of each artifact is always kept, and uncommon and rare finds are never melted.'}</p><div class="list">${rows}</div>`;
@@ -478,7 +486,7 @@ function barSpot(o) { return { x: o.x - 76 + 42.5, y: o.y - 64 + 50.5 }; }   // 
 function startSmelt(id) {   // melt the spare copies of one find into a bar of scrap
   if (S.furnace) { UI.toast(furnaceInfo().st === 'ready' ? 'Take the bar off the belt first' : 'The furnace is busy', 'info'); sfx('no'); return; }
   const ex = extrasOf(id); if (!ex.length) { sfx('no'); return; }
-  let scrap = 0; ex.forEach(x => { scrap += scrapFor(x); }); const keep = S.arts.filter(a => a.id === id).sort((p, q) => q.pct - p.pct)[0];
+  let scrap = 0; ex.forEach(x => { scrap += scrapFor(x); }); const keep = S.arts.filter(a => a.id === id).sort(byBest)[0];
   S.arts = S.arts.filter(a => a.id !== id); S.arts.push(keep); S.furnace = { n: scrap, t0: Date.now() };
   sfx('pop'); UI.close(); UI.toast(`Smelting ${ex.length} spare ${ITEM[id].name}${ex.length > 1 ? 's' : ''}…`, 'info'); UI.refresh();
 }

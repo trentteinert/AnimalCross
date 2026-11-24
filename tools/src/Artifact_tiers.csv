@@ -1,0 +1,139 @@
+family,source,source_layer,artifact,tier,variant,material,cell_x,cell_y,cell_width,cell_height,sprite_x,sprite_y,sprite_width,sprite_height
+1,1x1,3,Ceremonial dagger,1,Bronze,bronze,0,0,64,72,29,30,6,12
+1,1x1,3,Ceremonial dagger,2,Iron,iron,0,0,64,72,29,30,6,12
+1,1x1,3,Ceremonial dagger,3,Ceremonial,gold,0,0,64,72,29,30,6,12
+2,1x1,4,ceremonial cutlass,1,Bronze,bronze,192,0,64,72,221,26,6,19
+2,1x1,4,ceremonial cutlass,2,Iron,iron,192,0,64,72,221,26,6,19
+2,1x1,4,ceremonial cutlass,3,Ceremonial,gold,192,0,64,72,221,26,6,19
+3,1x1,5,Mysterious hat,1,Plain,cloth,0,72,64,72,27,98,10,19
+3,1x1,5,Mysterious hat,2,Embroidered,ceremony,0,72,64,72,27,98,10,19
+3,1x1,5,Mysterious hat,3,Gilded,gold,0,72,64,72,27,98,10,19
+4,1x1,6,Decorative Wooden comb,1,Wood,wood,192,72,64,72,220,99,8,18
+4,1x1,6,Decorative Wooden comb,2,Silver,silver,192,72,64,72,220,99,8,18
+4,1x1,6,Decorative Wooden comb,3,Gold,gold,192,72,64,72,220,99,8,18
+5,1x1,7,Fancy Broach,1,Bronze,bronze,0,144,64,72,28,173,8,14
+5,1x1,7,Fancy Broach,2,Silver,silver,0,144,64,72,28,173,8,14
+5,1x1,7,Fancy Broach,3,Gold,gold,0,144,64,72,28,173,8,14
+6,1x1,8,Sun mask,1,Plain,wood,192,144,64,72,218,171,12,17
+6,1x1,8,Sun mask,2,Decorated,silver,192,144,64,72,218,171,12,17
+6,1x1,8,Sun mask,3,Gilded,gold,192,144,64,72,218,171,12,17
+7,1x1,9,Ancient decorative bowl,1,Plain Clay,clay,0,216,64,72,27,248,10,8
+7,1x1,9,Ancient decorative bowl,2,Decorated,painted,0,216,64,72,27,248,10,8
+7,1x1,9,Ancient decorative bowl,3,Gilded,gold,0,216,64,72,27,248,10,8
+8,1x1,10,Ancient bowl,1,Plain Clay,clay,192,216,64,72,219,248,10,8
+8,1x1,10,Ancient bowl,2,Decorated,painted,192,216,64,72,219,248,10,8
+8,1x1,10,Ancient bowl,3,Gilded,gold,192,216,64,72,219,248,10,8
+9,1x1,11,Ancient coin,1,Copper,copper,0,288,64,72,27,318,10,11
+9,1x1,11,Ancient coin,2,Silver,silver,0,288,64,72,27,318,10,11
+9,1x1,11,Ancient coin,3,Gold,gold,0,288,64,72,27,318,10,11
+10,1x1,12,Clay token,1,Plain Clay,clay,192,288,64,72,219,318,10,11
+10,1x1,12,Clay token,2,Painted Clay,painted,192,288,64,72,219,318,10,11
+10,1x1,12,Clay token,3,Gold-Inlaid,gold,192,288,64,72,219,318,10,11
+11,1x1,13,Signet ring,1,Bronze,bronze,0,360,64,72,28,391,8,10
+11,1x1,13,Signet ring,2,Silver,silver,0,360,64,72,28,391,8,10
+11,1x1,13,Signet ring,3,Gold,gold,0,360,64,72,28,391,8,10
+12,1x1,14,Ancient decorative vase,1,Plain Clay,clay,192,360,64,72,219,389,10,13
+12,1x1,14,Ancient decorative vase,2,Decorated,painted,192,360,64,72,219,389,10,13
+12,1x1,14,Ancient decorative vase,3,Gilded,gold,192,360,64,72,219,389,10,13
+13,1x1,15,Ancient urn,1,Plain Clay,clay,0,432,64,72,27,461,10,13
+13,1x1,15,Ancient urn,2,Decorated,painted,0,432,64,72,27,461,10,13
+13,1x1,15,Ancient urn,3,Gilded,gold,0,432,64,72,27,461,10,13
+14,1x1,17,Bust,1,Plain Stone,stone,192,432,64,72,218,458,12,20
+14,1x1,17,Bust,2,Decorated,carved,192,432,64,72,218,458,12,20
+14,1x1,17,Bust,3,Gold-Accented,gold,192,432,64,72,218,458,12,20
+15,1x1,18,Bust 2,1,Plain Stone,stone,0,504,64,72,25,528,14,23
+15,1x1,18,Bust 2,2,Decorated,carved,0,504,64,72,25,528,14,23
+15,1x1,18,Bust 2,3,Gold-Accented,gold,0,504,64,72,25,528,14,23
+16,1x2,5,cylindrical standing totem,1,Wood,wood,192,504,64,72,221,533,6,13
+16,1x2,5,cylindrical standing totem,2,Carved,carved,192,504,64,72,221,533,6,13
+16,1x2,5,cylindrical standing totem,3,Gold-Inlaid,gold,192,504,64,72,221,533,6,13
+17,1x2,6,Horned standing totem,1,Wood,wood,0,576,64,72,27,606,10,12
+17,1x2,6,Horned standing totem,2,Carved,carved,0,576,64,72,27,606,10,12
+17,1x2,6,Horned standing totem,3,Gold-Inlaid,gold,0,576,64,72,27,606,10,12
+18,1x2,8,Clay jug,1,Plain Clay,clay,192,576,64,72,218,604,11,16
+18,1x2,8,Clay jug,2,Decorated,painted,192,576,64,72,218,604,11,16
+18,1x2,8,Clay jug,3,Gilded,gold,192,576,64,72,218,604,11,16
+19,1x2,9,Painted clay jug,1,Plain Clay,clay,0,648,64,72,26,675,11,18
+19,1x2,9,Painted clay jug,2,Decorated,painted,0,648,64,72,26,675,11,18
+19,1x2,9,Painted clay jug,3,Gilded,gold,0,648,64,72,26,675,11,18
+20,1x2,10,Bone flute,1,Bone,bone,192,648,64,72,212,680,24,8
+20,1x2,10,Bone flute,2,Carved,carved,192,648,64,72,212,680,24,8
+20,1x2,10,Bone flute,3,Gold-Inlaid,gold,192,648,64,72,212,680,24,8
+21,1x2,12,Open candleholder,1,Bronze,bronze,0,720,64,72,27,750,10,11
+21,1x2,12,Open candleholder,2,Silver,silver,0,720,64,72,27,750,10,11
+21,1x2,12,Open candleholder,3,Gold,gold,0,720,64,72,27,750,10,11
+22,1x2,13,Caged candleholder,1,Bronze,bronze,192,720,64,72,220,750,8,12
+22,1x2,13,Caged candleholder,2,Silver,silver,192,720,64,72,220,750,8,12
+22,1x2,13,Caged candleholder,3,Gold,gold,192,720,64,72,220,750,8,12
+23,1x2,14,Serving plater,1,Plain Clay,clay,0,792,64,72,21,822,22,12
+23,1x2,14,Serving plater,2,Decorated,painted,0,792,64,72,21,822,22,12
+23,1x2,14,Serving plater,3,Gilded,gold,0,792,64,72,21,822,22,12
+24,1x2,15,Ancient sickle,1,Bronze,bronze,192,792,64,72,213,821,22,13
+24,1x2,15,Ancient sickle,2,Iron,iron,192,792,64,72,213,821,22,13
+24,1x2,15,Ancient sickle,3,Ceremonial,gold,192,792,64,72,213,821,22,13
+25,1x2,16,Ancient Tablet,1,Clay,clay,0,864,64,72,21,893,22,13
+25,1x2,16,Ancient Tablet,2,Inscribed,carved,0,864,64,72,21,893,22,13
+25,1x2,16,Ancient Tablet,3,Gilded,gold,0,864,64,72,21,893,22,13
+26,1x2,17,Ancient vessel A (source Layer 15-4),1,Plain,wood,192,864,64,72,215,890,18,19
+26,1x2,17,Ancient vessel A (source Layer 15-4),2,Decorated,silver,192,864,64,72,215,890,18,19
+26,1x2,17,Ancient vessel A (source Layer 15-4),3,Gilded,gold,192,864,64,72,215,890,18,19
+27,1x2,18,Ancient vessel B (source Layer 15-5),1,Plain,wood,0,936,64,72,22,962,19,19
+27,1x2,18,Ancient vessel B (source Layer 15-5),2,Decorated,silver,0,936,64,72,22,962,19,19
+27,1x2,18,Ancient vessel B (source Layer 15-5),3,Gilded,gold,0,936,64,72,22,962,19,19
+28,1x2,20,Merchant scale,1,Bronze,bronze,192,936,64,72,214,965,20,13
+28,1x2,20,Merchant scale,2,Silver,silver,192,936,64,72,214,965,20,13
+28,1x2,20,Merchant scale,3,Gold,gold,192,936,64,72,214,965,20,13
+29,2x2,5,Emerald ring ,1,Bronze,bronze,0,1008,64,72,29,1040,6,7
+29,2x2,5,Emerald ring ,2,Silver,silver,0,1008,64,72,29,1040,6,7
+29,2x2,5,Emerald ring ,3,Gold,gold,0,1008,64,72,29,1040,6,7
+30,2x2,6,Saphire ring,1,Bronze,bronze,192,1008,64,72,221,1040,6,7
+30,2x2,6,Saphire ring,2,Silver,silver,192,1008,64,72,221,1040,6,7
+30,2x2,6,Saphire ring,3,Gold,gold,192,1008,64,72,221,1040,6,7
+31,2x2,7,Ruby ring,1,Bronze,bronze,0,1080,64,72,29,1112,6,7
+31,2x2,7,Ruby ring,2,Silver,silver,0,1080,64,72,29,1112,6,7
+31,2x2,7,Ruby ring,3,Gold,gold,0,1080,64,72,29,1112,6,7
+32,2x2,8,Diamond ring,1,Bronze,bronze,192,1080,64,72,221,1112,6,7
+32,2x2,8,Diamond ring,2,Silver,silver,192,1080,64,72,221,1112,6,7
+32,2x2,8,Diamond ring,3,Gold,gold,192,1080,64,72,221,1112,6,7
+33,2x2,10,Ruby amulet,1,Plain,wood,0,1152,64,72,27,1184,10,8
+33,2x2,10,Ruby amulet,2,Decorated,silver,0,1152,64,72,27,1184,10,8
+33,2x2,10,Ruby amulet,3,Gilded,gold,0,1152,64,72,27,1184,10,8
+34,2x2,11,Diamond amulet,1,Plain,wood,192,1152,64,72,221,1183,5,10
+34,2x2,11,Diamond amulet,2,Decorated,silver,192,1152,64,72,221,1183,5,10
+34,2x2,11,Diamond amulet,3,Gilded,gold,192,1152,64,72,221,1183,5,10
+35,2x2,12,Saphire amulet,1,Plain,wood,0,1224,64,72,28,1256,8,7
+35,2x2,12,Saphire amulet,2,Decorated,silver,0,1224,64,72,28,1256,8,7
+35,2x2,12,Saphire amulet,3,Gilded,gold,0,1224,64,72,28,1256,8,7
+36,2x2,13,Emerald amulet,1,Plain,wood,192,1224,64,72,220,1256,7,8
+36,2x2,13,Emerald amulet,2,Decorated,silver,192,1224,64,72,220,1256,7,8
+36,2x2,13,Emerald amulet,3,Gilded,gold,192,1224,64,72,220,1256,7,8
+37,2x2,15,Large arrowhead 2,1,Flint,flint,0,1296,64,72,26,1328,11,7
+37,2x2,15,Large arrowhead 2,2,Iron,iron,0,1296,64,72,26,1328,11,7
+37,2x2,15,Large arrowhead 2,3,Gilded,gold,0,1296,64,72,26,1328,11,7
+38,2x2,16,Small arrowhead,1,Flint,flint,192,1296,64,72,218,1330,11,3
+38,2x2,16,Small arrowhead,2,Iron,iron,192,1296,64,72,218,1330,11,3
+38,2x2,16,Small arrowhead,3,Gilded,gold,192,1296,64,72,218,1330,11,3
+39,2x2,17,Meadium arrowhead,1,Flint,flint,0,1368,64,72,26,1401,11,5
+39,2x2,17,Meadium arrowhead,2,Iron,iron,0,1368,64,72,26,1401,11,5
+39,2x2,17,Meadium arrowhead,3,Gilded,gold,0,1368,64,72,26,1401,11,5
+40,2x2,18,Large arrow head,1,Plain,wood,192,1368,64,72,221,1395,5,17
+40,2x2,18,Large arrow head,2,Decorated,silver,192,1368,64,72,221,1395,5,17
+40,2x2,18,Large arrow head,3,Gilded,gold,192,1368,64,72,221,1395,5,17
+41,2x2,19,Decorative thrown,1,Plain Stone,stone,0,1440,64,72,23,1461,18,30
+41,2x2,19,Decorative thrown,2,Decorated,carved,0,1440,64,72,23,1461,18,30
+41,2x2,19,Decorative thrown,3,Gold-Accented,gold,0,1440,64,72,23,1461,18,30
+42,3x3,6,Completed Sculpture,1,Plain Stone,stone,192,1440,64,72,212,1446,23,60
+42,3x3,6,Completed Sculpture,2,Decorated,carved,192,1440,64,72,212,1446,23,60
+42,3x3,6,Completed Sculpture,3,Gold-Accented,gold,192,1440,64,72,212,1446,23,60
+43,3x3,15,Carved monument complete,1,Plain Stone,stone,0,1512,64,72,15,1523,33,49
+43,3x3,15,Carved monument complete,2,Decorated,carved,0,1512,64,72,15,1523,33,49
+43,3x3,15,Carved monument complete,3,Gold-Accented,gold,0,1512,64,72,15,1523,33,49
+44,3x3,31,Cerimonial vase,1,Plain Clay,clay,192,1512,64,72,216,1534,16,28
+44,3x3,31,Cerimonial vase,2,Decorated,painted,192,1512,64,72,216,1534,16,28
+44,3x3,31,Cerimonial vase,3,Gilded,gold,192,1512,64,72,216,1534,16,28
+45,3x3,32,Painted cerimonial vase,1,Plain Clay,clay,0,1584,64,72,24,1605,16,29
+45,3x3,32,Painted cerimonial vase,2,Decorated,painted,0,1584,64,72,24,1605,16,29
+45,3x3,32,Painted cerimonial vase,3,Gilded,gold,0,1584,64,72,24,1605,16,29
+46,3x3,19-28,Ritual Stone Circle,1,Plain Stone,stone,192,1584,64,72,205,1608,38,23
+46,3x3,19-28,Ritual Stone Circle,2,Decorated,carved,192,1584,64,72,205,1608,38,23
+46,3x3,19-28,Ritual Stone Circle,3,Gold-Accented,gold,192,1584,64,72,205,1608,38,23

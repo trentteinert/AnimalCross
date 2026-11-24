@@ -49,16 +49,22 @@ JR.fitCard = function () {   // after the log page is drawn: how tall the card's
 function jart(name, sx) { const p = jp(name); return jimg(name, sx - JR_ORG[p.side || 'l'], 0); }
 function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).side || 'l']; return [c[0] - o + sx, c[1], c[2], c[3]]; }
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
-function jitemIcon(id, big) {
-  const ar = big && ITEM[id] && ITEM[id].art && artPic(ITEM[id].art);   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
-  if (ar) {
-    const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1;
-    if (ar.height <= 34) return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`;
-    const sc = 34 / ar.height, w = Math.max(1, Math.round(ar.width * sc)), key = 'b' + ITEM[id].art;   // a tall find is shrunk to fit the card (crisp edges)
-    if (!iconCache[key]) { const c = mk(w, 34); c.g.imageSmoothingEnabled = true; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(ar, 0, 0, ar.width, ar.height, 0, 0, w, 34); const d = c.g.getImageData(0, 0, w, 34), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); iconCache[key] = c; }
-    return `<img class="ji" src="${dataURL(iconCache[key], key)}" alt="" style="width:${jc(w)};height:${jc(34)}">`;
+function jfit(src, key, maxH, maxW) {   // a picture as an <img>: doubled if it is small, shrunk (crisp edges) if it is bigger than the box
+  const k = src.height <= maxH / 2 && src.width <= maxW / 2 ? 2 : 1; let pic = src, w = src.width * k, h = src.height * k;
+  if (src.height > maxH || src.width > maxW) {
+    const sc = Math.min(maxH / src.height, maxW / src.width); w = Math.max(1, Math.round(src.width * sc)); h = Math.max(1, Math.round(src.height * sc)); const ck = 'f' + key + '/' + maxH;
+    if (!iconCache[ck]) { const c = mk(w, h); c.g.imageSmoothingEnabled = true; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, 0, 0, w, h); const d = c.g.getImageData(0, 0, w, h), P = d.data; for (let q = 3; q < P.length; q += 4) P[q] = P[q] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); iconCache[ck] = c; }
+    pic = iconCache[ck];
   }
-  const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
+  return `<img class="ji" src="${dataURL(pic, 'j' + key + '/' + maxH + '/' + k)}" alt="" style="width:${jc(w)};height:${jc(h)}">`;
+}
+function jitemIcon(id, big, tier) {   // big: the card (the find in its full art); 'mid': a tier tile; otherwise the small slot picture
+  const it = ITEM[id], tp = big && tierPic(id, tier), ar = tp || (big && it && it.art && artPic(it.art));
+  if (ar) return jfit(ar, tp ? id + '#' + tier : 'm' + it.art, tp || big === 'mid' ? (big === 'mid' ? 14 : 22) : 34, big === 'mid' ? 18 : 60);
+  const ic = itemIcon(id, tier), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id, tier)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`;
+}
+const bestTier = id => { const t = S.col[id] && S.col[id].tiers; return t ? Math.max(1, ...Object.keys(t).map(Number)) : 1; };   // the highest tier of a find you have
+const tierRec = (id, t) => { const c = S.col[id]; if (!c || !(c.n > 0)) return null; if (c.tiers) return c.tiers[t] || null; return t === 1 ? c : null; };
 const ALL_ART = ARTIFACTS.concat(EXHIBITS);   // the exhibit pieces are the special, rarer ones at the end of the artifacts: they all end up in the museum's exhibits, so they are not on a page of their own
 function jlist(tab) { return tab === 'salv' ? SALVAGE : ALL_ART; }
 const LOG_REVEAL = true;   // testing: the collection log shows every find in full (not as a silhouette), with its name and text. Set to false for the real thing
@@ -71,18 +77,23 @@ function pageLog(side, sx) {
     h += [['art', 'ARTIFACTS', 'clog_tab_a', 0], ['salv', 'SALVAGE', 'clog_tab_b', 0]].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]), ox = t[3]; return jimg(t[2], sx - JR_ORG.l + ox, 1, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l + ox, pc.y + 1, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
     { const tb = jp('clog_tab_b'), gd = jp('clog_grid'), x0 = sx + tb.x - JR_ORG.l + tb.w + 3, xr = sx + gd.x - JR_ORG[gd.side || 'l'] + gd.w, got = list.filter(i => found(i.id)).length; h += jbox(x0, tb.y + 1, xr - x0, tb.h, `<span class="jcount" title="Logged">${got}/${list.length}</span>`, 'jc'); }   // how many of this list you have logged
     const np = Math.ceil(list.length / (cs.length - 2)), per = np > 1 ? cs.length - 2 : cs.length, pg = Math.min(JR.pgl | 0, np - 1), off = pg * per;   // more finds than slots: the last two slots of a page are its arrows
-    cs.forEach((c, k) => { const it = k < per ? list[off + k] : null, r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) || LOG_REVEAL ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
+    cs.forEach((c, k) => { const it = k < per ? list[off + k] : null, r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) || LOG_REVEAL ? '' : 'jdim'}">${jitemIcon(it.id, false, LOG_REVEAL && !found(it.id) ? 1 : bestTier(it.id))}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
     if (np > 1) for (const [k, dir] of [[cs.length - 2, -1], [cs.length - 1, 1]]) { const r = jrect('clog_grid', k, sx), ok = pg + dir >= 0 && pg + dir < np; h += jbox(r[0], r[1], r[2], r[3], `<span>${dir < 0 ? '&lsaquo;' : '&rsaquo;'}</span><em class="jpgn">${dir > 0 ? pg + 1 + '/' + np : ''}</em>`, 'jslot jpgb' + (ok ? '' : ' off'), ok ? `data-act="jpg:${dir}"` : ''); }
     return h;
   }
   const it = jlist(JR.tab.log)[JR.sel] || jlist(JR.tab.log)[0], ok = it && found(it.id), show = ok || (it && LOG_REVEAL), c = it && S.col[it.id];
+  const tiered = it && hasTiers(it.id), selT = tiered ? (JR.tierFor === it.id && JR.tier ? JR.tier : bestTier(it.id)) : 0;   // the tier shown on the card (tap a tier below to look at another)
   const cardH = Math.max(46, JR.cardH | 0), boxY = 31 + cardH + 2, boxH = clamp(122 - boxY, 26, 43);   // the card grows to fit what is written on it (JR.fitCard measures), and the stats box below gives up the room
-  let h = jart('clog_right', sx) + jnine('clog_card', sx, 31, 71, cardH) + jnine('clog_box', sx, boxY, 46, boxH);
+  let h = jart('clog_right', sx) + jnine('clog_card', sx, 31, 71, cardH) + jnine('clog_box', sx, boxY, tiered ? 71 : 46, boxH);
   if (it) {
     const card = jp('clog_card'), box = jp('clog_box'), rar = it.r != null ? RAR[it.r] : null;
-    h += jbox(sx + card.x - 134, card.y, card.w, cardH, `<div class="jcard"><span class="${show ? '' : 'jdim'}">${jitemIcon(it.id, true)}</span><b style="color:${show && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${show ? it.name : '???'}</b><i>${show ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${show ? it.desc : ''}</p></div>`, 'jfill');
+    h += jbox(sx + card.x - 134, card.y, card.w, cardH, `<div class="jcard"><span class="${show && (!tiered || tierRec(it.id, selT) || LOG_REVEAL) ? '' : 'jdim'}">${jitemIcon(it.id, true, selT)}</span><b style="color:${show && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${show ? it.name : '???'}</b><i>${show ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${show ? it.desc : ''}</p></div>`, 'jfill');
     const st = it.ex ? (ok ? `<span>FOUND <b>${c.n}</b></span><span class="jgot">YOU GOT THIS</span>` : '<span>NOT FOUND</span>') : it.r != null ? (ok ? `<span>FOUND <b>${c.n}</b></span><span>BEST <b>${c.best}%</b></span><div class="jbar"><i style="width:${c.best}%"></i></div>` : '<span>BEST <b>-</b></span>') : `<span>HAVE <b>${S.mats[it.id] | 0}</b></span>`;
-    h += jbox(sx + box.x - 134, boxY, box.w, boxH, `<div class="jstat">${st}</div>`, 'jfill');
+    if (tiered) {   // the three tiers of this find: a tile each (silhouette until found), and what you have of the one you are looking at
+      const rec = tierRec(it.id, selT), tiles = [1, 2, 3].map(t => `<div class="jtile${t === selT ? ' on' : ''}" data-act="jtier:${t}"><span class="${tierRec(it.id, t) || LOG_REVEAL ? '' : 'jdim'}">${jitemIcon(it.id, 'mid', t)}</span><i>${['I', 'II', 'III'][t - 1]}</i></div>`).join('');
+      const nm = tierName(it.id, selT), line = rec ? `<span>FOUND <b>${rec.n}</b></span><span>BEST <b>${rec.best}%</b></span>` : `<span>${found(it.id) || !show ? 'NOT FOUND' : 'NOT FOUND'}</span>`;
+      h += jbox(sx + box.x - 134, boxY, 71, boxH, `<div class="jtiers"><div class="jtrow">${tiles}</div><div class="jtname">${rec || LOG_REVEAL ? nm.toUpperCase() : '???'}</div><div class="jtstat">${line}</div>${rec ? `<div class="jbar"><i style="width:${rec.best}%"></i></div>` : ''}</div>`, 'jfill');
+    } else h += jbox(sx + box.x - 134, boxY, box.w, boxH, `<div class="jstat">${st}</div>`, 'jfill');
   }
   return h;
 }
@@ -91,8 +102,8 @@ function pageBag(side, sx) {
     let h = ['bag_portrait', 'bag_clouds', 'bag_slots', 'bag_equip', 'bag_inv'].map(n => jart(n, sx)).join('') + jhero(sx, false);
     h += jeditIcon(sx, false);
     const items = [], mats = SALVAGE.filter(s => (S.mats[s.id] | 0) > 0).map(s => ({ id: s.id, n: S.mats[s.id], name: s.name }));
-    items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, name: ITEM[a.id].name }))); const cap = bagCap();
-    jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot' + (k >= cap ? ' jlk' : ''), k >= cap ? 'title="Locked: buy a bigger pack from the merchant"' : it ? `title="${it.name}"` : ''); });
+    items.push(...mats, ...S.arts.slice().reverse().map(a => ({ id: a.id, pct: a.pct, tier: a.tier, name: (a.tier > 1 ? tierName(a.id, a.tier) + ' ' : '') + ITEM[a.id].name }))); const cap = bagCap();
+    jp('bag_inv').cells.forEach((c, k) => { const it = items[k], r = jrect('bag_inv', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `${jitemIcon(it.id, false, it.tier)}<em>${it.n ? it.n : it.pct + '%'}</em>` : '', 'jslot' + (k >= cap ? ' jlk' : ''), k >= cap ? 'title="Locked: buy a bigger pack from the merchant"' : it ? `title="${it.name}"` : ''); });
     return h;
   }
   let h = jart('com_right', sx) + jhead('STATS', sx);
@@ -262,8 +273,9 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
     case 'jpage': JR.page = p1; JR.side = 0; JR.sel = 0; JR.render(); sfx('ui'); return true;
     case 'jflip': JR.side = JR.side ? 0 : 1; JR.render(); sfx('ui'); return true;
     case 'jpg': { const L2 = jlist(JR.tab.log).length, C = jp('clog_grid').cells.length, n = Math.ceil(L2 / (L2 > C ? C - 2 : C)); JR.pgl = clamp((JR.pgl | 0) + +p1, 0, n - 1); JR.render(); sfx('ui'); return true; }
+    case 'jtier': { const it = jlist(JR.tab.log)[JR.sel]; if (it) { JR.tierFor = it.id; JR.tier = +p1; JR.render(); sfx('ui'); } return true; }
     case 'jtab': JR.tab.log = p1; JR.sel = 0; JR.pgl = 0; JR.render(); sfx('ui'); return true;
-    case 'jsel': JR.sel = +p1; if (JR.mode === 'single') JR.side = 1; JR.render(); sfx('ui'); return true;
+    case 'jsel': JR.sel = +p1; JR.tierFor = null; if (JR.mode === 'single') JR.side = 1; JR.render(); sfx('ui'); return true;
     case 'jsnd': S.sound = !S.sound; if (S.sound) audioInit(); saveState(); JR.render(); return true;
     case 'jlight': S.light = !(S.light !== false); FEATURES.light = S.light; saveState(); JR.render(); return true;
     case 'jrim': S.rim = !(S.rim !== false); FEATURES.rim = S.rim; HERO.cache = {}; HERO.skins = {}; DIGC.c = {}; saveState(); if (UI.refreshPortrait) UI.refreshPortrait(); JR.render(); return true;

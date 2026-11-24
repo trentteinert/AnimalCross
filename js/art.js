@@ -42,15 +42,21 @@ function shadowSpr(w, h) {
 const iconCache = {};
 const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boot: [0, 1], fabric: [1, 1], scrap: [2, 1] };   // 8x8 painted icons in assets/props/items.png (column, row)
 const artPic = n => (SPR.mpiece && SPR.mpiece[n]) || (SPR.mitem && SPR.mitem[n]) || null;   // a find's picture: a single piece, or a whole display item
-function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders)
-  if (iconCache['i' + id]) return iconCache['i' + id];
+const hasTiers = id => !!(typeof SPR !== 'undefined' && SPR.mtier && SPR.mtier[id]);
+const TIER_DEF = ['Basic', 'Decorated', 'Gilded'];
+const tierName = (id, t) => (ASSET.mTiers && ASSET.mTiers[id] && ASSET.mTiers[id].names[t - 1]) || TIER_DEF[t - 1] || '';
+const tierPic = (id, t) => hasTiers(id) ? SPR.mtier[id][clamp(t | 0 || 1, 1, 3) - 1] : null;
+function itemIcon(id, tier) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders). A find that has tiers is drawn in its tier
+  const tk = hasTiers(id) ? clamp(tier | 0 || 1, 1, 3) : 0, ck = 'i' + id + (tk ? '#' + tk : '');
+  if (iconCache[ck]) return iconCache[ck];
+  const ar0 = tk ? tierPic(id, tk) : null;
   const ar = typeof ITEM !== 'undefined' && ITEM[id] && ITEM[id].art;
   if (ar) {   // finds are the museum's objects: the picture from the display case, made to fit an 11x11 slot (shrunk only if it is bigger)
-    const src = artPic(ar), c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
+    const src = ar0 || artPic(ar), c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
     const sc = Math.max(src.width, src.height) <= 5 ? 2 : Math.min(1, 10 / src.width, 10 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc));
     c.g.imageSmoothingEnabled = sc < 1; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, Math.floor((11 - w) / 2), Math.floor((11 - h) / 2), w, h);
     if (sc < 1) { const d = c.g.getImageData(0, 0, 11, 11), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); }   // crisp edges: no half see-through pixels
-    return iconCache['i' + id] = c;
+    return iconCache[ck] = c;
   }
   if (ITEM_CELLS[id] && ASSET.img.items) { const c = mk(8, 8); c.g.drawImage(ASSET.img.items, ITEM_CELLS[id][0] * 8, ITEM_CELLS[id][1] * 8, 8, 8, 0, 0, 8, 8); return iconCache['i' + id] = c; }
   if (/^mattock\d$/.test(id) && ASSET.img.icon_mattock) {   // the painted mattock, with its head recoloured for iron and steel
@@ -89,7 +95,7 @@ function actIcon(name) {   // buttons: dig, camp, collection book, you
   return iconCache['a' + name] = OL(c);
 }
 function dataURL(c, key) { return iconCache['u' + key] || (iconCache['u' + key] = c.toDataURL()); }
-const itemURL = id => dataURL(itemIcon(id), 'i' + id);
+const itemURL = (id, tier) => dataURL(itemIcon(id, tier), 'i' + id + (hasTiers(id) ? '#' + clamp(tier | 0 || 1, 1, 3) : ''));
 const actURL = n => dataURL(actIcon(n), 'a' + n);
 
 // the camp station: a tent, a table and a crate
@@ -152,6 +158,7 @@ function buildSprites() {
         for (let i = 0; i < w * h * 4; i += 4) { const a = gd.data[i + 3]; if (!a) continue; if (bd[i + 3] > 8) { oi.data[i] = gd.data[i]; oi.data[i + 1] = gd.data[i + 1]; oi.data[i + 2] = gd.data[i + 2]; oi.data[i + 3] = a; } else { gi.data[i] = F[0] * gd.data[i] / 255; gi.data[i + 1] = F[1] * gd.data[i + 1] / 255; gi.data[i + 2] = F[2] * gd.data[i + 2] / 255; gi.data[i + 3] = a; } }
         ob.g.putImageData(oi, 0, 0); og.g.putImageData(gi, 0, 0); c.overB = ob; c.overG = og;
       } } SPR.mprop[n] = c; } }   // things inside the museum: cases, stage, board, wall panels, windows
+  if (ASSET.img.museum_tiers && ASSET.mTiers) { SPR.mtier = {}; for (const n in ASSET.mTiers) SPR.mtier[n] = ASSET.mTiers[n].t.map(q => cut(ASSET.img.museum_tiers, { x: q[0], y: q[1], w: q[2], h: q[3] })); }   // every artifact in its three tiers (assets/museum/tiers.json)
   if (ASSET.img.museum_pieces && ASSET.mPieces) { SPR.mpiece = {}; for (const n in ASSET.mPieces) { const d = ASSET.mPieces[n]; SPR.mpiece[n] = cut(ASSET.img.museum_pieces, { x: d.sx, y: d.sy, w: d.w, h: d.h }); } }   // every piece of a set on its own (the collection log)
   if (ASSET.img.museum_items && ASSET.mItems) { SPR.mitem = {}; for (const n in ASSET.mItems) { const d = ASSET.mItems[n], c = cut(ASSET.img.museum_items, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ix = d.ix; c.iy = d.iy; c.label = d.label; c.case = d.case;
     if (d.stages) c.stages = d.stages.map(q => cut(ASSET.img.museum_items, { x: q[0], y: q[1], w: d.w, h: d.h })); SPR.mitem[n] = c; } }   // what is on display in a case: drawn between its base and its glass, already placed (ix, iy) for that case

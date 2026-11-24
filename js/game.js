@@ -246,7 +246,7 @@ function drawChar(e, cx, cy, now) {
   if (anim) {
     const dd = digging ? A.dir : ME.hold.pose.dir, fi = digging ? digFrameE(A) : DIGE.reward[3];
     { const ds0 = digSprite(dd, fi), ds = wl ? wetOf(ds0, wl, wh) : ds0, qx = Math.round(e.x - anim.ax - cx), qy = Math.round(e.y - anim.ay - cy); g.drawImage(ds, qx, qy); e._last = [ds, qx, qy]; }
-    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
+    if (digging && A.ph === 'brush' && A.res) { const ob = digObjAt(dd, fi), ic = itemIcon(A.res.id, A.res.tier), ox = Math.round(e.x - anim.ax - cx), oy = Math.round(e.y - anim.ay - cy); if (ob) { g.drawImage(ic, Math.round(ox + ob.x - ic.width / 2), Math.round(oy + ob.y - ic.height / 2)); g.drawImage(digBlob(dd, fi, A.rv || 0), ox, oy); } }   // the find sits under the dirt blob, which is brushed away pixel by pixel
   } else { const qx = Math.round(e.x - spr.ax - cx), qy = Math.round(e.y - spr.ay - cy + bob); g.drawImage(spr, qx, qy); e._last = [spr, qx, qy]; }
   if (wy != null) {
     g.restore(); const im = e._last;

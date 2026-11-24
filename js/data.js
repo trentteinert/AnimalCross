@@ -106,7 +106,8 @@ const bagCap = () => BAG_BASE + BAGS.slice(0, S.bag | 0).reduce((a, b) => a + b.
 const bagUsed = () => S.arts.length + Object.keys(S.mats).filter(k => (S.mats[k] | 0) > 0).length;
 const bagFits = id => bagUsed() < bagCap() || (id in S.mats && (S.mats[id] | 0) > 0);   // room for one more of this: a new artifact or a new kind of salvage needs a free slot; more of a salvage you already carry does not
 const SELL_ART = [6, 20, 50];   // what the merchant pays for an artifact by rarity, scaled by how intact it is
-const sellArt = a => Math.max(1, Math.round(SELL_ART[ITEM[a.id].r] * (0.4 + 0.6 * a.pct / 100)));
+const TIER_MULT = [1, 1.7, 3];   // a decorated find sells for more, a gilded one for much more
+const sellArt = a => Math.max(1, Math.round(SELL_ART[ITEM[a.id].r] * TIER_MULT[clamp((a.tier | 0) || 1, 1, 3) - 1] * (0.4 + 0.6 * a.pct / 100)));
 const BUY_MAT = { nails: 5, fabric: 6, boot: 10, scrap: 8 }, SELL_MAT = { nails: 2, fabric: 3, boot: 5, scrap: 4 };   // general supplies: what one costs, and what the merchant pays for one
 const RECIPES = [    // unlocked by finding the artifact named in `unlock` (first find of it)
   { id: 'brush2', kind: 'brush', to: 1, name: 'Specialty Brush', d: 'Finds come up 14% more intact.', cost: { fabric: 3, scrap: 2 }, unlock: 'jug' },
