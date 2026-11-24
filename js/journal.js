@@ -174,7 +174,7 @@ function pageCom(side, sx) {
   let h = ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT EXHIBIT', sx);
   EXHIBIT_SETS.forEach(([set, label], k) => {   // the four permanent exhibits of the east wing: a picture of each (missing pieces faint) and its name and count on the plaque below
     const bx = sx + 3 + (k % 2) * 37, by = 40 + (k >> 1) * 41, pieces = EXHIBITS.filter(e => e.set === set), have = pieces.filter(e => found(e.id)).length, pic = exhibitPic(set);
-    if (pic) h += jbox(bx + 1, by + 1, 32, 27, `<span class="jexp">${jfit(pic, 'ex' + set + pieces.map(e => found(e.id) ? 1 : 0).join(''), 27, 32)}</span>`, 'jc');
+    if (pic) h += jbox(bx + 1, by + 1, 32, 27, `<span class="jexp">${jfit(pic, 'ex' + set + pieces.map(e => exFound(e.id) ? 1 : 0).join(''), 27, 32)}</span>`, 'jc');
     h += jbox(bx + 4, by + 30, 27, 7, `<span class="jh jexl">${label} ${have}/${pieces.length}</span>`, 'jc');
   });
   return h;

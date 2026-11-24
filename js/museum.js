@@ -89,17 +89,28 @@ function museumObjs() {
   if (!MUSEUM_OBJS && !MUSEUM_OBJS_LOADING) { MUSEUM_OBJS_LOADING = true; fetch('maps/museum.json', { cache: 'no-store' }).then(r => r.json()).then(m => { MUSEUM_OBJS = m.objects; if (UI.cur === 'journal' && typeof JR !== 'undefined') JR.render(); }).catch(() => {}); }
   return MUSEUM_OBJS;
 }
+const EXHIBIT_REVEAL = true;   // testing: the journal's exhibit pictures show every piece as if found (the counts stay true). Set to false for the real game
+const exFound = id => EXHIBIT_REVEAL || found(id);
 function exhibitPic(set) {   // a canvas of the whole exhibit (null until the museum's map is loaded)
   const objs = museumObjs(); if (!objs || !SPR.mprop) return null;
+  if (set === 'Monument') {   // its pieces are stages of one carving (base, then middle, then the finished top): the finished monument's silhouette, with the furthest stage you have over it
+    const st = ['ex_monument_base', 'ex_monument_middle', 'ex_monument_top'], nm = ['monument_base', 'monument_middle', 'monument_top'];
+    if (!nm.every(n => SPR.mprop[n])) return null; let k = -1; st.forEach((id, i) => { if (exFound(id)) k = i; });
+    const key = 'Monument' + k; if (EXPIC[key]) return EXPIC[key];
+    const top = SPR.mprop.monument_top, c = mk(top.width, top.height);
+    if (k < 2) { c.g.drawImage(top, 0, 0); c.g.globalCompositeOperation = 'source-in'; c.g.fillStyle = '#9a7464'; c.g.fillRect(0, 0, c.width, c.height); c.g.globalCompositeOperation = 'source-over'; }
+    if (k >= 0) { const s = SPR.mprop[nm[k]]; c.g.drawImage(s, Math.round((c.width - s.width) / 2), c.height - s.height); }
+    return EXPIC[key] = c;
+  }
   const ps = objs.filter(o => o.show && ITEM[o.show] && ITEM[o.show].set === set && SPR.mprop[o.n]).sort((a, b) => (a.sy != null ? a.sy : a.y) - (b.sy != null ? b.sy : b.y));
   if (!ps.length) return null;
-  const key = set + ps.map(o => found(o.show) ? 1 : 0).join(''); if (EXPIC[key]) return EXPIC[key];
+  const key = set + ps.map(o => exFound(o.show) ? 1 : 0).join(''); if (EXPIC[key]) return EXPIC[key];
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const o of ps) { const s = SPR.mprop[o.n]; x0 = Math.min(x0, o.x - s.ax); y0 = Math.min(y0, o.y - s.ay); x1 = Math.max(x1, o.x - s.ax + s.width); y1 = Math.max(y1, o.y - s.ay + s.height); }
   const c = mk(x1 - x0, y1 - y0), t = mk(c.width, c.height);
-  for (const o of ps.filter(q => !found(q.show)).concat(ps.filter(q => found(q.show)))) {   // the silhouettes first: a piece you have is never hidden under one
+  for (const o of ps.filter(q => !exFound(q.show)).concat(ps.filter(q => exFound(q.show)))) {   // the silhouettes first: a piece you have is never hidden under one
     const s = SPR.mprop[o.n], dx = o.x - s.ax - x0, dy = o.y - s.ay - y0;
-    if (found(o.show)) { c.g.drawImage(s, dx, dy); continue; }
+    if (exFound(o.show)) { c.g.drawImage(s, dx, dy); continue; }
     t.g.clearRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over'; t.g.drawImage(s, dx, dy); t.g.globalCompositeOperation = 'source-in'; t.g.fillStyle = '#9a7464'; t.g.fillRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over';
     c.g.drawImage(t, 0, 0);
   }
