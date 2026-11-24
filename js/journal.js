@@ -171,7 +171,13 @@ function pageEdit(side, sx) {   // the character page: the left page holds the p
 }
 function pageCom(side, sx) {
   if (side === 'l') return ['com_left', 'com_bg', 'com_plaque', 'com_prog', 'dino0'].map(n => jart(n, sx)).join('') + jhead('SEASON EXHIBIT', sx) + jbox(sx + 46 - 35, 84, 55, 14, '<span class="jh jsm">COMING SOON</span>', 'jc', '');
-  return ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT EXHIBIT', sx);
+  let h = ['com_right', 'com_slots', 'com_plaques'].map(n => jart(n, sx)).join('') + jhead('PERMANENT EXHIBIT', sx);
+  EXHIBIT_SETS.forEach(([set, label], k) => {   // the four permanent exhibits of the east wing: a picture of each (missing pieces faint) and its name and count on the plaque below
+    const bx = sx + 3 + (k % 2) * 37, by = 40 + (k >> 1) * 41, pieces = EXHIBITS.filter(e => e.set === set), have = pieces.filter(e => found(e.id)).length, pic = exhibitPic(set);
+    if (pic) h += jbox(bx + 1, by + 1, 32, 27, `<span class="jexp">${jfit(pic, 'ex' + set + pieces.map(e => found(e.id) ? 1 : 0).join(''), 27, 32)}</span>`, 'jc');
+    h += jbox(bx + 4, by + 30, 27, 7, `<span class="jh jexl">${label} ${have}/${pieces.length}</span>`, 'jc');
+  });
+  return h;
 }
 const JR_TASKS = { day: [['DIG 5 SPOTS', 'digs', 5], ['DIG AT A SITE', 'sdigs', 3], ['FIND 2 ARTIFACTS', 'afound', 2], ['A FIND OVER 80%', 'great', 1], ['COLLECT 3 SALVAGE', 'salv', 3]],
   week: [['DIG 30 SPOTS', 'digs', 30], ['DIG AT SITES 15', 'sdigs', 15], ['FIND 10 ARTIFACTS', 'afound', 10], ['FIND 4 OVER 80%', 'great', 4], ['COLLECT 15 SALVAGE', 'salv', 15]] };

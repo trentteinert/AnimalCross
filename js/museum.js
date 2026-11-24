@@ -79,3 +79,35 @@ UI.onClick2 = function (a, p1, p2, p3) {
   if (a === 'talknext') { const t = UI.talk; if (t && t.i < t.lines.length - 1) { t.i++; UI.renderTalk(); } else { UI.talk = null; UI.close(); } return; }
   if (_onClick2) _onClick2(a, p1, p2, p3);
 };
+
+// ---- the permanent exhibits as pictures (the journal's community page): each built from its pieces where they stand in the museum, the pieces you
+// do not have yet as faint silhouettes
+const EXHIBIT_SETS = [['Statue', 'STATUE'], ['Monument', 'MONUMENT'], ['Ritual site', 'RITUAL SITE'], ['Vases', 'VASES']];
+let MUSEUM_OBJS = null, MUSEUM_OBJS_LOADING = false; const EXPIC = {};
+function museumObjs() {
+  if (W.theme === 'museum' && MAPDATA) return MAPDATA.objects;
+  if (!MUSEUM_OBJS && !MUSEUM_OBJS_LOADING) { MUSEUM_OBJS_LOADING = true; fetch('maps/museum.json', { cache: 'no-store' }).then(r => r.json()).then(m => { MUSEUM_OBJS = m.objects; if (UI.cur === 'journal' && typeof JR !== 'undefined') JR.render(); }).catch(() => {}); }
+  return MUSEUM_OBJS;
+}
+function exhibitPic(set) {   // a canvas of the whole exhibit (null until the museum's map is loaded)
+  const objs = museumObjs(); if (!objs || !SPR.mprop) return null;
+  const ps = objs.filter(o => o.show && ITEM[o.show] && ITEM[o.show].set === set && SPR.mprop[o.n]).sort((a, b) => (a.sy != null ? a.sy : a.y) - (b.sy != null ? b.sy : b.y));
+  if (!ps.length) return null;
+  const key = set + ps.map(o => found(o.show) ? 1 : 0).join(''); if (EXPIC[key]) return EXPIC[key];
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const o of ps) { const s = SPR.mprop[o.n]; x0 = Math.min(x0, o.x - s.ax); y0 = Math.min(y0, o.y - s.ay); x1 = Math.max(x1, o.x - s.ax + s.width); y1 = Math.max(y1, o.y - s.ay + s.height); }
+  const c = mk(x1 - x0, y1 - y0), t = mk(c.width, c.height);
+  for (const o of ps.filter(q => !found(q.show)).concat(ps.filter(q => found(q.show)))) {   // the silhouettes first: a piece you have is never hidden under one
+    const s = SPR.mprop[o.n], dx = o.x - s.ax - x0, dy = o.y - s.ay - y0;
+    if (found(o.show)) { c.g.drawImage(s, dx, dy); continue; }
+    t.g.clearRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over'; t.g.drawImage(s, dx, dy); t.g.globalCompositeOperation = 'source-in'; t.g.fillStyle = '#9a7464'; t.g.fillRect(0, 0, t.width, t.height); t.g.globalCompositeOperation = 'source-over';
+    c.g.drawImage(t, 0, 0);
+  }
+  return EXPIC[key] = set === 'Vases' ? squeezeCols(c, 3) : c;   // (the two vases stand far apart: pushed together so they are not tiny)
+}
+function squeezeCols(c, gap) {   // empty columns between things narrowed to `gap`
+  const d = c.g.getImageData(0, 0, c.width, c.height).data, used = [];
+  for (let x = 0; x < c.width; x++) { let u = false; for (let y = 0; y < c.height && !u; y++) if (d[(y * c.width + x) * 4 + 3]) u = true; used.push(u); }
+  const keep = []; let run = 0; for (let x = 0; x < c.width; x++) { if (used[x]) { run = 0; keep.push(x); } else if (++run <= gap && keep.length) keep.push(x); }
+  const o = mk(keep.length, c.height); keep.forEach((x, i) => o.g.drawImage(c, x, 0, 1, c.height, i, 0, 1, c.height)); return o;
+}
