@@ -240,7 +240,7 @@ function drawChar(e, cx, cy, now) {
   const bob = digging ? -Math.round(Math.max(0, Math.sin(A.t * 15))) : e === ME && ME.wave ? -(Math.floor(ME.wave.t * 8) % 2) : 0;
   const spr0 = heroSprite(faceIdx(e), digging || holding ? 0 : heroFrameOf(e), e === ME ? null : e.look), wl = e === ME && (ME.wetH || 0) >= 1 && ME.wet > 0.1 ? Math.max(1, Math.round(clamp(ME.wet, 0, 1) * 4)) : 0, wh = e === ME ? Math.max(1, Math.round(ME.wetH * clamp(ME.wet * 1.3, 0, 1))) : 0, spr = wl ? wetOf(spr0, wl, wh) : spr0;   // wet: darker and up to the knee, shrinking as you dry
   const wy = e === ME && ME.sub > 0.03 ? Math.round(e.y - cy - 9 * ME.sub) : null;   // the water line on your legs
-  if (!(wy != null && ME.sub > 0.5)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy) - (e === ME ? Math.round(ME.elev || 0) : 0));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
+  if (!(wy != null && ME.sub > 0.5) && !(e === ME && ME.behindWall)) G0.drawImage(shadowSpr(14, 5), Math.round(e.x - 7 - cx), Math.round(e.y - 3 - cy) - (e === ME ? Math.round(ME.elev || 0) : 0));   // soft shadows go straight on the ground layer, so the night tint darkens them like the ground (on the people layer they came out pale)
   const anim = e === ME ? (digging ? digAnim(A.dir) : holding && ME.hold.pose && digAnim(ME.hold.pose.dir)) : null;   // the hand-drawn dig animation (all four directions) replaces the placeholder
   if (wy != null) { g.save(); g.beginPath(); g.rect(-1000, -1000, 3000, 1000 + wy); g.clip(); }   // only what is above the water is drawn normally
   if (anim) {
@@ -257,17 +257,23 @@ function drawChar(e, cx, cy, now) {
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
+function wallClip(cx, cy) {   // rectangles (on screen) where the wall of an open doorway hides you: above the arch while you are on its stairs (down the curve of the frame), and the wall's top edge while you pass through it
+  if (!W.objs) return null;
+  for (const o of W.objs) if (o.k === 'archwall') {
+    const s = o.strip, dome = s.y + s.h, x = Math.round(s.x - cx);
+    if (ME.y > dome && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 11) { ME.behindWall = true; const r = [[x, -1e4, s.w, dome - cy + 1e4]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r; }
+    if (ME.y >= s.y && ME.y <= dome && Math.abs(ME.x - o.x) <= 14) return [[x, s.y - cy, s.w, s.h]];
+  }
+  return null;
+}
 function drawEnt(o, cx, cy, now) {
   switch (o.k) {
     case 'leaf': drawLeaf(o.l, cx, cy); return;
-    case 'archwall': {   // the wall above an open doorway: its top edge covers your legs as you pass through, and while you are on the stairs, everything of you above the top of the arch is behind the wall
-      const s = o.strip; g.drawImage(W.terrain, s.x, s.y, s.w, s.h, Math.round(s.x - cx), Math.round(s.y - cy), s.w, s.h);
-      if (stairsAt(ME.x, ME.y) && ME.y >= s.y) { ME.behindWall = true; const t = Math.max(0, s.y - 80); g.drawImage(W.terrain, s.x, t, s.w, s.y - t, Math.round(s.x - cx), Math.round(t - cy), s.w, s.y - t); if (s.cols) { const dy = s.y + s.h; for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) g.drawImage(W.terrain, s.x + c, dy, 1, s.cols[c], Math.round(s.x + c - cx), Math.round(dy - cy), 1, s.cols[c]); } }
-      return;
-    }   // a strip of the wall copied over the player (see computeStairs)
+    case 'archwall': return;   // (data only: see wallClip, which hides you behind the wall)
     case 'me': case 'npc': {
       const z = pitZ(o.x, o.y), zo = Math.round(z * PIT_U) - (o === ME ? Math.round(ME.elev || 0) : 0); g.save();
       if (z > 0.01) { const ry = rimY(o.x, o.y); if (ry != null) { g.beginPath(); g.rect(o.x - cx - 40, -1000, 80, ry - cy + 1000); g.clip(); } }   // in a pit, the rim in front hides your feet
+      if (o === ME) { const wc = wallClip(cx, cy); if (wc) { g.beginPath(); g.rect(-1e4, -1e4, 2e4, 2e4); for (const r of wc) g.rect(r[0], r[1], r[2], r[3]); g.clip('evenodd'); } }   // behind the wall: the part of you the wall hides is not drawn
       if (o === ME) g.translate(snapDev(o.x - Math.round(o.x)), snapDev(o.y - Math.round(o.y)));
       g.translate(0, zo); drawChar(o, cx, cy, now); g.restore(); break;
     }
