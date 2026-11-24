@@ -274,7 +274,13 @@ function wallOccluders() {   // the face of each wall between rooms, cut from th
     for (let i = 0; i < z.hole.length; i++) c.g.clearRect(z.door[0] + i - z.x0, z.hole[i] - z.top, 1, z.f1 - z.hole[i]);   // through the arch you see what is behind the wall
     for (const o of W.solids) if (o.box && o.y >= z.f1 && o.x + o.box[0] < z.x1 && o.x + o.box[0] + o.box[2] > z.x0 && o.y + o.box[1] < z.f1) { const t = z.f1 - o.y; o.box = [o.box[0], t, o.box[2], o.box[3] - (t - o.box[1])]; }
     W.solids = W.solids.filter(o => !o.box || o.box[3] > 0);   // furniture against the wall in the south room stops at the wall: it does not reach through it
-    for (let sx = 0; sx < w; sx += 32) { const sw = Math.min(32, w - sx), sl = mk(sw, h); sl.g.drawImage(c, sx, 0, sw, h, 0, 0, sw, h); sl.ax = 0; sl.ay = z.f0 - z.top; W.objs.push({ k: 'wallocc', x: z.x0 + sx, y: z.f0, spr: sl, nosel: true }); }   // (in strips, so the part on screen is always drawn)
+    const cuts = [0]; for (let sx = 32; sx < w; sx += 32) cuts.push(sx); if (z.deep) cuts.push(z.deep[0] - z.x0, z.deep[1] - z.x0); cuts.push(w);   // (in strips, so the part on screen is always drawn)
+    const xs = [...new Set(cuts.filter(v => v >= 0 && v <= w))].sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i++) {
+      const sx = xs[i], sw = xs[i + 1] - sx; if (sw <= 0) continue; const sl = mk(sw, h); sl.g.drawImage(c, sx, 0, sw, h, 0, 0, sw, h);
+      const deep = z.deep && z.x0 + sx >= z.deep[0] && z.x0 + sx + sw <= z.deep[1], y = deep ? z.deep[2] : z.f0;   // the arch over a staircase stays in front of you all the way down the stairs
+      sl.ax = 0; sl.ay = y - z.top; W.objs.push({ k: 'wallocc', x: z.x0 + sx, y, spr: sl, nosel: true });
+    }
   }
 }
 function passageWalls() {   // a doorway cut through a wall (two rooms side by side): the wall's top edge and its face down to the curve of the arch hide you as you walk through, like the stairs' wall

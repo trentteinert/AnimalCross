@@ -222,7 +222,7 @@ for i, nmx in ((25, 'arch_welcome'), (18, 'arch_east')):
         while hole[y - 1, x]: y -= 1
         return y
     tops = [_top(x) for x in range(oL, oR)]
-    WALLS.append({'x0': min(nx0 - 10, hx0 - 5), 'x1': max(nx1 + 10, hx1 + 5), 'top': b_, 'f0': f0, 'f1': f1, 'open': [nx0, nx1], 'door': [oL, oR], 'hole': tops})
+    WALLS.append({'x0': min(nx0 - 10, hx0 - 5), 'x1': max(nx1 + 10, hx1 + 5), 'top': b_, 'f0': f0, 'f1': f1, 'open': [nx0, nx1], 'door': [oL, oR], 'hole': tops, 'deep': [oL - 4, oR + 4, sb[3] + 2]})   # deep: the arch over the stairs is in front of you all the way down the stairs
     print('stairs wall', nmx, 'top', b_, d_, 'foot', f0, f1, 'corridor x', nx0, nx1, 'door x', oL, oR)
     put(nmx, (sb[0] + sb[2]) // 2, sb[3])
 place(CABINET, 'display_cabinet', 'Display cabinet', 0.5, blend=True)
@@ -391,6 +391,6 @@ sheet.save('assets/museum/decor.png'); json.dump(meta, open('assets/museum/decor
 mw, mh = cx1 - cx0, cy1 - cy0; chars = lambda row: ''.join(chr(48 + v) for v in row)
 tiles = [chars([grid[(cx0 + x, cy0 + y)] for x in range(mw)]) for y in range(mh)]; zero = ['0' * mw] * mh
 objs.append({'k': 'mexit', 'x': 544 - ox, 'y': 620 - oy, 'to': 'island'})
-json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'walls': [dict(q, x0=q['x0'] - ox, x1=q['x1'] - ox, top=q['top'] - oy, f0=q['f0'] - oy, f1=q['f1'] - oy, open=[q['open'][0] - ox, q['open'][1] - ox], door=[q['door'][0] - ox, q['door'][1] - ox], hole=[v - oy for v in q['hole']]) for q in WALLS], 'archwalls': [dict(q, x=q['x'] - ox, y=q['y'] - oy, cx=q['cx'] - ox, by=q['by'] - oy, bot=q['bot'] and [v - oy for v in q['bot']], pw=[q['pw'][0] - ox, q['pw'][1] - ox], bandb=q['bandb'] - oy) for q in ARCHWALLS], 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
+json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'walls': [dict(q, x0=q['x0'] - ox, x1=q['x1'] - ox, top=q['top'] - oy, f0=q['f0'] - oy, f1=q['f1'] - oy, open=[q['open'][0] - ox, q['open'][1] - ox], door=[q['door'][0] - ox, q['door'][1] - ox], hole=[v - oy for v in q['hole']], **({'deep': [q['deep'][0] - ox, q['deep'][1] - ox, q['deep'][2] - oy]} if q.get('deep') else {})) for q in WALLS], 'archwalls': [dict(q, x=q['x'] - ox, y=q['y'] - oy, cx=q['cx'] - ox, by=q['by'] - oy, bot=q['bot'] and [v - oy for v in q['bot']], pw=[q['pw'][0] - ox, q['pw'][1] - ox], bandb=q['bandb'] - oy) for q in ARCHWALLS], 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
 open('js/museumver.js', 'w').write("const MUSEUM_V = '%s';   // written by the museum export scripts: changes whenever the museum's pictures do\n" % time.strftime('%Y%m%d%H%M%S'))
 print('maps/museum.json', mw, 'x', mh, len(objs), 'objects;', len(DECOR), 'decor pictures')
