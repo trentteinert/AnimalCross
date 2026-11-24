@@ -142,8 +142,8 @@ function stepToward(e, tx, ty, sp, dt) {
 }
 const SHK = { a: 0, t: 0, d: 0.12 };
 function shake(a, d) { if (a >= SHK.a * SHK.t / SHK.d || SHK.t <= 0) { SHK.a = a; SHK.d = d || 0.12; SHK.t = SHK.d; } }   // a short screen thump: whole pixels, fading out
-function burst(x, y, col, n, sp, life, grav, sz) {
-  for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = rnd(0.3, 1) * sp; PT.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.4, g: grav == null ? 60 : grav, life: rnd(0.5, 1) * life, max: life, col, sz: sz || 1 }); }
+function burst(x, y, col, n, sp, life, grav, sz, behind) {   // behind: drawn on the ground, under everything (the dust of your footsteps)
+  for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = rnd(0.3, 1) * sp; PT.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.4, g: grav == null ? 60 : grav, life: rnd(0.5, 1) * life, max: life, col, sz: sz || 1, behind: !!behind }); }
 }
 function floater(x, y, txt, col) { FL.push({ x, y, txt, col: col || '#fff', t: 0 }); }
 function ripple(x, y, big) { RP.push({ x, y, t: 0, max: big ? 1.1 : 0.9, big }); }
@@ -184,7 +184,7 @@ function tick(dt) {
   else if (target) { const ti = targetInfo(target); UI.setAct(ti.icon, 0, false); UI.setHint(ti.hint); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
   if (SHK.t > 0) SHK.t -= dt;
-  if (ME.moving && !A) { ME.dt = (ME.dt || 0) - dt; if (ME.dt <= 0) { ME.dt = 0.17; const ty = typeAt(ME.x, ME.y); if (ty >= 2 && ty <= 5) burst(ME.x + rnd(-2, 2), ME.y - 1, ty === 2 ? '#ead9ae' : ty === 4 ? '#b58a64' : '#c9cfa4', 1, 12, 0.32, -14, 1); } }   // little dust puffs at your feet while you run on land
+  if (ME.moving && !A) { ME.dt = (ME.dt || 0) - dt; if (ME.dt <= 0) { ME.dt = 0.17; const ty = typeAt(ME.x, ME.y); if (ty >= 2 && ty <= 5) burst(ME.x + rnd(-2, 2), ME.y - 1, ty === 2 ? '#ead9ae' : ty === 4 ? '#b58a64' : '#c9cfa4', 1, 12, 0.32, -14, 1, true); } }   // little dust puffs at your feet while you run on land
   tickHoles(dt); tickTrees(dt);
   for (let i = PT.length - 1; i >= 0; i--) { const p = PT[i]; p.life -= dt; if (p.life <= 0) { PT.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   for (let i = FL.length - 1; i >= 0; i--) { FL[i].t += dt; if (FL[i].t > 1.3) FL.splice(i, 1); }
@@ -349,12 +349,13 @@ function render(now) {
   for (const o of W.objs) if (o.x > cx - 70 && o.x < cx + VW + 70 && o.y > cy - 10 && o.y < cy + VH + 90) L.push(o);
   for (const l of LEAVES) if (l.x > cx - 10 && l.x < cx + VW + 10 && l.y > cy - 10 && l.y < cy + VH + 10) L.push({ k: 'leaf', x: l.x, y: l.gy, l });   // leaves sort with everything else by where they will land, so they pass behind you or in front like anything on the ground
   L.push(ME); for (const n of NPCS) if (n.x > cx - 30 && n.x < cx + VW + 30 && n.y > cy - 10 && n.y < cy + VH + 60) L.push(n);
+  for (const p of PT) if (p.behind) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1;   // the dust of your footsteps lies on the ground: under you and everything else
   lightGround(cx, cy, now);   // night tint and the glow on the ground (light.js), then the things standing on it are drawn on their own layer
   entBegin();
   ME.behindWall = false; L.sort((a, b) => (a.sy == null ? a.y : a.sy) - (b.sy == null ? b.y : b.sy)); LORD = L; for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now); drawGhost(L, cx, cy);
   drawMarker(cx, cy, now);
   entEnd(cx, cy, now);   // tint that layer, add the light on props and people, lay it over the ground
-  { const tcn = FEATURES.light ? nightTint() : null; for (const p of PT) { g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = tcn ? tintHex(p.col, tcn) : p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1; }   // dust and leaves, drawn over the finished scene in the night's tint
+  { const tcn = FEATURES.light ? nightTint() : null; for (const p of PT) { if (p.behind) continue; g.globalAlpha = clamp(p.life / (p.max * 0.5), 0, 1); g.fillStyle = tcn ? tintHex(p.col, tcn) : p.col; g.fillRect(Math.round(p.x - cx), Math.round(p.y - cy), p.sz, p.sz); } g.globalAlpha = 1; }   // dust and leaves, drawn over the finished scene in the night's tint
   if (FEATURES.fx) {   // lighting and atmosphere (off for now, see FEATURES in data.js)
   // light
   const cave = W.theme === 'cave', h = hourNow(), tc = cave ? [84, 94, 138] : tintAt(h), rain = !cave && isRain();

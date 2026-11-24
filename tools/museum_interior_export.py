@@ -116,8 +116,13 @@ for r, d in PR.items():
             bb = NI[i].getbbox(); ft = layers[r][0].getbbox()[1] - 0   # floor top of that room (shifted)
             x0, y0, x1, y1 = bb[0] + DX, bb[1] + DY, bb[2] + DX, bb[3] + DY; ref = layers[r][0].getbbox()[0] + 48   # a plain wall column of the same room
             ARCHES[(r, k)] = (x0, y0, x1, y1)
+            fr_ = layers[r][1]; cxm = (x0 + x1) // 2; seen_ = False; ht = y0 + 3
+            for y in range(y0 - 3, ft):
+                al = fr_.getpixel((cxm, y))[3]
+                if al: seen_ = True
+                elif seen_: ht = y; break   # where the doorway's opening starts: only the wall from its frame's top down is replaced (the corridor floor and wall edge above are left as drawn, so they are not part of the doorway picture)
             for x in range(x0 - 3, x1 + 3):
-                for y in range(y0 - 3, ft): canvas.putpixel((x, y), canvas.getpixel((ref, y)))
+                for y in range(max(y0 - 3, ht - 3), ft): canvas.putpixel((x, y), canvas.getpixel((ref, y)))
 def arch_prop(i, x0, y0, x1, y1):   # the doorway as drawn (dark hole in the wall plus the translucent stairs layer on top), as a picture you can place anywhere
     comp = orig; box = (x0 - 3, y0 - 3, x1 + 3, y1 + 3); a = comp.crop(box); f = canvas.crop(box); out = Image.new('RGBA', a.size)
     pa, pf, po = a.load(), f.load(), out.load()

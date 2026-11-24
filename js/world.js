@@ -48,7 +48,7 @@ function waterDepth(x, y) {   // 0 on land, rising smoothly through the shallows
 }
 function elevAt(x, y) {   // how many pixels above the ground you stand: the museum's steps rise to its porch (12 pixels, climbing steadily over the steps). You stand at a ground position and are DRAWN that many pixels higher, so the walls' collision and the floor's drawing are lined up through museumRow() / its inverse
   if (!W.objs) return 0;
-  const st = stairsAt(x, y); if (st) return Math.round(7 * clamp((st.yb - y) / (st.yb - st.y0), 0, 1));   // up the stairs: you rise as you climb
+  const st = stairsAt(x, y); if (st) return Math.round(6 * Math.sin(Math.PI * clamp((st.yb - y) / (st.yb - st.y0), 0, 1)));   // up the stairs: you rise as you climb
   for (const o of W.objs) if (o.k === 'museum' && o.spr.gmask) {
     const lx = Math.floor(x - (o.x - 107)), yg = y - (o.y - 167); if (lx < 0 || lx >= 215 || yg < 129 || yg >= 167) return 0;
     const e = yg >= 150 ? (167 - yg) * 12 / 17 : 12, r = Math.round(yg - e); if (r < 0 || r >= 167 || !o.spr.gmask[r * 215 + lx]) return 0;   // only where there is porch or steps under where you are drawn
@@ -386,11 +386,19 @@ function loadMap(map) {
 function initWorld(map) { loadMap(map); }
 
 // ---- collision --------------------------------------------------------------------------------------
+let MSOL = null;
+function museumSolidPix(x, y) {   // the museum's walls and frame are solid where they are painted: the dark frame inside a floor tile at the room's edge is not floor
+  if (!MSOL) { const A = ASSET.img.museum_tiles, c = mk(A.width, A.height); c.g.drawImage(A, 0, 0); MSOL = { d: c.g.getImageData(0, 0, A.width, A.height).data, w: A.width, cache: {} }; }
+  const tx = Math.floor(x / 16), ty = Math.floor(y / 16); if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) return true; const id = MGRID[ty * MW + tx];
+  const sx = (id & 15) * 16 + (Math.floor(x) & 15), sy = (id >> 4) * 16 + (Math.floor(y) & 15), i = (sy * MSOL.w + sx) * 4, d = MSOL.d;
+  return d[i + 3] < 10 || 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2] < 130;
+}
 function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk into the shallows (deep water still stops everyone); 'stone': a kicked stone ignores water and ledges (the caller deals with falling in)   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
   let zmin = 99, zmax = -1;
   for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
+  if (MGRID && wade !== 'stone') for (const o of [[-hw, 2], [hw, 2], [-hw, -hh], [hw, -hh]]) { const px = x + o[0], py = y + o[1]; if (!stairsAt(px, py) && museumSolidPix(px, py)) return true; }
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
     const bx = o.x + o.box[0], by = o.y + o.box[1]; if (x < bx - 16 || x > bx + o.box[2] + 16 || y < by - 16 || y > by + o.box[3] + 16) continue;   // only the solids near you (judged by their own edges, so a wide building is not skipped)
