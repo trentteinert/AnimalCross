@@ -227,6 +227,7 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jtab{align-items:center;justify-content:center;background:none;border:0;font-size:calc(var(--u)*3.2);font-weight:600;color:#60463e;cursor:pointer;letter-spacing:.02em;padding-bottom:calc(var(--u)*.5)}
 #jrstage .jtab:not(.on){color:#7a5c52}
 #jrstage .jpgb{font-size:calc(var(--u)*5);font-weight:600;color:#60463e;cursor:pointer}#jrstage .jpgb.off{opacity:.3;cursor:default}#jrstage .jpgb em.jpgn{position:absolute;right:calc(var(--u)*.5);bottom:0;font-size:calc(var(--u)*2.6);font-style:normal}#jrstage .jgot{color:#8a5a16;font-weight:600}
+#jrstage .jcount{font-size:calc(var(--u)*3.4);font-weight:600;color:#60463e;white-space:nowrap}
 #jrstage .jtabdim{filter:brightness(.9) saturate(1.05)}
 #jrstage .jfill{padding:0}
 #jrstage .jnine{box-sizing:border-box;border:calc(var(--u)*2) solid transparent;border-image-slice:2 fill;border-image-repeat:stretch;image-rendering:pixelated;pointer-events:none}
