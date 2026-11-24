@@ -249,7 +249,7 @@ function instantiate(s) {
   W.objs.push(o); if (o.box) W.solids.push(o);
   if (o.k === 'museum') for (const [part, sy] of [['ground', -400], ['back', -21], ['cols', -11]]) W.objs.push({ k: 'museum' + part, x: o.x, y: o.y, sy: o.y + sy, spr: o.spr[part] || o.spr, part, owner: o });   // the building is drawn in three pieces at their own depths: the ground, the wall and roof (in front of you when you are south of the wall), the columns
   if (o.k === 'furnace') W.solids.push({ k: 'furnace', x: o.x, y: o.y, box: [-39, -8, 20, 8] });   // the conveyor belt beside it is solid too
-  if (o.k === 'mprop' && (o.n === 'arch' || o.n === 'arch_narrow') && SPR.mprop[o.n + '_tip']) W.objs.push({ k: 'mprop', x: o.x, y: o.y, sy: o.y - 6, spr: SPR.mprop[o.n + '_tip'], n: o.n + '_tip', nosel: true });   // the top of the arch is drawn over you when you are in the doorway: you walk under it
+  if (o.k === 'mprop' && isArch(o.n) && SPR.mprop[o.n + '_tip']) W.objs.push({ k: 'mprop', x: o.x, y: o.y, sy: o.y - 6, spr: SPR.mprop[o.n + '_tip'], n: o.n + '_tip', nosel: true });   // the top of the arch is drawn over you when you are in the doorway: you walk under it
   if (o.k === 'mprop' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'mprop', x: o.x, y: o.y, box: b });   // cases, the stage and the board are solid where they are painted
   if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }
@@ -257,18 +257,22 @@ function rebuildObjects() {
   W.objs = []; W.solids = []; W.trees = []; W.bushes = []; W.lamps = []; W.fires = []; W.glows = []; W.patches = []; 
   MAPDATA.objects.forEach(instantiate);
 }
+const isArch = n => /^arch/.test(n) && !/_tip$/.test(n);
 function computeStairs() {   // a stairs arch with no rope across it can be walked up: you climb from the floor into the doorway and on into the corridor beyond
   W.stairs = []; if (!W.objs) return; const ropes = W.objs.filter(o => o.k === 'mprop' && o.n === 'stanchion');
-  for (const o of W.objs) if (o.k === 'mprop' && (o.n === 'arch' || o.n === 'arch_narrow') && !ropes.some(r => Math.abs(r.x - o.x) < 24 && Math.abs(r.y - o.y) < 16)) { let y0 = o.y - o.spr.height + 5; for (let k = 0; k < 40; k++) { if (typeAt(o.x, y0 - k) === 5) { y0 -= k; break; } } W.stairs.push({ x0: o.x - 11, x1: o.x + 11, y0, y1: o.y + 2, yb: o.y - 2 });
+  for (const o of W.objs) if (o.k === 'mprop' && isArch(o.n) && !ropes.some(r => Math.abs(r.x - o.x) < 24 && Math.abs(r.y - o.y) < 16)) { let y0 = o.y - o.spr.height + 5; for (let k = 0; k < 40; k++) { if (typeAt(o.x, y0 - k) === 5) { y0 -= k; break; } } W.stairs.push({ x0: o.x - 11, x1: o.x + 11, y0, y1: o.y + 2, yb: o.y - 2 });
     const tip = SPR.mprop[o.n + '_tip']; if (tip && tip.t0 == null) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; tip.t0 = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) { tip.t0 = Math.floor(i / 4 / tip.width); break; } }
     const dome = o.y - o.spr.height + (tip ? tip.t0 : 0); let yt = dome; const tc = W.terrain.g;   // the wall's top edge (the dark cap) between the corridor floor and the top of the doorway: it is drawn over you while you pass through
     for (let k = 1; k < 24; k++) { const px = tc.getImageData(o.x, dome - k, 1, 1).data; if (px[0] < 30 && px[1] < 30 && px[2] < 33) break; if (px[0] > 205 && px[1] > 200 && px[2] < 200 && px[0] !== 225) break; yt = dome - k; }   // up to the dark gap (or the corridor's floor)
     let cols = null; if (tip) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; cols = []; for (let c = 0; c < tip.width; c++) { let r = 0; for (let y = tip.t0; y < tip.height; y++) if (d[(y * tip.width + c) * 4 + 3]) { r = y - tip.t0; break; } cols.push(r); } }   // for each column, how far the curved top of the frame is below its highest point: the corners above the curve are wall too
     if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
+function passageWalls() {   // a doorway cut through a wall's dark top edge (two rooms side by side): the wall hides you from the top as you walk through, like the stairs' wall
+  if (MAPDATA && MAPDATA.passages) for (const q of MAPDATA.passages) W.objs.push({ k: 'archwall', x: (q[0] + q[2]) / 2, y: q[3] + 24, sy: q[3], nosel: true, strip: { x: q[0], y: q[1], w: q[2] - q[0], h: q[3] - q[1], cols: null } });
+}
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
-  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); computeStairs(); buildSiteRegions();
+  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); computeStairs(); passageWalls(); buildSiteRegions();
   let sx = 0, sy = 0, n = 0; for (let i = 0; i < GRID.length; i++) if (GRID[i] === 5) { sx += (i % MW) * TS + 8; sy += ((i / MW) | 0) * TS + 8; n++; }
   W.hub = n ? { x: sx / n, y: sy / n } : { x: W.spawn.x, y: W.spawn.y };
 }

@@ -19,7 +19,7 @@ S = {i: sh(im) for i, im in I.items()}
 nm = lambda i: L[i]['name']
 
 # ------------------------------------------------------------------------------------------------ which layers are which
-PROP = {6: 'rope', 7: 'noentry', 17: 'arch', 18: 'arch', 25: 'arch_narrow', 28: 'curator', 34: 'curator', 29: 'desk', 39: 'exit_sign'}   # layers of the rooms that are objects, not ground
+PROP = {6: 'rope', 7: 'noentry', 28: 'curator', 34: 'curator', 29: 'desk', 39: 'exit_sign'}   # layers of the rooms that are objects, not ground
 CABINET = [31, 32, 33]
 ROOMLAYERS = [i for i in range(3, 39) if L[i]['type'] == 0 and L[i]['vis'] and i in S and i not in PROP and i not in CABINET]
 WALKNAME = re.compile(r'^Layer (3|15|61|16|75|76)( |$)')   # floors and carpets (the frames and the wall are not walkable)
@@ -109,13 +109,38 @@ def place(layer_ids, name, label=None, solid=0, blend=False, **extra):   # layer
 for i, kind in PROP.items():
     if not L[i]['vis'] or i not in S or i == 17: continue   # (layer 17, the first arch of the east wing, is hidden behind the big window in the picture)
     b = S[i].getbbox()
-    if kind == 'arch': put('arch' if b[2] - b[0] >= 33 else 'arch_narrow', (b[0] + b[2]) // 2, b[3])
-    elif kind == 'arch_narrow': put('arch_narrow', (b[0] + b[2]) // 2, b[3])
-    elif kind == 'rope': put('stanchion', (b[0] + b[2]) // 2, b[3])
+    if kind == 'rope': put('stanchion', (b[0] + b[2]) // 2, b[3])
     elif kind == 'noentry': put('noentry', (b[0] + b[2]) // 2, b[3])
     elif kind == 'exit_sign': put('exit_sign', (b[0] + b[2]) // 2, b[3])
     elif kind == 'curator': place([i], 'curator', 'Curator', 0.7)
     elif kind == 'desk': place([i], 'welcome_desk', 'Welcome desk', 0.5)
+
+# the two stairs you can walk up (layer 25: welcome centre, layer 18: east wing): their steps and the carpet over them stay in the ground, exactly as drawn (the carpet is over the steps and the
+# wall frame over both). What is left of them is an invisible marker prop (where the doorway is, for the stairs' ramp and the wall that hides you) and the curved top of the frame, which is drawn over you.
+import numpy as np
+for i, nmx in ((25, 'arch_welcome'), (18, 'arch_east')):
+    sb = S[i].getbbox(); walls = [j for j in ROOMLAYERS if j > i and S[j].getpixel((sb[0] + 1, sb[1] + 1))[3] > 0]
+    cov = np.zeros((EH, EW), bool)
+    for j in walls: cov |= np.array(S[j].getchannel('A')) > 0
+    hole = np.zeros((EH, EW), bool); hole[sb[1]:sb[3], sb[0]:sb[2]] = ~cov[sb[1]:sb[3], sb[0]:sb[2]]
+    ys = np.where(hole.any(axis=1))[0]; ht = int(ys.min()); bx = (sb[0] - 2, ht - 3, sb[2] + 2, sb[3]); w_, h_ = bx[2] - bx[0], bx[3] - bx[1]
+    left = {}
+    for y in range(ht, sb[3]):
+        xs = np.where(hole[y])[0]
+        if len(xs): left[y] = int(xs.min())
+    ext = min(left.values()); cut = next(y for y in sorted(left) if left[y] == ext) + 5
+    near = np.zeros((EH, EW), bool)
+    for dy in range(-2, 3):
+        for dx in range(-2, 3): near |= np.roll(np.roll(hole, dy, 0), dx, 1)
+    ca = np.array(canvas.convert('RGB')).astype(float); lum = 0.3 * ca[:, :, 0] + 0.59 * ca[:, :, 1] + 0.11 * ca[:, :, 2]
+    ring = near & ~hole & cov & (lum < 190)
+    tip = Image.new('RGBA', (w_, h_)); tp = tip.load()
+    for y in range(bx[1], min(cut, bx[3])):
+        for x in range(bx[0], bx[2]):
+            if ring[y, x]: tp[x - bx[0], y - bx[1]] = tuple(canvas.getpixel((x, y)))
+    mk_ = Image.new('RGBA', (w_, h_)); mk_.putpixel((0, 0), (0, 0, 0, 1))   # (a nearly invisible dot: the sprite is never empty)
+    HASH_SKIP = True; DECOR[nmx] = mk_; SOLID[nmx] = 0; LABEL[nmx] = 'Stairs'; DECOR[nmx + '_tip'] = tip; SOLID[nmx + '_tip'] = 0; LABEL[nmx + '_tip'] = 'Stairs top'
+    put(nmx, (sb[0] + sb[2]) // 2, sb[3])
 place(CABINET, 'display_cabinet', 'Display cabinet', 0.5, blend=True)
 
 # windows (the glass is drawn in with its screen blend)
