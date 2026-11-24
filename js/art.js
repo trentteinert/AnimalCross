@@ -47,7 +47,7 @@ function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools 
   const ar = typeof ITEM !== 'undefined' && ITEM[id] && ITEM[id].art;
   if (ar) {   // finds are the museum's objects: the picture from the display case, made to fit an 11x11 slot (shrunk only if it is bigger)
     const src = artPic(ar), c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
-    const sc = Math.min(1, 10 / src.width, 10 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc));
+    const sc = Math.max(src.width, src.height) <= 5 ? 2 : Math.min(1, 10 / src.width, 10 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc));
     c.g.imageSmoothingEnabled = sc < 1; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, Math.floor((11 - w) / 2), Math.floor((11 - h) / 2), w, h);
     if (sc < 1) { const d = c.g.getImageData(0, 0, 11, 11), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); }   // crisp edges: no half see-through pixels
     return iconCache['i' + id] = c;

@@ -56,6 +56,22 @@ def stack(I, ids, W, H, L=None):   # layers over each other; with L, each layer'
         elif op < 1: t = I[i].copy(); t.putalpha(t.getchannel('A').point(lambda v: round(v * op))); o.alpha_composite(t)
         else: o.alpha_composite(I[i])
     return o
+def one_object(im):   # the first (top-left) of the separate shapes drawn in a layer
+    px = im.load(); seen = set(); best = None
+    for y in range(im.height):
+        for x in range(im.width):
+            if px[x, y][3] and (x, y) not in seen:
+                comp = [(x, y)]; seen.add((x, y)); st = [(x, y)]
+                while st:
+                    a, b = st.pop()
+                    for da in (-1, 0, 1):
+                        for db in (-1, 0, 1):
+                            q = (a + da, b + db)
+                            if 0 <= q[0] < im.width and 0 <= q[1] < im.height and px[q][3] and q not in seen: seen.add(q); st.append(q); comp.append(q)
+                if best is None or (min(c[0] for c in comp), min(c[1] for c in comp)) < (min(c[0] for c in best), min(c[1] for c in best)): best = comp
+    out = Image.new('RGBA', im.size)
+    for c in best: out.putpixel(c, px[c])
+    return out
 def key(im):   # a picture's pixels, cropped, as a lookup key
     b = im.getbbox(); return hashlib.md5(im.crop(b).tobytes()).hexdigest() + str(b[2] - b[0]) + 'x' + str(b[3] - b[1]) if b else None
 
@@ -204,7 +220,7 @@ for cn, fn in CASES.items():
                 for q, nm_ in enumerate(['Stone I', 'Stone 2', 'Stone 3', 'Stone 4', 'Stone 5', 'Stone 6', 'Stone 7', 'Stone 8', 'Stone 9']): put('ex_ritual_stone%d' % (q + 1), 'Ritual stone %d' % (q + 1), AI[lv[nm_]], 'ritual')
         elif AL[i]['type'] == 1 and n not in EXHIBITS:   # a set (jugs, rings, arrowheads...): every piece is its own collectible, for the collection log
             for j in leaves(AL, i):
-                if AI[j].getbbox(): PIECES[slug(AL[j]['name'])] = {'label': AL[j]['name'], 'set': slug(n), 'img': AI[j]}
+                if AI[j].getbbox(): PIECES[slug(AL[j]['name'])] = {'label': AL[j]['name'], 'set': slug(n), 'img': one_object(AI[j]) if slug(n) == 'arrow_heads' else AI[j]}   # (each arrowhead layer holds several copies of the same arrowhead: one of them is the find)
         if AL[i]['type'] == 1 and n in SPLIT: entries += [(AL[j]['name'], [j], None) for j in kids(AL, i)]
         elif AL[i]['type'] == 1 and n in EXHIBITS:
             mode, steps, under, done = EXHIBITS[n]; ids = {AL[j]['name']: j for j in leaves(AL, i)}
