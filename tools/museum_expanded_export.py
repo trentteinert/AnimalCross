@@ -59,7 +59,18 @@ _rgb = canvas.convert('RGB')
 def _ring(x, y):
     r, g_, b_ = _rgb.getpixel((x, y)); return 0.3 * r + 0.59 * g_ + 0.11 * b_ < 190 and abs(r - g_) < 40 and abs(g_ - b_) < 40 and r > 60
 ARCHWALLS = []
+def _dark(x, y):
+    r, g_, b_ = _rgb.getpixel((x, y)); return r < 80 and g_ < 90 and b_ < 95
+_stairs = [S[i].getbbox() for i in (25, 18)]
 for a_, b_, c_, d_ in PASS:
+    if any(abs((a_ + c_) / 2 - (q[0] + q[2]) / 2) < 40 and 0 < q[1] - d_ < 120 for q in _stairs):   # the top of a staircase: the stairs have their own wall
+        ARCHWALLS.append({'x': a_, 'y': b_, 'w': c_ - a_, 'h': d_ - b_, 'cx': (a_ + c_) // 2, 'by': d_ + 24, 'bot': None, 'pw': [a_, c_], 'bandb': d_}); continue
+    # the wall's dark top edge exactly (not a pixel more): the rows that are dark beside the doorway
+    ym = (b_ + d_) // 2; y0_ = y1_ = ym
+    if _dark(a_ - 8, ym):
+        while _dark(a_ - 8, y0_ - 1): y0_ -= 1
+        while _dark(a_ - 8, y1_ + 1): y1_ += 1
+        if y1_ + 1 - y0_ <= 12: b_, d_ = y0_, y1_ + 1
     cx_ = (a_ + c_) // 2; dome = None
     for y in range(d_, d_ + 40):
         if _ring(cx_ - 14, y): dome = y; break
