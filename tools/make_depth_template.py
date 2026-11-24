@@ -6,7 +6,7 @@ Run:  python3 tools/make_depth_template.py"""
 import struct, zlib
 from PIL import Image, ImageDraw, ImageFont
 
-W, H = 256, 144
+W, H = 176, 100
 STRATA = ['#8f6439', '#a77d4b', '#7d532e', '#9a7040']; FLOOR = {1: '#5f4329', 2: '#4e3622'}
 def hexc(h): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
 
@@ -15,11 +15,11 @@ SLOTS = []
 def row(group, name, xs, y, w, h): [SLOTS.append((group, '%s %d' % (name, i + 1) if len(xs) > 1 else name, x, y, w, h)) for i, x in enumerate(xs)]
 row('Floors', 'floor 1 down', [0, 16, 32, 48], 12, 16, 16)
 row('Floors', 'floor 2 down', [88, 104, 120, 136], 12, 16, 16)
-row('Walls', 'north wall 1 down', [0, 16, 32, 48], 44, 16, 8)
-row('Walls', 'north wall 2 down', [88, 104, 120, 136], 44, 16, 16)
-row('Walls', 'side wall left', [0], 80, 8, 16); row('Walls', 'side wall right', [16], 80, 8, 16)
-for i, (n, x) in enumerate([('ramp down-east', 0), ('ramp down-west', 24), ('ramp down-south', 48), ('ramp down-north', 72)]): row('Ramps', n, [x], 112, 16, 24)
-TITLES = [(0, 'FLOORS: 1 down x4 | 2 down x4'), (32, 'NORTH WALL FACE: 1 down 16x8 | 2 down 16x16 (top row = lit lip)'), (68, 'SIDE WALLS (edge-on): left | right'), (100, 'RAMPS / STAIRS 16x24, low end sits 8px lower: east | west | south | north')]
+row('Walls', 'north wall', [0, 16, 32, 48], 44, 16, 16)
+row('Walls', 'side wall left', [88], 44, 16, 16); row('Walls', 'side wall right', [104], 44, 16, 16)
+row('Ramps', 'stairs down-east', [0], 76, 16, 16); row('Ramps', 'stairs down-west', [16], 76, 16, 16)
+row('Ramps', 'stairs down-south', [32], 76, 16, 16); row('Ramps', 'stairs down-north', [48], 76, 16, 16)
+TITLES = [(0, 'FLOORS: 1 down x4 | 2 down x4'), (32, 'WALLS: north wall face x4 | side wall left, right'), (64, 'STAIRS: down-east | west | south | north')]
 
 def reference():
     im = Image.new('RGBA', (W, H)); d = ImageDraw.Draw(im)
@@ -29,17 +29,13 @@ def reference():
         elif n.startswith('north wall'):
             for yy in range(h): d.line([x, y + yy, x + w - 1, y + yy], fill=hexc(STRATA[(yy >> 1) & 3]))
             d.line([x, y, x + w - 1, y], fill=(255, 235, 200, 255))
-        elif n.startswith('side wall'): d.rectangle([x, y, x + w - 1, y + h - 1], fill=(40, 28, 18, 255))
-        elif n.startswith('ramp'):
+        elif n.startswith('side wall'): d.rectangle([x, y, x + w - 1, y + h - 1], fill=hexc(FLOOR[1])); d.rectangle([x + (0 if 'left' in n else w - 3), y, x + (2 if 'left' in n else w - 1), y + h - 1], fill=(40, 28, 18, 255))
+        elif n.startswith('stairs'):
             r = n.split('-')[1]
-            if r in ('east', 'west'):
-                for k in range(16):
-                    t = (k + .5) / 16 if r == 'east' else 1 - (k + .5) / 16; off = round(t * 8)
-                    d.rectangle([x + k, y + off, x + k, y + off + 15], fill=hexc('#8a6a40' if (k >> 2) & 1 else '#7a5a34'))
-            else:
-                for k in range(16):
-                    t = (k + .5) / 16 if r == 'south' else 1 - (k + .5) / 16; ys = y + k + round(t * 8)
-                    d.rectangle([x, ys, x + 15, ys + 1], fill=hexc('#8a6a40' if (k >> 2) & 1 else '#7a5a34'))
+            for k in range(16):
+                col = hexc('#8a6a40' if (k >> 2) & 1 else '#7a5a34')
+                if r in ('east', 'west'): d.rectangle([x + k, y, x + k, y + 15], fill=col)
+                else: d.rectangle([x, y + k, x + 15, y + k], fill=col)
     return im
 def guide():
     im = Image.new('RGBA', (W, H)); d = ImageDraw.Draw(im); f = ImageFont.load_default()
