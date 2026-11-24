@@ -43,6 +43,14 @@ const iconCache = {};
 const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boot: [0, 1], fabric: [1, 1], scrap: [2, 1] };   // 8x8 painted icons in assets/props/items.png (column, row)
 function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders)
   if (iconCache['i' + id]) return iconCache['i' + id];
+  const ar = typeof ITEM !== 'undefined' && ITEM[id] && ITEM[id].art;
+  if (ar) {   // finds are the museum's objects: the picture from the display case, made to fit an 11x11 slot (shrunk only if it is bigger)
+    const src = SPR.mitem && SPR.mitem[ar], c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
+    const sc = Math.min(1, 10 / src.width, 10 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc));
+    c.g.imageSmoothingEnabled = sc < 1; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, Math.floor((11 - w) / 2), Math.floor((11 - h) / 2), w, h);
+    if (sc < 1) { const d = c.g.getImageData(0, 0, 11, 11), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); }   // crisp edges: no half see-through pixels
+    return iconCache['i' + id] = c;
+  }
   if (ITEM_CELLS[id] && ASSET.img.items) { const c = mk(8, 8); c.g.drawImage(ASSET.img.items, ITEM_CELLS[id][0] * 8, ITEM_CELLS[id][1] * 8, 8, 8, 0, 0, 8, 8); return iconCache['i' + id] = c; }
   if (/^mattock\d$/.test(id) && ASSET.img.icon_mattock) {   // the painted mattock, with its head recoloured for iron and steel
     const k = mk(16, 16); k.g.drawImage(ASSET.img.icon_mattock, 0, 0); const t = +id.slice(7);

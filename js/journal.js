@@ -41,7 +41,11 @@ function jbox(x, y, w, h, html, cls = '', attrs = '') { return `<div class="jb $
 function jart(name, sx) { const p = jp(name); return jimg(name, sx - JR_ORG[p.side || 'l'], 0); }
 function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).side || 'l']; return [c[0] - o + sx, c[1], c[2], c[3]]; }
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
-function jitemIcon(id, big) { const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
+const ar0 = id => ITEM[id].art;
+function jitemIcon(id, big) {
+  const ar = big && ITEM[id] && ITEM[id].art && SPR.mitem && SPR.mitem[ar0(id)];   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
+  if (ar) { const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1; return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`; }
+  const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
 function jlist(tab) { return tab === 'salv' ? SALVAGE : ARTIFACTS; }
 const jstat = [['TOTAL DIGS', () => S.stats.digs | 0], ['SITE DIGS', () => S.stats.sdigs | 0], ['BAG', () => bagUsed() + '/' + bagCap()], ['COINS', () => S.coins | 0],
   ['COLLECTION', () => ARTIFACTS.filter(a => found(a.id)).length + '/' + ARTIFACTS.length], ['BEST FIND', () => (S.arts.reduce((m, a) => Math.max(m, a.pct), 0) || '-') + (S.arts.length ? '%' : '')], ['SALVAGE', () => Object.values(S.mats).reduce((a, b) => a + (b | 0), 0)]];

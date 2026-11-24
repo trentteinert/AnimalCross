@@ -17,10 +17,39 @@ function pickW(w) {
 
 // ---- the loop: what comes out of the ground, what it takes to dig, and what you can make ------------------------------------------
 const RAR = [{ n: 'Common', c: '#d7e0ea' }, { n: 'Uncommon', c: '#8fe09a' }, { n: 'Rare', c: '#78bfff' }];
-const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" (how well it survived the dig)
-  { id: 'jug', name: 'Clay Jug', r: 0, desc: 'Plain, sturdy, and probably leaked.' },
-  { id: 'bowl', name: 'Decorative Bowl', r: 1, desc: 'Somebody cared how their soup looked.' },
-  { id: 'coin', name: 'Stamped Coin', r: 2, desc: 'The stamp is a little crooked.' }];
+const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" (how well it survived the dig). `art` is the picture in the museum art (assets/museum/items.json): the same objects that stand in the display cases
+  { id: 'jug', art: 'jugs', name: 'Clay Jugs', r: 0, desc: 'Plain, sturdy, and probably leaked.' },
+  { id: 'ancient_bowl', art: 'ancient_bowl', name: 'Ancient Bowl', r: 0, desc: 'Deep enough for soup and a long story.' },
+  { id: 'ancient_urn', art: 'ancient_urn', name: 'Ancient Urn', r: 0, desc: 'Holds nothing now, but it holds on.' },
+  { id: 'ancient_decorative_vase', art: 'ancient_decorative_vase', name: 'Decorative Vase', r: 0, desc: 'Painted with somebody\'s favourite pattern.' },
+  { id: 'clay_token', art: 'clay_token', name: 'Clay Token', r: 0, desc: 'A tally of something. Beans, probably.' },
+  { id: 'bone_flute', art: 'bone_flute', name: 'Bone Flute', r: 0, desc: 'Still plays one note. A sad one.' },
+  { id: 'serving_plater', art: 'serving_plater', name: 'Serving Platter', r: 0, desc: 'Built for a feast nobody remembers.' },
+  { id: 'ancient_tablet', art: 'ancient_tablet', name: 'Stone Tablet', r: 0, desc: 'A shopping list, or a law. Hard to say.' },
+  { id: 'ancient_sickle', art: 'ancient_sickle', name: 'Ancient Sickle', r: 0, desc: 'Harvested a great many Tuesdays.' },
+  { id: 'decorative_wooden_comb', art: 'decorative_wooden_comb', name: 'Wooden Comb', r: 0, desc: 'Several teeth short of a comb.' },
+  { id: 'standing_totems', art: 'standing_totems', name: 'Standing Totems', r: 0, desc: 'They look unimpressed by you.' },
+  { id: 'candle_holders', art: 'candle_holders', name: 'Candle Holders', r: 0, desc: 'Rather good at holding candles.' },
+  { id: 'empty_stand', art: 'empty_stand', name: 'Empty Stands', r: 0, desc: 'Whatever stood on these has left.' },
+  { id: 'bowl', art: 'ancient_decorative_bowl', name: 'Decorative Bowl', r: 1, desc: 'Somebody cared how their soup looked.' },
+  { id: 'merchant_scale', art: 'merchant_scale', name: 'Merchant Scale', r: 1, desc: 'Honest, mostly.' },
+  { id: 'fancy_broach', art: 'fancy_broach', name: 'Fancy Brooch', r: 1, desc: 'Pinned to someone who mattered.' },
+  { id: 'signet_ring', art: 'signet_ring', name: 'Signet Ring', r: 1, desc: 'Sealed a great many letters.' },
+  { id: 'mysterious_hat', art: 'mysterious_hat', name: 'Mysterious Hat', r: 1, desc: 'Nobody knows why it is pointed.' },
+  { id: 'ceremonial_dagger', art: 'ceremonial_dagger', name: 'Ceremonial Dagger', r: 1, desc: 'For ceremonies, not for cake.' },
+  { id: 'ceremonial_cutlass', art: 'ceremonial_cutlass', name: 'Ceremonial Cutlass', r: 1, desc: 'Far too ornate to have seen a fight.' },
+  { id: 'arrow_heads', art: 'arrow_heads', name: 'Arrowheads', r: 1, desc: 'A matched set, in four sizes.' },
+  { id: 'layer_15_4', art: 'layer_15_4', name: 'Twin Staves', r: 1, desc: 'Two of them. Nobody knows what for.' },
+  { id: 'layer_15_5', art: 'layer_15_5', name: 'Staff and Idol', r: 1, desc: 'The idol is not impressed either.' },
+  { id: 'bust', art: 'bust', name: 'Marble Bust', r: 1, desc: 'Very serious about its nose.' },
+  { id: 'bust_2', art: 'bust_2', name: 'Noble Bust', r: 1, desc: 'Looks like it has opinions on taxes.' },
+  { id: 'cerimonial_vase', art: 'cerimonial_vase', name: 'Ceremonial Vases', r: 1, desc: 'Painted for an occasion, and one of them is still waiting.' },
+  { id: 'coin', art: 'ancient_coin', name: 'Stamped Coin', r: 2, desc: 'The stamp is a little crooked.' },
+  { id: 'sun_mask', art: 'sun_mask', name: 'Sun Mask', r: 2, desc: 'It smiles like it knows the weather.' },
+  { id: 'gem_rings', art: 'gem_rings', name: 'Gem Rings', r: 2, desc: 'Four rings, four gems, no fingers.' },
+  { id: 'amulets', art: 'amulets', name: 'Gem Amulets', r: 2, desc: 'Worn close to somebody\'s heart.' },
+  { id: 'decorative_thrown', art: 'decorative_thrown', name: 'Decorative Throne', r: 2, desc: 'Not comfortable. Definitely important.' }];
+const ART_BY_R = [0, 1, 2].map(r => ARTIFACTS.filter(a => a.r === r));   // a find first picks its rarity (by dig site tier and depth), then which one of that rarity
 const SALVAGE = [     // crafting materials: found while digging (scrap comes from processing extra commons at camp)
   { id: 'nails', name: 'Rusty Nails', desc: 'Iron, if you squint.' },
   { id: 'boot', name: 'Worn Boot', desc: 'Only the one. Of course.' },
