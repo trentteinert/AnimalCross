@@ -263,7 +263,8 @@ function computeStairs() {   // a stairs arch with no rope across it can be walk
     const tip = SPR.mprop[o.n + '_tip']; if (tip && tip.t0 == null) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; tip.t0 = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) { tip.t0 = Math.floor(i / 4 / tip.width); break; } }
     const dome = o.y - o.spr.height + (tip ? tip.t0 : 0); let yt = dome; const tc = W.terrain.g;   // the wall's top edge (the dark cap) between the corridor floor and the top of the doorway: it is drawn over you while you pass through
     for (let k = 1; k < 24; k++) { const px = tc.getImageData(o.x, dome - k, 1, 1).data; if (px[0] < 30 && px[1] < 30 && px[2] < 33) break; if (px[0] > 205 && px[1] > 200 && px[2] < 200 && px[0] !== 225) break; yt = dome - k; }   // up to the dark gap (or the corridor's floor)
-    if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
+    let cols = null; if (tip) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; cols = []; for (let c = 0; c < tip.width; c++) { let r = 0; for (let y = tip.t0; y < tip.height; y++) if (d[(y * tip.width + c) * 4 + 3]) { r = y - tip.t0; break; } cols.push(r); } }   // for each column, how far the curved top of the frame is below its highest point: the corners above the curve are wall too
+    if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {

@@ -262,7 +262,7 @@ function drawEnt(o, cx, cy, now) {
     case 'leaf': drawLeaf(o.l, cx, cy); return;
     case 'archwall': {   // the wall above an open doorway: its top edge covers your legs as you pass through, and while you are on the stairs, everything of you above the top of the arch is behind the wall
       const s = o.strip; g.drawImage(W.terrain, s.x, s.y, s.w, s.h, Math.round(s.x - cx), Math.round(s.y - cy), s.w, s.h);
-      if (stairsAt(ME.x, ME.y) && ME.y >= s.y) { ME.behindWall = true; const t = Math.max(0, s.y - 80); g.drawImage(W.terrain, s.x, t, s.w, s.y - t, Math.round(s.x - cx), Math.round(t - cy), s.w, s.y - t); }
+      if (stairsAt(ME.x, ME.y) && ME.y >= s.y) { ME.behindWall = true; const t = Math.max(0, s.y - 80); g.drawImage(W.terrain, s.x, t, s.w, s.y - t, Math.round(s.x - cx), Math.round(t - cy), s.w, s.y - t); if (s.cols) { const dy = s.y + s.h; for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) g.drawImage(W.terrain, s.x + c, dy, 1, s.cols[c], Math.round(s.x + c - cx), Math.round(dy - cy), 1, s.cols[c]); } }
       return;
     }   // a strip of the wall copied over the player (see computeStairs)
     case 'me': case 'npc': {
