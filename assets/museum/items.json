@@ -7,7 +7,14 @@
 "w": 6,
 "h": 12,
 "ix": 5,
-"iy": 13
+"iy": 13,
+"parts": [
+{
+"k": "ceremonial_dagger",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ceremonial_cutlass": {
 "label": "ceremonial cutlass",
@@ -17,7 +24,14 @@
 "w": 6,
 "h": 19,
 "ix": 5,
-"iy": 6
+"iy": 6,
+"parts": [
+{
+"k": "ceremonial_cutlass",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "mysterious_hat": {
 "label": "Mysterious hat",
@@ -27,7 +41,14 @@
 "w": 10,
 "h": 19,
 "ix": 3,
-"iy": 6
+"iy": 6,
+"parts": [
+{
+"k": "mysterious_hat",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "decorative_wooden_comb": {
 "label": "Decorative Wooden comb",
@@ -37,7 +58,14 @@
 "w": 8,
 "h": 18,
 "ix": 4,
-"iy": 8
+"iy": 8,
+"parts": [
+{
+"k": "decorative_wooden_comb",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "fancy_broach": {
 "label": "Fancy brooch",
@@ -47,7 +75,14 @@
 "w": 8,
 "h": 14,
 "ix": 4,
-"iy": 11
+"iy": 11,
+"parts": [
+{
+"k": "fancy_broach",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "sun_mask": {
 "label": "Sun mask",
@@ -57,7 +92,14 @@
 "w": 12,
 "h": 17,
 "ix": 2,
-"iy": 8
+"iy": 8,
+"parts": [
+{
+"k": "sun_mask",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_decorative_bowl": {
 "label": "Ancient decorative bowl",
@@ -67,7 +109,14 @@
 "w": 10,
 "h": 8,
 "ix": 3,
-"iy": 17
+"iy": 17,
+"parts": [
+{
+"k": "ancient_decorative_bowl",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_bowl": {
 "label": "Ancient bowl",
@@ -77,7 +126,14 @@
 "w": 10,
 "h": 8,
 "ix": 3,
-"iy": 17
+"iy": 17,
+"parts": [
+{
+"k": "ancient_bowl",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_coin": {
 "label": "Ancient coin",
@@ -87,7 +143,14 @@
 "w": 10,
 "h": 11,
 "ix": 3,
-"iy": 14
+"iy": 14,
+"parts": [
+{
+"k": "ancient_coin",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "clay_token": {
 "label": "Clay token",
@@ -97,7 +160,14 @@
 "w": 10,
 "h": 11,
 "ix": 3,
-"iy": 14
+"iy": 14,
+"parts": [
+{
+"k": "clay_token",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "signet_ring": {
 "label": "Signet ring",
@@ -107,7 +177,14 @@
 "w": 8,
 "h": 10,
 "ix": 4,
-"iy": 15
+"iy": 15,
+"parts": [
+{
+"k": "signet_ring",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_decorative_vase": {
 "label": "Ancient decorative vase",
@@ -117,7 +194,14 @@
 "w": 10,
 "h": 13,
 "ix": 3,
-"iy": 13
+"iy": 13,
+"parts": [
+{
+"k": "ancient_decorative_vase",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_urn": {
 "label": "Ancient urn",
@@ -127,7 +211,14 @@
 "w": 10,
 "h": 13,
 "ix": 3,
-"iy": 13
+"iy": 13,
+"parts": [
+{
+"k": "ancient_urn",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "bust": {
 "label": "Bust",
@@ -137,7 +228,14 @@
 "w": 12,
 "h": 20,
 "ix": 2,
-"iy": 8
+"iy": 8,
+"parts": [
+{
+"k": "bust",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "bust_2": {
 "label": "Bust (2)",
@@ -147,7 +245,14 @@
 "w": 14,
 "h": 23,
 "ix": 1,
-"iy": 3
+"iy": 3,
+"parts": [
+{
+"k": "bust_2",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "standing_totems": {
 "label": "Standing totems",
@@ -157,7 +262,19 @@
 "w": 20,
 "h": 13,
 "ix": 6,
-"iy": 11
+"iy": 11,
+"parts": [
+{
+"k": "cylindrical_standing_totem",
+"dx": 0,
+"dy": 0
+},
+{
+"k": "horned_standing_totem",
+"dx": 10,
+"dy": 1
+}
+]
 },
 "jugs": {
 "label": "Clay jugs",
@@ -167,7 +284,19 @@
 "w": 25,
 "h": 18,
 "ix": 3,
-"iy": 6
+"iy": 6,
+"parts": [
+{
+"k": "clay_jug",
+"dx": 0,
+"dy": 2
+},
+{
+"k": "painted_clay_jug",
+"dx": 14,
+"dy": 0
+}
+]
 },
 "bone_flute": {
 "label": "Bone flute",
@@ -177,7 +306,14 @@
 "w": 24,
 "h": 8,
 "ix": 4,
-"iy": 16
+"iy": 16,
+"parts": [
+{
+"k": "bone_flute",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "candle_holders": {
 "label": "Candle holders",
@@ -187,7 +323,19 @@
 "w": 23,
 "h": 12,
 "ix": 4,
-"iy": 12
+"iy": 12,
+"parts": [
+{
+"k": "open_candleholder",
+"dx": 13,
+"dy": 1
+},
+{
+"k": "caged_candleholder",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "serving_plater": {
 "label": "Serving platter",
@@ -197,7 +345,14 @@
 "w": 22,
 "h": 12,
 "ix": 5,
-"iy": 13
+"iy": 13,
+"parts": [
+{
+"k": "serving_plater",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_sickle": {
 "label": "Ancient sickle",
@@ -207,7 +362,14 @@
 "w": 22,
 "h": 13,
 "ix": 5,
-"iy": 11
+"iy": 11,
+"parts": [
+{
+"k": "ancient_sickle",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "ancient_tablet": {
 "label": "Ancient Tablet",
@@ -217,7 +379,14 @@
 "w": 22,
 "h": 13,
 "ix": 5,
-"iy": 11
+"iy": 11,
+"parts": [
+{
+"k": "ancient_tablet",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "layer_15_4": {
 "label": "Layer 15 (4)",
@@ -227,7 +396,19 @@
 "w": 18,
 "h": 19,
 "ix": 7,
-"iy": 5
+"iy": 5,
+"parts": [
+{
+"k": "cutlass_left",
+"dx": 0,
+"dy": 0
+},
+{
+"k": "cutlass_right",
+"dx": 12,
+"dy": 0
+}
+]
 },
 "layer_15_5": {
 "label": "Layer 15 (5)",
@@ -237,7 +418,19 @@
 "w": 19,
 "h": 19,
 "ix": 6,
-"iy": 5
+"iy": 5,
+"parts": [
+{
+"k": "longsword",
+"dx": 0,
+"dy": 0
+},
+{
+"k": "shield",
+"dx": 11,
+"dy": 4
+}
+]
 },
 "empty_stand": {
 "label": "Empty Stand",
@@ -247,7 +440,14 @@
 "w": 18,
 "h": 9,
 "ix": 7,
-"iy": 15
+"iy": 15,
+"parts": [
+{
+"k": "empty_stand",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "merchant_scale": {
 "label": "Merchant scale",
@@ -257,7 +457,14 @@
 "w": 20,
 "h": 13,
 "ix": 6,
-"iy": 12
+"iy": 12,
+"parts": [
+{
+"k": "merchant_scale",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "gem_rings": {
 "label": "Gem rings",
@@ -267,7 +474,29 @@
 "w": 16,
 "h": 16,
 "ix": 8,
-"iy": 19
+"iy": 19,
+"parts": [
+{
+"k": "emerald_ring",
+"dx": 10,
+"dy": 9
+},
+{
+"k": "saphire_ring",
+"dx": 0,
+"dy": 9
+},
+{
+"k": "ruby_ring",
+"dx": 10,
+"dy": 0
+},
+{
+"k": "diamond_ring",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "amulets": {
 "label": "Amulets",
@@ -277,7 +506,29 @@
 "w": 18,
 "h": 18,
 "ix": 7,
-"iy": 19
+"iy": 19,
+"parts": [
+{
+"k": "ruby_amulet",
+"dx": 8,
+"dy": 0
+},
+{
+"k": "diamond_amulet",
+"dx": 0,
+"dy": 0
+},
+{
+"k": "saphire_amulet",
+"dx": 0,
+"dy": 11
+},
+{
+"k": "emerald_amulet",
+"dx": 11,
+"dy": 10
+}
+]
 },
 "arrow_heads": {
 "label": "Arrowheads",
@@ -287,7 +538,29 @@
 "w": 18,
 "h": 17,
 "ix": 7,
-"iy": 19
+"iy": 19,
+"parts": [
+{
+"k": "large_arrowhead_2",
+"dx": 7,
+"dy": 10
+},
+{
+"k": "small_arrowhead",
+"dx": 7,
+"dy": 6
+},
+{
+"k": "meadium_arrowhead",
+"dx": 7,
+"dy": 0
+},
+{
+"k": "large_arrow_head",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "decorative_thrown": {
 "label": "Decorative throne",
@@ -297,7 +570,14 @@
 "w": 18,
 "h": 30,
 "ix": 7,
-"iy": 6
+"iy": 6,
+"parts": [
+{
+"k": "decorative_thrown",
+"dx": 0,
+"dy": 0
+}
+]
 },
 "standing_sculpture": {
 "label": "Standing sculpture",
@@ -415,6 +695,18 @@
 "w": 36,
 "h": 33,
 "ix": 6,
-"iy": 3
+"iy": 3,
+"parts": [
+{
+"k": "cerimonial_vase",
+"dx": 20,
+"dy": 0
+},
+{
+"k": "painted_cerimonial_vase",
+"dx": 0,
+"dy": 4
+}
+]
 }
 }

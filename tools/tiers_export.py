@@ -57,13 +57,33 @@ MAP = {'Ceremonial dagger': ['ceremonial_dagger'], 'ceremonial cutlass': ['cerem
 SKIP = {'Completed Sculpture', 'Carved monument complete', 'Cerimonial vase', 'Painted cerimonial vase', 'Ritual Stone Circle'}   # the permanent exhibits: one version only
 ONE = {'large_arrowhead_2', 'small_arrowhead', 'meadium_arrowhead', 'large_arrow_head'}   # several copies drawn in the layer: keep one
 
+# Some objects stand on a little pedestal: the log's icons leave the stand out. How many rows at the bottom are stand ('all'), or only the stand-coloured pixels of the bottom rows ('palette': the flute and the platter, whose stand is a few pixels)
+STAND = {'ceremonial_dagger': (3, 'all'), 'ceremonial_cutlass': (3, 'all'), 'mysterious_hat': (3, 'all'), 'decorative_wooden_comb': (3, 'all'), 'fancy_broach': (4, 'all'), 'sun_mask': (3, 'all'),
+         'bust': (3, 'all'), 'bust_2': (4, 'all'), 'cylindrical_standing_totem': (3, 'all'), 'horned_standing_totem': (3, 'all'), 'bone_flute': (5, 'palette'), 'open_candleholder': (2, 'all'),
+         'caged_candleholder': (2, 'all'), 'serving_plater': (2, 'palette'), 'cutlass_left': (3, 'all'), 'cutlass_right': (3, 'all'), 'longsword': (3, 'all'), 'shield': (4, 'all'),
+         'emerald_ring': (2, 'all'), 'saphire_ring': (2, 'all'), 'ruby_ring': (2, 'all'), 'diamond_ring': (2, 'all')}
+_pm = json.load(open('assets/museum/pieces.json')); _pi = Image.open('assets/museum/pieces.png').convert('RGBA'); _im = json.load(open('assets/museum/items.json')); _ii = Image.open('assets/museum/items.png').convert('RGBA')
+_art = {m.group(1): m.group(2) for m in re.finditer(r"\{ id: '(\w+)', art: '(\w+)'", open('js/data.js').read())}
+def base_art(gid):
+    k = _art[gid]
+    if k in _pm: d = _pm[k]; return _pi.crop((d['sx'], d['sy'], d['sx'] + d['w'], d['sy'] + d['h']))
+    d = _im[k]; return _ii.crop((d['sx'], d['sy'], d['sx'] + d['w'], d['sy'] + d['h']))
+def standish(p): return p[3] > 0 and p[1] >= p[0] + 4 and p[1] >= p[2] and max(p[:3]) - min(p[:3]) <= 45   # the stands' grey-green
+def strip_stand(gid, im):
+    if gid not in STAND: return im
+    n, mode = STAND[gid]; bb = im.getbbox(); out = im.copy(); px = out.load(); bs = base_art(gid) if mode == 'palette' else None
+    if bs is not None and bs.size != (bb[2] - bb[0], bb[3] - bb[1]): print('size differs from the base art, stand left in:', gid); return im
+    for y in range(bb[3] - n, bb[3]):
+        for x in range(bb[0], bb[2]):
+            if mode == 'all' or standish(bs.getpixel((x - bb[0], y - bb[1]))): px[x, y] = (0, 0, 0, 0)
+    return out
 W, H, L, I = read('tools/src/Artifact_tiers.aseprite')
 by = {}   # artifact name -> {tier: (variant, picture)}
 for i, nm in enumerate(L):
     m = re.match(r'^\S+ / (.+) / T(\d) (.+)$', nm)
     if m and i in I: by.setdefault(m.group(1).strip(), {})[int(m.group(2))] = (m.group(3), I[i])
 rows = list(csv.DictReader(open('tools/src/Artifact_tiers.csv'))); known = {r['artifact'].strip() for r in rows}
-out = {}
+out = {}; full = {}
 for art, tiers in by.items():
     if art in SKIP: continue
     ids = MAP.get(art)
@@ -76,18 +96,21 @@ for art, tiers in by.items():
         for k, gid in enumerate(ids): out[gid] = (names, [pp[k] for pp in parts])
     else:
         out[ids[0]] = (names, [one_object(p) if ids[0] in ONE else p for p in pics])
+    for gid in ids: full[gid] = [pp[ids.index(gid)] for pp in parts] if len(ids) == 2 else pics   # the whole layer as drawn (every copy of an arrowhead, the stand), for the museum's display cases
 missing = [g for v in MAP.values() for g in v if g not in out]; print('tiered finds:', len(out), 'missing:', missing)
 
 pics = []; keys = []
 for gid, (names, ps) in out.items():
-    for t, p in enumerate(ps): pics.append(p.crop(p.getbbox())); keys.append((gid, t))
+    for t, p in enumerate(ps): pics.append(strip_stand(gid, p)); keys.append((gid, t, 't'))
+    for t, p in enumerate(full[gid]): pics.append(p); keys.append((gid, t, 'f'))
+pics = [p.crop(p.getbbox()) for p in pics]
 x = y = sh = 0; pos = []
 for im in pics:
     if x + im.width > 256: x = 0; y += sh + 1; sh = 0
     pos.append((x, y)); x += im.width + 1; sh = max(sh, im.height)
 sheet = Image.new('RGBA', (256, y + sh)); meta = {}
-for (gid, t), im, (px, py) in zip(keys, pics, pos):
-    sheet.paste(im, (px, py)); meta.setdefault(gid, {'names': out[gid][0], 't': [None, None, None]})['t'][t] = [px, py, im.width, im.height]
+for (gid, t, kind), im, (px, py) in zip(keys, pics, pos):
+    sheet.paste(im, (px, py)); e = meta.setdefault(gid, {'names': out[gid][0], 't': [None, None, None], 'f': [None, None, None]}); e[kind][t] = [px, py, im.width, im.height]
 sheet.save('assets/museum/tiers.png'); json.dump(meta, open('assets/museum/tiers.json', 'w'), separators=(',', ':'))
 print('assets/museum/tiers.png', sheet.size, len(meta), 'finds x 3 tiers')
 import time; v = time.strftime('%Y%m%d%H%M%S'); open('js/museumver.js', 'w').write("const MUSEUM_V = '%s';   // written by tools/museum_interior_export.py and tools/tiers_export.py: changes whenever the museum's pictures do\n" % v)

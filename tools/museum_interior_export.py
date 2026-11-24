@@ -249,7 +249,18 @@ for cn, fn in CASES.items():
                 if dj is not None: dy = dj + (b[3] - AI[j].getbbox()[3]); break
         if dy is None: dy = mdy[cn].get('name:' + n.lower())
         if dy is not None: common[dy] = common.get(dy, 0) + 1
-        items[slug(n)] = {'name': n, 'case': cn, 'img': im, 'bb': b, 'dy': dy, 'stages': [stack(AI, s, w, h) for s in stg] if stg else None, 'bx0': bx0, 'btop': btop, 'bw': bw}
+        parts = []   # what the display is made of (the pieces of a set, each its own find), with where each sits in the picture: so a case can show each piece in the best tier you have
+        if stg is None and n not in EXHIBITS:
+            if n in SPLIT_SINGLE:
+                src_im = AI[ids[0]]; sb_ = src_im.getbbox(); cols_ = [any(src_im.getpixel((x, y))[3] for y in range(sb_[1], sb_[3])) for x in range(sb_[0], sb_[2])]
+                gaps_ = [x for x in range(1, len(cols_) - 1) if not cols_[x]]; cut_ = gaps_[len(gaps_) // 2] + sb_[0] if gaps_ else (sb_[0] + sb_[2]) // 2
+                for (k_, lab_), box_ in zip(SPLIT_SINGLE[n], ((sb_[0], sb_[1], cut_, sb_[3]), (cut_, sb_[1], sb_[2], sb_[3]))):
+                    q_ = src_im.crop(box_).getbbox(); parts.append((k_, box_[0] + q_[0] - b[0], box_[1] + q_[1] - b[1]))
+            elif len(ids) > 1:
+                for j in ids:
+                    if AI[j].getbbox(): pb_ = AI[j].getbbox(); parts.append((slug(AL[j]['name']), pb_[0] - b[0], pb_[1] - b[1]))
+            else: parts.append((slug(n), 0, 0))
+        items[slug(n)] = {'name': n, 'case': cn, 'img': im, 'bb': b, 'dy': dy, 'parts': parts, 'stages': [stack(AI, s, w, h) for s in stg] if stg else None, 'bx0': bx0, 'btop': btop, 'bw': bw}
     fall = max(common, key=common.get) if common else 8
     for k, it in items.items():
         if it['case'] == cn and it['dy'] is None: it['dy'] = fall; print('  no match in the museum file for', it['name'], '- used', fall)
@@ -297,6 +308,7 @@ for sid, it in items.items():
     b = it['crop']; iw, ih = b[2] - b[0], b[3] - b[1]; sheet.paste(pics[k], pos[k])
     ix = it['bx0'] + (it['bw'] - iw) // 2; iy = it['btop'] + it['dy'] - ih   # centred on the base; bottom at the height from the museum file
     o = {'label': LABEL.get(it['name'], it['name']), 'case': it['case'], 'sx': pos[k][0], 'sy': pos[k][1], 'w': iw, 'h': ih, 'ix': ix, 'iy': iy}; k += 1
+    if it['parts']: o['parts'] = [{'k': kk, 'dx': dx_, 'dy': dy_} for kk, dx_, dy_ in it['parts']]
     if it['stages']:
         o['stages'] = []
         for _ in it['stages']: sheet.paste(pics[k], pos[k]); o['stages'].append([pos[k][0], pos[k][1]]); k += 1

@@ -32,7 +32,6 @@ const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" 
   { id: 'horned_standing_totem', art: 'horned_standing_totem', name: 'Horned Totem', r: 0, desc: 'Hard to forgive those horns.' },
   { id: 'open_candleholder', art: 'open_candleholder', name: 'Open Candleholder', r: 0, desc: 'Open to suggestions, and candles.' },
   { id: 'caged_candleholder', art: 'caged_candleholder', name: 'Caged Candleholder', r: 0, desc: 'The candle was probably the dangerous one.' },
-  { id: 'empty_stand', art: 'empty_stand', name: 'Empty Stands', r: 0, desc: 'Whatever stood on these has left.' },
   { id: 'bowl', art: 'ancient_decorative_bowl', name: 'Decorative Bowl', r: 1, desc: 'Somebody cared how their soup looked.' },
   { id: 'painted_clay_jug', art: 'painted_clay_jug', name: 'Painted Clay Jug', r: 1, desc: 'Painted by hand, then used for water.' },
   { id: 'merchant_scale', art: 'merchant_scale', name: 'Merchant Scale', r: 1, desc: 'Honest, mostly.' },

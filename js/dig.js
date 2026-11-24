@@ -15,9 +15,9 @@ const pctCol = p => p >= 70 ? '#8fe09a' : p >= 40 ? '#ffd877' : '#ff9a8a';
 const DIG_FINDS = { artifact: 0.45, salvage: 0.40 }, WILD_FINDS = { artifact: 0.07, salvage: 0.33 };   // marked sites: nearly half the digs turn up an artifact. Open ground: rarely (the rest is dirt and pebbles)
 const ART_W = { 1: [60, 28, 12], 2: [42, 36, 22], 3: [28, 40, 32] }, ART_WILD = [86, 13, 1];   // common / uncommon / rare, by dig site tier (open ground is almost all commons)
 const SALV_IDS = ['nails', 'fabric', 'boot'], SALV_W = [45, 30, 25];
-const TIER_W = { 0: [93, 6, 1], 1: [78, 18, 4], 2: [58, 31, 11], 3: [40, 40, 20] };   // T1 / T2 / T3 by dig site tier (open ground is almost all basic); digging deeper shifts it up
+const TIER_W = { 0: [90, 9.5, 0.5], 1: [72, 25, 3], 2: [64, 31, 5], 3: [56, 37, 7] };   // T1 / T2 / T3 by dig site tier: each tier is rarer than the one before it (T1 fairly common, T2 less so, T3 very rare); open ground is nearly all T1; digging deeper nudges it up a little
 function rollTier(site, depth, wild) {
-  const w = (TIER_W[wild ? 0 : site] || TIER_W[1]).slice(); w[0] *= Math.max(0.3, 1 - 0.2 * depth); w[1] *= 1 + 0.4 * depth; w[2] *= 1 + 1.0 * depth; return pickW(w) + 1;
+  const w = (TIER_W[wild ? 0 : site] || TIER_W[1]).slice(); w[0] *= Math.max(0.5, 1 - 0.1 * depth); w[1] *= 1 + 0.3 * depth; w[2] *= 1 + 0.5 * depth; return pickW(w) + 1;
 }
 function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (units): deeper strata give rarer finds that are better preserved. wild: ordinary ground, not a marked site
   depth = depth || 0;
