@@ -17,8 +17,8 @@ function pickW(w) {
 
 // ---- the loop: what comes out of the ground, what it takes to dig, and what you can make ------------------------------------------
 const RAR = [{ n: 'Common', c: '#d7e0ea' }, { n: 'Uncommon', c: '#8fe09a' }, { n: 'Rare', c: '#78bfff' }];
-const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" (how well it survived the dig). `art` is the picture in the museum art (assets/museum/items.json): the same objects that stand in the display cases
-  { id: 'jug', art: 'jugs', name: 'Clay Jugs', r: 0, desc: 'Plain, sturdy, and probably leaked.' },
+const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" (how well it survived the dig). `art` is its picture in the museum art (assets/museum/pieces.json for a piece of a set, items.json for a whole display item): every ring, jug and arrowhead is a find of its own
+  { id: 'jug', art: 'clay_jug', name: 'Clay Jug', r: 0, desc: 'Plain, sturdy, and probably leaked.' },
   { id: 'ancient_bowl', art: 'ancient_bowl', name: 'Ancient Bowl', r: 0, desc: 'Deep enough for soup and a long story.' },
   { id: 'ancient_urn', art: 'ancient_urn', name: 'Ancient Urn', r: 0, desc: 'Holds nothing now, but it holds on.' },
   { id: 'ancient_decorative_vase', art: 'ancient_decorative_vase', name: 'Decorative Vase', r: 0, desc: 'Painted with somebody\'s favourite pattern.' },
@@ -28,27 +28,40 @@ const ARTIFACTS = [   // collectible finds: each one is found with a "% intact" 
   { id: 'ancient_tablet', art: 'ancient_tablet', name: 'Stone Tablet', r: 0, desc: 'A shopping list, or a law. Hard to say.' },
   { id: 'ancient_sickle', art: 'ancient_sickle', name: 'Ancient Sickle', r: 0, desc: 'Harvested a great many Tuesdays.' },
   { id: 'decorative_wooden_comb', art: 'decorative_wooden_comb', name: 'Wooden Comb', r: 0, desc: 'Several teeth short of a comb.' },
-  { id: 'standing_totems', art: 'standing_totems', name: 'Standing Totems', r: 0, desc: 'They look unimpressed by you.' },
-  { id: 'candle_holders', art: 'candle_holders', name: 'Candle Holders', r: 0, desc: 'Rather good at holding candles.' },
+  { id: 'cylindrical_standing_totem', art: 'cylindrical_standing_totem', name: 'Round Totem', r: 0, desc: 'Tall, round and quietly smug.' },
+  { id: 'horned_standing_totem', art: 'horned_standing_totem', name: 'Horned Totem', r: 0, desc: 'Hard to forgive those horns.' },
+  { id: 'open_candleholder', art: 'open_candleholder', name: 'Open Candleholder', r: 0, desc: 'Open to suggestions, and candles.' },
+  { id: 'caged_candleholder', art: 'caged_candleholder', name: 'Caged Candleholder', r: 0, desc: 'The candle was probably the dangerous one.' },
   { id: 'empty_stand', art: 'empty_stand', name: 'Empty Stands', r: 0, desc: 'Whatever stood on these has left.' },
   { id: 'bowl', art: 'ancient_decorative_bowl', name: 'Decorative Bowl', r: 1, desc: 'Somebody cared how their soup looked.' },
+  { id: 'painted_clay_jug', art: 'painted_clay_jug', name: 'Painted Clay Jug', r: 1, desc: 'Painted by hand, then used for water.' },
   { id: 'merchant_scale', art: 'merchant_scale', name: 'Merchant Scale', r: 1, desc: 'Honest, mostly.' },
   { id: 'fancy_broach', art: 'fancy_broach', name: 'Fancy Brooch', r: 1, desc: 'Pinned to someone who mattered.' },
   { id: 'signet_ring', art: 'signet_ring', name: 'Signet Ring', r: 1, desc: 'Sealed a great many letters.' },
   { id: 'mysterious_hat', art: 'mysterious_hat', name: 'Mysterious Hat', r: 1, desc: 'Nobody knows why it is pointed.' },
   { id: 'ceremonial_dagger', art: 'ceremonial_dagger', name: 'Ceremonial Dagger', r: 1, desc: 'For ceremonies, not for cake.' },
   { id: 'ceremonial_cutlass', art: 'ceremonial_cutlass', name: 'Ceremonial Cutlass', r: 1, desc: 'Far too ornate to have seen a fight.' },
-  { id: 'arrow_heads', art: 'arrow_heads', name: 'Arrowheads', r: 1, desc: 'A matched set, in four sizes.' },
+  { id: 'small_arrowhead', art: 'small_arrowhead', name: 'Small Arrowhead', r: 1, desc: 'Small, sharp, and decorative at heart.' },
+  { id: 'meadium_arrowhead', art: 'meadium_arrowhead', name: 'Medium Arrowhead', r: 1, desc: 'Good for birds, in a pinch.' },
+  { id: 'large_arrowhead_2', art: 'large_arrowhead_2', name: 'Large Arrowhead', r: 1, desc: 'Meant for something that was larger.' },
+  { id: 'large_arrow_head', art: 'large_arrow_head', name: 'Long Arrowhead', r: 1, desc: 'Longer than it ever needed to be.' },
   { id: 'layer_15_4', art: 'layer_15_4', name: 'Twin Staves', r: 1, desc: 'Two of them. Nobody knows what for.' },
   { id: 'layer_15_5', art: 'layer_15_5', name: 'Staff and Idol', r: 1, desc: 'The idol is not impressed either.' },
   { id: 'bust', art: 'bust', name: 'Marble Bust', r: 1, desc: 'Very serious about its nose.' },
   { id: 'bust_2', art: 'bust_2', name: 'Noble Bust', r: 1, desc: 'Looks like it has opinions on taxes.' },
-  { id: 'cerimonial_vase', art: 'cerimonial_vase', name: 'Ceremonial Vases', r: 1, desc: 'Painted for an occasion, and one of them is still waiting.' },
+  { id: 'cerimonial_vase', art: 'cerimonial_vase', name: 'Ceremonial Vase', r: 1, desc: 'Plain, patient, and waiting for flowers.' },
+  { id: 'painted_cerimonial_vase', art: 'painted_cerimonial_vase', name: 'Painted Ceremonial Vase', r: 1, desc: 'Painted for an occasion long since over.' },
   { id: 'coin', art: 'ancient_coin', name: 'Stamped Coin', r: 2, desc: 'The stamp is a little crooked.' },
   { id: 'sun_mask', art: 'sun_mask', name: 'Sun Mask', r: 2, desc: 'It smiles like it knows the weather.' },
-  { id: 'gem_rings', art: 'gem_rings', name: 'Gem Rings', r: 2, desc: 'Four rings, four gems, no fingers.' },
-  { id: 'amulets', art: 'amulets', name: 'Gem Amulets', r: 2, desc: 'Worn close to somebody\'s heart.' },
-  { id: 'decorative_thrown', art: 'decorative_thrown', name: 'Decorative Throne', r: 2, desc: 'Not comfortable. Definitely important.' }];
+  { id: 'decorative_thrown', art: 'decorative_thrown', name: 'Decorative Throne', r: 2, desc: 'Not comfortable. Definitely important.' },
+  { id: 'emerald_ring', art: 'emerald_ring', name: 'Emerald Ring', r: 2, desc: 'Green as a pond in summer.' },
+  { id: 'saphire_ring', art: 'saphire_ring', name: 'Sapphire Ring', r: 2, desc: 'Deep blue, like a good puddle.' },
+  { id: 'ruby_ring', art: 'ruby_ring', name: 'Ruby Ring', r: 2, desc: 'Red enough to be a warning.' },
+  { id: 'diamond_ring', art: 'diamond_ring', name: 'Diamond Ring', r: 2, desc: 'Sparkles with no help at all.' },
+  { id: 'emerald_amulet', art: 'emerald_amulet', name: 'Emerald Amulet', r: 2, desc: 'A green that keeps secrets.' },
+  { id: 'saphire_amulet', art: 'saphire_amulet', name: 'Sapphire Amulet', r: 2, desc: 'The blue of a calm lake.' },
+  { id: 'ruby_amulet', art: 'ruby_amulet', name: 'Ruby Amulet', r: 2, desc: 'Red and, somehow, still warm.' },
+  { id: 'diamond_amulet', art: 'diamond_amulet', name: 'Diamond Amulet', r: 2, desc: 'Clear as a promise.' }];
 const ART_BY_R = [0, 1, 2].map(r => ARTIFACTS.filter(a => a.r === r));   // a find first picks its rarity (by dig site tier and depth), then which one of that rarity
 const SALVAGE = [     // crafting materials: found while digging (scrap comes from processing extra commons at camp)
   { id: 'nails', name: 'Rusty Nails', desc: 'Iron, if you squint.' },

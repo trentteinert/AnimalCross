@@ -41,11 +41,12 @@ function shadowSpr(w, h) {
 // ---- placeholder art: everything below is basic shapes until the real art arrives -------------------------------------------------
 const iconCache = {};
 const ITEM_CELLS = { jug: [0, 0], bowl: [1, 0], coin: [2, 0], nails: [3, 0], boot: [0, 1], fabric: [1, 1], scrap: [2, 1] };   // 8x8 painted icons in assets/props/items.png (column, row)
+const artPic = n => (SPR.mpiece && SPR.mpiece[n]) || (SPR.mitem && SPR.mitem[n]) || null;   // a find's picture: a single piece, or a whole display item
 function itemIcon(id) {   // icons of finds and salvage (painted 8x8) and tools (16x16 placeholders)
   if (iconCache['i' + id]) return iconCache['i' + id];
   const ar = typeof ITEM !== 'undefined' && ITEM[id] && ITEM[id].art;
   if (ar) {   // finds are the museum's objects: the picture from the display case, made to fit an 11x11 slot (shrunk only if it is bigger)
-    const src = SPR.mitem && SPR.mitem[ar], c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
+    const src = artPic(ar), c = mk(11, 11); if (!src) return c;   // (not cached until the museum art has loaded)
     const sc = Math.min(1, 10 / src.width, 10 / src.height), w = Math.max(1, Math.round(src.width * sc)), h = Math.max(1, Math.round(src.height * sc));
     c.g.imageSmoothingEnabled = sc < 1; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(src, 0, 0, src.width, src.height, Math.floor((11 - w) / 2), Math.floor((11 - h) / 2), w, h);
     if (sc < 1) { const d = c.g.getImageData(0, 0, 11, 11), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); }   // crisp edges: no half see-through pixels
@@ -151,6 +152,7 @@ function buildSprites() {
         for (let i = 0; i < w * h * 4; i += 4) { const a = gd.data[i + 3]; if (!a) continue; if (bd[i + 3] > 8) { oi.data[i] = gd.data[i]; oi.data[i + 1] = gd.data[i + 1]; oi.data[i + 2] = gd.data[i + 2]; oi.data[i + 3] = a; } else { gi.data[i] = F[0] * gd.data[i] / 255; gi.data[i + 1] = F[1] * gd.data[i + 1] / 255; gi.data[i + 2] = F[2] * gd.data[i + 2] / 255; gi.data[i + 3] = a; } }
         ob.g.putImageData(oi, 0, 0); og.g.putImageData(gi, 0, 0); c.overB = ob; c.overG = og;
       } } SPR.mprop[n] = c; } }   // things inside the museum: cases, stage, board, wall panels, windows
+  if (ASSET.img.museum_pieces && ASSET.mPieces) { SPR.mpiece = {}; for (const n in ASSET.mPieces) { const d = ASSET.mPieces[n]; SPR.mpiece[n] = cut(ASSET.img.museum_pieces, { x: d.sx, y: d.sy, w: d.w, h: d.h }); } }   // every piece of a set on its own (the collection log)
   if (ASSET.img.museum_items && ASSET.mItems) { SPR.mitem = {}; for (const n in ASSET.mItems) { const d = ASSET.mItems[n], c = cut(ASSET.img.museum_items, { x: d.sx, y: d.sy, w: d.w, h: d.h }); c.ix = d.ix; c.iy = d.iy; c.label = d.label; c.case = d.case;
     if (d.stages) c.stages = d.stages.map(q => cut(ASSET.img.museum_items, { x: q[0], y: q[1], w: d.w, h: d.h })); SPR.mitem[n] = c; } }   // what is on display in a case: drawn between its base and its glass, already placed (ix, iy) for that case
   SPR.decor = {}; const D = ASSET.decor, dm = ASSET.img.decor;   // flowers, bushes, rocks and pebbles: anchored at their bottom centre

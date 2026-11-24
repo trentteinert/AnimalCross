@@ -1,7 +1,7 @@
 // ---- the journal: one book for the collection log, bag, community, tasks and settings -----------------------------------------------------------------
 // The art is a 256x160 open book (assets/ui/journal/*.png, cut by tools/journal_export.py). Every piece is placed in book units and scaled by one number, --u (screen pixels
 // per art pixel), so it fits any screen. All text is real text on top of the art. Wide screens show both pages; tall screens show one page and a bookmark flips to the other.
-const JR = { cat: 'hair', man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, clock: null, tasks: 'day', dir: 0, name: null };
+const JR = { cat: 'hair', man: null, ready: false, page: 'log', side: 0, mode: 'spread', u: 3, tab: { log: 'art' }, sel: 0, pgl: 0, clock: null, tasks: 'day', dir: 0, name: null };
 const JR_PAGES = [['log', 'COLLECTION', 'rib_log', 'icon_log'], ['bag', 'BAG', 'rib_bag', 'icon_bag'], ['com', 'COMMUNITY', 'rib_com', 'icon_com'], ['tasks', 'TASKS', 'rib_tasks', 'icon_tasks'], ['set', 'SETTINGS', 'rib_gear', 'icon_gear']];
 const JR_ORG = { l: 35, r: 134 }, JR_TOP = 28;   // where the content area of the left and right page starts, in book units (each page's area is 77 x 97)
 const jc = n => `calc(var(--u)*${+n.toFixed(2)})`;
@@ -41,9 +41,8 @@ function jbox(x, y, w, h, html, cls = '', attrs = '') { return `<div class="jb $
 function jart(name, sx) { const p = jp(name); return jimg(name, sx - JR_ORG[p.side || 'l'], 0); }
 function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).side || 'l']; return [c[0] - o + sx, c[1], c[2], c[3]]; }
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
-const ar0 = id => ITEM[id].art;
 function jitemIcon(id, big) {
-  const ar = big && ITEM[id] && ITEM[id].art && SPR.mitem && SPR.mitem[ar0(id)];   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
+  const ar = big && ITEM[id] && ITEM[id].art && artPic(ITEM[id].art);   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
   if (ar) { const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1; return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`; }
   const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
 function jlist(tab) { return tab === 'salv' ? SALVAGE : ARTIFACTS; }
@@ -54,7 +53,9 @@ function pageLog(side, sx) {
   if (side === 'l') {
     const list = jlist(JR.tab.log), cs = jp('clog_grid').cells; let h = jart('clog_grid', sx);
     h += [['art', 'ARTIFACTS', 'clog_tab_a'], ['salv', 'SALVAGE', 'clog_tab_b']].map(t => { const on = JR.tab.log === t[0], pc = jp(t[2]); return jimg(t[2], sx - JR_ORG.l, 1, on ? '' : 'jtabdim') + jbox(sx + pc.x - JR_ORG.l, pc.y + 1, pc.w, pc.h, `<span>${t[1]}</span>`, 'jtab' + (on ? ' on' : ''), `data-act="jtab:${t[0]}"`); }).join('');   // the two painted tabs; the one you are not on is a shade darker
-    cs.forEach((c, k) => { const it = list[k], r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${k}"` : ''); });
+    const per = cs.length, np = Math.ceil(list.length / per), pg = Math.min(JR.pgl | 0, np - 1), off = pg * per;   // more finds than slots: pages
+    cs.forEach((c, k) => { const it = list[off + k], r = jrect('clog_grid', k, sx); h += jbox(r[0], r[1], r[2], r[3], it ? `<span class="${found(it.id) ? '' : 'jdim'}">${jitemIcon(it.id)}</span>` : '', 'jslot' + (it && off + k === JR.sel ? ' on' : ''), it ? `data-act="jsel:${off + k}"` : ''); });
+    if (np > 1) { const tb = jp('clog_tab_b'), gd = jp('clog_grid'), x0 = sx + tb.x - JR_ORG.l + tb.w + 3, xr = sx + gd.x - JR_ORG[gd.side || 'l'] + gd.w, y = tb.y + 1; h += jbox(x0, y, 8, tb.h, '<span>&lsaquo;</span>', 'jpgb' + (pg > 0 ? '' : ' off'), pg > 0 ? 'data-act="jpg:-1"' : '') + jbox(x0 + 8, y, xr - x0 - 16, tb.h, `<span>${pg + 1}/${np}</span>`, 'jpgn') + jbox(xr - 8, y, 8, tb.h, '<span>&rsaquo;</span>', 'jpgb' + (pg < np - 1 ? '' : ' off'), pg < np - 1 ? 'data-act="jpg:1"' : ''); }
     return h;
   }
   const it = jlist(JR.tab.log)[JR.sel] || jlist(JR.tab.log)[0], ok = it && found(it.id), c = it && S.col[it.id];
@@ -242,7 +243,8 @@ UI.journalClick = function (a, p1, p2) {   // returns true when the click was fo
   switch (a) {
     case 'jpage': JR.page = p1; JR.side = 0; JR.sel = 0; JR.render(); sfx('ui'); return true;
     case 'jflip': JR.side = JR.side ? 0 : 1; JR.render(); sfx('ui'); return true;
-    case 'jtab': JR.tab.log = p1; JR.sel = 0; JR.render(); sfx('ui'); return true;
+    case 'jpg': { const n = Math.ceil(jlist(JR.tab.log).length / jp('clog_grid').cells.length); JR.pgl = clamp((JR.pgl | 0) + +p1, 0, n - 1); JR.render(); sfx('ui'); return true; }
+    case 'jtab': JR.tab.log = p1; JR.sel = 0; JR.pgl = 0; JR.render(); sfx('ui'); return true;
     case 'jsel': JR.sel = +p1; if (JR.mode === 'single') JR.side = 1; JR.render(); sfx('ui'); return true;
     case 'jsnd': S.sound = !S.sound; if (S.sound) audioInit(); saveState(); JR.render(); return true;
     case 'jlight': S.light = !(S.light !== false); FEATURES.light = S.light; saveState(); JR.render(); return true;

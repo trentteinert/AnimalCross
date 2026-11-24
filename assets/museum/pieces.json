@@ -1,0 +1,178 @@
+{
+"bust": {
+"label": "Bust",
+"set": "busts",
+"sx": 0,
+"sy": 0,
+"w": 12,
+"h": 20
+},
+"bust_2": {
+"label": "Bust 2",
+"set": "busts",
+"sx": 13,
+"sy": 0,
+"w": 14,
+"h": 23
+},
+"cylindrical_standing_totem": {
+"label": "cylindrical standing totem",
+"set": "standing_totems",
+"sx": 28,
+"sy": 0,
+"w": 6,
+"h": 13
+},
+"horned_standing_totem": {
+"label": "Horned standing totem",
+"set": "standing_totems",
+"sx": 35,
+"sy": 0,
+"w": 10,
+"h": 12
+},
+"clay_jug": {
+"label": "Clay jug",
+"set": "jugs",
+"sx": 46,
+"sy": 0,
+"w": 11,
+"h": 16
+},
+"painted_clay_jug": {
+"label": "Painted clay jug",
+"set": "jugs",
+"sx": 58,
+"sy": 0,
+"w": 11,
+"h": 18
+},
+"open_candleholder": {
+"label": "Open candleholder",
+"set": "candle_holders",
+"sx": 70,
+"sy": 0,
+"w": 10,
+"h": 11
+},
+"caged_candleholder": {
+"label": "Caged candleholder",
+"set": "candle_holders",
+"sx": 81,
+"sy": 0,
+"w": 8,
+"h": 12
+},
+"emerald_ring": {
+"label": "Emerald ring",
+"set": "gem_rings",
+"sx": 90,
+"sy": 0,
+"w": 6,
+"h": 7
+},
+"saphire_ring": {
+"label": "Saphire ring",
+"set": "gem_rings",
+"sx": 97,
+"sy": 0,
+"w": 6,
+"h": 7
+},
+"ruby_ring": {
+"label": "Ruby ring",
+"set": "gem_rings",
+"sx": 104,
+"sy": 0,
+"w": 6,
+"h": 7
+},
+"diamond_ring": {
+"label": "Diamond ring",
+"set": "gem_rings",
+"sx": 111,
+"sy": 0,
+"w": 6,
+"h": 7
+},
+"ruby_amulet": {
+"label": "Ruby amulet",
+"set": "amulets",
+"sx": 118,
+"sy": 0,
+"w": 10,
+"h": 8
+},
+"diamond_amulet": {
+"label": "Diamond amulet",
+"set": "amulets",
+"sx": 129,
+"sy": 0,
+"w": 5,
+"h": 10
+},
+"saphire_amulet": {
+"label": "Saphire amulet",
+"set": "amulets",
+"sx": 135,
+"sy": 0,
+"w": 8,
+"h": 7
+},
+"emerald_amulet": {
+"label": "Emerald amulet",
+"set": "amulets",
+"sx": 144,
+"sy": 0,
+"w": 7,
+"h": 8
+},
+"large_arrowhead_2": {
+"label": "Large arrowhead 2",
+"set": "arrow_heads",
+"sx": 152,
+"sy": 0,
+"w": 11,
+"h": 7
+},
+"small_arrowhead": {
+"label": "Small arrowhead",
+"set": "arrow_heads",
+"sx": 164,
+"sy": 0,
+"w": 11,
+"h": 3
+},
+"meadium_arrowhead": {
+"label": "Meadium arrowhead",
+"set": "arrow_heads",
+"sx": 176,
+"sy": 0,
+"w": 11,
+"h": 5
+},
+"large_arrow_head": {
+"label": "Large arrow head",
+"set": "arrow_heads",
+"sx": 188,
+"sy": 0,
+"w": 5,
+"h": 17
+},
+"cerimonial_vase": {
+"label": "Cerimonial vase",
+"set": "cerimonial_vase",
+"sx": 194,
+"sy": 0,
+"w": 16,
+"h": 28
+},
+"painted_cerimonial_vase": {
+"label": "Painted cerimonial vase",
+"set": "cerimonial_vase",
+"sx": 211,
+"sy": 0,
+"w": 16,
+"h": 29
+}
+}

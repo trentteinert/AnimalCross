@@ -175,6 +175,7 @@ for cn, gname in MGROUP.items():
     walkm(g); mdy[cn] = d
 
 props, items = {}, {}
+PIECES = {}
 for cn, fn in CASES.items():
     w, h, AL, AI = read(SRC + fn + '.aseprite')
     grp = next(i for i, l in enumerate(AL) if l['type'] == 1 and l['parent'] is None and re.match(r'\d', l['name']))   # the case group (1*1, 2x1, 2x2, 3x2)
@@ -190,6 +191,9 @@ for cn, fn in CASES.items():
     entries = []
     for i in src:
         n = AL[i]['name']
+        if AL[i]['type'] == 1 and n not in EXHIBITS:   # a set (jugs, rings, arrowheads...): every piece is its own collectible, for the collection log
+            for j in leaves(AL, i):
+                if AI[j].getbbox(): PIECES[slug(AL[j]['name'])] = {'label': AL[j]['name'], 'set': slug(n), 'img': AI[j]}
         if AL[i]['type'] == 1 and n in SPLIT: entries += [(AL[j]['name'], [j], None) for j in kids(AL, i)]
         elif AL[i]['type'] == 1 and n in EXHIBITS:
             mode, steps, under, done = EXHIBITS[n]; ids = {AL[j]['name']: j for j in leaves(AL, i)}
@@ -260,6 +264,10 @@ for sid, it in items.items():
         for _ in it['stages']: sheet.paste(pics[k], pos[k]); o['stages'].append([pos[k][0], pos[k][1]]); k += 1
     out[sid] = o
 sheet.save('assets/museum/items.png'); json.dump(out, open('assets/museum/items.json', 'w'), indent=0)
+# every piece of a set on its own (the collection log: each arrowhead, ring, jug... is a separate find)
+pc = list(PIECES.items()); crops = [v['img'].crop(v['img'].getbbox()) for k, v in pc]; ppos, pph = pack(crops, 256); psheet = Image.new('RGBA', (256, pph)); pmeta = {}
+for (k, v), c, (x, y) in zip(pc, crops, ppos): psheet.paste(c, (x, y)); pmeta[k] = {'label': v['label'], 'set': v['set'], 'sx': x, 'sy': y, 'w': c.width, 'h': c.height}
+psheet.save('assets/museum/pieces.png'); json.dump(pmeta, open('assets/museum/pieces.json', 'w'), indent=0); print('pieces:', list(pmeta))
 for c in CASES: print(c, [s for s, o in out.items() if o['case'] == c])
 
 WALLP_ = {'panel_fossils': -14, 'panel_scorpion': -14, 'plaque': -14, 'window': -10}   # how far their bottom is above the floor's top edge (same as the editor)
