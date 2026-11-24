@@ -301,6 +301,7 @@ sheet.save('assets/museum/items.png'); json.dump(out, open('assets/museum/items.
 pc = list(PIECES.items()); crops = [v['img'].crop(v['img'].getbbox()) for k, v in pc]; ppos, pph = pack(crops, 256); psheet = Image.new('RGBA', (256, pph)); pmeta = {}
 for (k, v), c, (x, y) in zip(pc, crops, ppos): psheet.paste(c, (x, y)); pmeta[k] = {'label': v['label'], 'set': v['set'], 'sx': x, 'sy': y, 'w': c.width, 'h': c.height}
 psheet.save('assets/museum/pieces.png'); json.dump(pmeta, open('assets/museum/pieces.json', 'w'), indent=0); print('pieces:', list(pmeta))
+import time; open('js/museumver.js', 'w').write("const MUSEUM_V = '%s';   // written by tools/museum_interior_export.py: changes whenever the museum's pictures do\n" % time.strftime('%Y%m%d%H%M%S'))
 for c in CASES: print(c, [s for s, o in out.items() if o['case'] == c])
 
 WALLP_ = {'panel_fossils': -14, 'panel_scorpion': -14, 'plaque': -14, 'window': -10}   # how far their bottom is above the floor's top edge (same as the editor)

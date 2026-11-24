@@ -10,11 +10,12 @@ function loadAssets(cb) {
   for (const id of HAIR_STYLES) list['hair_' + id] = 'assets/chars/hair_' + id + '.png';   // hair styles: one sheet each (see tools/make_hero_sheet.py)
   let left = Object.keys(list).length + 8; const failed = [];
   const total = left, done = () => { loadProgress(0.7 * (1 - --left / total)); if (left === 0) { ASSET.ok = !failed.length; cb(failed); } };
-  for (const k in list) { const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
-  fetch('assets/museum/tileset.json').then(r => r.json()).then(j => { ASSET.mTiles = j; done(); }).catch(() => { ASSET.mTiles = null; done(); });
-  fetch('assets/museum/items.json').then(r => r.json()).then(j => { ASSET.mItems = j; done(); }).catch(() => { ASSET.mItems = null; done(); });
-  fetch('assets/museum/pieces.json').then(r => r.json()).then(j => { ASSET.mPieces = j; done(); }).catch(() => { ASSET.mPieces = null; done(); });
-  fetch('assets/museum/props.json').then(r => r.json()).then(j => { ASSET.mProps = j; done(); }).catch(() => { ASSET.mProps = null; done(); });
+  const mv = typeof MUSEUM_V === 'string' ? '?v=' + MUSEUM_V : '';   // the museum's pictures and their lists change together: a new version number makes a browser fetch all of them again (never a new picture with an old list)
+  for (const k in list) { if (list[k].includes('assets/museum/')) list[k] += mv; const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
+  fetch('assets/museum/tileset.json' + mv).then(r => r.json()).then(j => { ASSET.mTiles = j; done(); }).catch(() => { ASSET.mTiles = null; done(); });
+  fetch('assets/museum/items.json' + mv).then(r => r.json()).then(j => { ASSET.mItems = j; done(); }).catch(() => { ASSET.mItems = null; done(); });
+  fetch('assets/museum/pieces.json' + mv).then(r => r.json()).then(j => { ASSET.mPieces = j; done(); }).catch(() => { ASSET.mPieces = null; done(); });
+  fetch('assets/museum/props.json' + mv).then(r => r.json()).then(j => { ASSET.mProps = j; done(); }).catch(() => { ASSET.mProps = null; done(); });
   fetch('assets/props/tree.json').then(r => r.json()).then(j => { ASSET.tree = j; done(); }).catch(() => { ASSET.tree = null; done(); });
   fetch('assets/props/decor.json').then(r => r.json()).then(j => { ASSET.decor = j; done(); }).catch(() => { ASSET.decor = null; done(); });
   fetch('assets/chars/hero_hairmap.json').then(r => r.json()).then(j => { ASSET.hairMap = j.cell; done(); }).catch(() => { ASSET.hairMap = null; done(); });

@@ -43,7 +43,7 @@ function jnine(name, sx, y, w, h) {   // a painted box that can be any height: i
 }
 JR.fitCard = function () {   // after the log page is drawn: how tall the card's writing really is; if the card is the wrong height, set it and draw the page again
   const c = document.querySelector('#jrcont .jcard'); if (!c || JR.page !== 'log') return false; const last = c.lastElementChild; if (!last) return false;
-  const want = clamp(Math.ceil((last.offsetTop + last.offsetHeight) / JR.u) + 3, 46, 66), cur = Math.max(46, JR.cardH | 0);
+  const want = clamp(Math.ceil((last.offsetTop + last.offsetHeight) / JR.u) + 5, 46, 66), cur = Math.max(46, JR.cardH | 0);
   if (want === cur || (JR.fitTries | 0) >= 2) { JR.fitTries = 0; return false; } JR.cardH = want; JR.fitTries = (JR.fitTries | 0) + 1; return true;
 };
 function jart(name, sx) { const p = jp(name); return jimg(name, sx - JR_ORG[p.side || 'l'], 0); }
@@ -51,7 +51,13 @@ function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).s
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
 function jitemIcon(id, big) {
   const ar = big && ITEM[id] && ITEM[id].art && artPic(ITEM[id].art);   // on the card the find is shown in its full museum art, twice the size (crisp), not the slot's small version
-  if (ar) { const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1; return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`; }
+  if (ar) {
+    const k = ar.height <= 10 && ar.width <= 30 ? 2 : 1;
+    if (ar.height <= 34) return `<img class="ji" src="${dataURL(ar, 'm' + ITEM[id].art)}" alt="" style="width:${jc(ar.width * k)};height:${jc(ar.height * k)}">`;
+    const sc = 34 / ar.height, w = Math.max(1, Math.round(ar.width * sc)), key = 'b' + ITEM[id].art;   // a tall find is shrunk to fit the card (crisp edges)
+    if (!iconCache[key]) { const c = mk(w, 34); c.g.imageSmoothingEnabled = true; c.g.imageSmoothingQuality = 'high'; c.g.drawImage(ar, 0, 0, ar.width, ar.height, 0, 0, w, 34); const d = c.g.getImageData(0, 0, w, 34), P = d.data; for (let i = 3; i < P.length; i += 4) P[i] = P[i] > 110 ? 255 : 0; c.g.putImageData(d, 0, 0); iconCache[key] = c; }
+    return `<img class="ji" src="${dataURL(iconCache[key], key)}" alt="" style="width:${jc(w)};height:${jc(34)}">`;
+  }
   const ic = itemIcon(id), s = big ? 2 : 1; return `<img class="ji" src="${itemURL(id)}" alt="" style="width:${jc(ic.width * s)};height:${jc(ic.height * s)}">`; }
 const ALL_ART = ARTIFACTS.concat(EXHIBITS);   // the exhibit pieces are the special, rarer ones at the end of the artifacts: they all end up in the museum's exhibits, so they are not on a page of their own
 function jlist(tab) { return tab === 'salv' ? SALVAGE : ALL_ART; }
