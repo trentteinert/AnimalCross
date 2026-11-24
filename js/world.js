@@ -268,7 +268,7 @@ function computeStairs() {   // a stairs arch with no rope across it can be walk
     if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
 function passageWalls() {   // a doorway cut through a wall (two rooms side by side): the wall's top edge and its face down to the curve of the arch hide you as you walk through, like the stairs' wall
-  if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, cols: q.cols, pw: q.pw, bandb: q.bandb } });
+  if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, bot: q.bot, pw: q.pw, bandb: q.bandb } });
 }
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
