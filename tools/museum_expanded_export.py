@@ -64,7 +64,7 @@ def _dark(x, y):
 _stairs = [S[i].getbbox() for i in (25, 18)]
 for a_, b_, c_, d_ in PASS:
     if any(abs((a_ + c_) / 2 - (q[0] + q[2]) / 2) < 40 and 0 < q[1] - d_ < 120 for q in _stairs):   # the top of a staircase: the stairs have their own wall
-        ARCHWALLS.append({'x': a_, 'y': b_, 'w': c_ - a_, 'h': d_ - b_, 'cx': (a_ + c_) // 2, 'by': d_ + 24, 'bot': None, 'pw': [a_, c_], 'bandb': d_}); continue
+        continue
     # the wall's dark top edge exactly (not a pixel more): the rows that are dark beside the doorway
     ym = (b_ + d_) // 2; y0_ = y1_ = ym
     if _dark(a_ - 8, ym):
@@ -200,7 +200,30 @@ for i, nmx in ((25, 'arch_welcome'), (18, 'arch_east')):
         for x in range(bx[0], bx[2]):
             if ring[y, x]: tp[x - bx[0], y - bx[1]] = tuple(canvas.getpixel((x, y)))
     mk_ = Image.new('RGBA', (w_, h_)); mk_.putpixel((0, 0), (0, 0, 0, 1))   # (a nearly invisible dot: the sprite is never empty)
-    HASH_SKIP = True; DECOR[nmx] = mk_; SOLID[nmx] = 0; LABEL[nmx] = 'Stairs'; DECOR[nmx + '_tip'] = tip; SOLID[nmx + '_tip'] = 0; LABEL[nmx + '_tip'] = 'Stairs top'
+    DECOR[nmx] = mk_; SOLID[nmx] = 0; LABEL[nmx] = 'Stairs'
+    # the wall the stairs go up through, the same as the wall between the west rooms: drawn over you while you are north of its foot (on the upper stairs and in the
+    # corridor behind it, seen through the arch), no collider on its dark top, its foot solid except in the doorway
+    cx_ = (sb[0] + sb[2]) // 2; y = sb[1] - 40   # the wall's dark top: the first dark rows going down the middle of the corridor (the carpet runs down to it)
+    while not _dark(cx_, y): y += 1
+    b_ = y
+    while _dark(cx_, y): y += 1
+    d_ = y
+    hx = np.where(hole.any(axis=0))[0]; hx0, hx1 = int(hx.min()), int(hx.max()) + 1
+    flo2 = lambda x, y: (lambda p: 2 < p[0] - p[1] < 12)(_rgb.getpixel((x, y)))   # the marble floor (not the cream wall, the grey-green or red dado, the carpet)
+    f1 = next(y for y in range(d_, sb[3] + 40) if flo2(hx0 - 6, y) and flo2(hx1 + 5, y)); f0 = f1 - (d_ - b_)
+    lit = lambda x, y: (lambda p: 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] >= 100)(_rgb.getpixel((x, y)))
+    nx0 = cx_
+    while lit(nx0 - 1, b_ - 2): nx0 -= 1
+    nx1 = cx_
+    while lit(nx1, b_ - 2): nx1 += 1
+    dx_ = [x for x in range(hx0, hx1) if hole[f1 - 1, x]]; oL, oR = min(dx_), max(dx_) + 1
+    def _top(x):   # the opening's top in this column: up from the floor line while it is open
+        y = f1 - 1
+        while hole[y - 1, x]: y -= 1
+        return y
+    tops = [_top(x) for x in range(oL, oR)]
+    WALLS.append({'x0': min(nx0 - 10, hx0 - 5), 'x1': max(nx1 + 10, hx1 + 5), 'top': b_, 'f0': f0, 'f1': f1, 'open': [nx0, nx1], 'door': [oL, oR], 'hole': tops})
+    print('stairs wall', nmx, 'top', b_, d_, 'foot', f0, f1, 'corridor x', nx0, nx1, 'door x', oL, oR)
     put(nmx, (sb[0] + sb[2]) // 2, sb[3])
 place(CABINET, 'display_cabinet', 'Display cabinet', 0.5, blend=True)
 
