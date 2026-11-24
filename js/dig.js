@@ -62,6 +62,8 @@ function targetInfo(t) {
   if (t.kind === 'furnace') { const fi = furnaceInfo(); return { icon: STATION.furnace.icon, hint: fi.st === 'ready' ? 'Press to take the bar' : fi.st === 'idle' ? STATION.furnace.hint : 'Smelting…' }; }
   if (STATION[t.kind]) return { icon: STATION[t.kind].icon, hint: STATION[t.kind].hint };
   if (t.kind === 'museum') return { icon: 'camp', hint: 'Press to enter the museum' };
+  if (t.kind === 'case') return { icon: 'book', hint: 'Press to look it up in your journal' };
+  if (t.kind === 'curator') return { icon: 'bag', hint: 'Press to talk to the curator' };
   if (!siteOpen(t.zone)) return { icon: 'beach', hint: 'Needs the ' + toolFor(t.zone) + ' to dig here' };
   if (holeAt(t.tx, t.ty)) return { icon: 'beach', hint: 'Already dug. Pick another spot' };
   if (bagUsed() >= bagCap()) return { icon: 'beach', hint: 'Bag full. Sell or donate some finds' };
@@ -84,6 +86,7 @@ function findTarget() {
     if (o.k === 'museum') { if (Math.abs(px - o.x) < 24 && py > o.y - 24 && py < o.y + 8) consider('museum', o, o.x, o.y - 30, Math.hypot(px - o.x, py - (o.y - 14)) * 0.5, 40, -14); continue; }   // the door is in the middle of the steps
     if (SHOPK.includes(o.k)) { const bd = distToBox(px, py, o), bx = o.x - px, by = o.y - 4 - py, bl = Math.hypot(bx, by) || 1; if (bd < 6 || (bx / bl * fv[0] + by / bl * fv[1]) > 0.1) consider(o.k, o, o.x, o.y, bd, o.ia, -14); }   // a station you are close to and facing wins over the ground beside it
   }
+  if (typeof museumTargets === 'function') museumTargets(px, py, consider);   // the museum's cases and curator (js/museum.js)
   let sb = null;   // the dig spot: the site tile just in front of you
   for (const dn of ['u', 'd', 'l', 'r']) {
     const v = DV[dn];
@@ -155,6 +158,8 @@ function startAction() {
   if (t.kind === 'camp') { held = false; UI.openCamp('process'); return; }
   if (t.kind === 'shop') { held = false; UI.openShop('buy'); return; }
   if (t.kind === 'museum') { held = false; goArea('museum', 0, 0, 'u'); return; }
+  if (t.kind === 'case') { held = false; openPlaqueInJournal(t.ref); return; }
+  if (t.kind === 'curator') { held = false; UI.openTalk(t.ref); return; }
   if (t.kind === 'furnace' && collectBar()) { held = false; return; }
   if (STATION[t.kind]) { held = false; UI.openCamp(t.kind === 'furnace' ? 'process' : 'craft', t.kind); return; }
   if (t.kind === 'dig') {

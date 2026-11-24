@@ -183,6 +183,7 @@ function tick(dt) {
   else if (st) { UI.setAct(st.icon, st.prog, st.alert); UI.setHint(st.hint); }
   else if (target) { const ti = targetInfo(target); UI.setAct(ti.icon, 0, false); UI.setHint(ti.hint); }
   else { UI.setAct(null, 0, false); UI.setHint(''); }
+  if (UI.plaque) UI.plaque(!UI.isOpen && !A && target && target.kind === 'case' ? target.ref : null);   // a case's plaque shows while you stand at it
   if (SHK.t > 0) SHK.t -= dt;
   if (ME.moving && !A) { ME.dt = (ME.dt || 0) - dt; if (ME.dt <= 0) { ME.dt = 0.17; const ty = typeAt(ME.x, ME.y); if (ty >= 2 && ty <= 5) burst(ME.x + rnd(-2, 2), ME.y - 1, ty === 2 ? '#ead9ae' : ty === 4 ? '#b58a64' : '#c9cfa4', 1, 12, 0.32, -14, 1, true); } }   // little dust puffs at your feet while you run on land
   tickHoles(dt); tickTrees(dt);

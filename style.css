@@ -307,3 +307,18 @@ body.brushing #hint{max-width:calc(100% - 290px)}
 .mt.coin:before{content:"";width:10px;height:10px;background:#e0a93a;box-shadow:inset -2px -2px 0 #a8741e,inset 1px 1px 0 #f6d27a;margin-right:1px}
 .mt.full b{color:#c0392b;animation:bagfull .6s steps(2) infinite}
 @keyframes bagfull{50%{opacity:.45}}
+
+/* the museum's plaques (basic: the journal's card and nameplate, a proper design comes later) */
+#plaque{position:fixed;left:50%;top:calc(var(--sat, 0px) + 64px);transform:translateX(-50%);width:min(340px,calc(100vw - 32px));box-sizing:border-box;padding:6px 12px 10px;border:solid transparent;border-width:6px;border-image:url(assets/ui/journal/clog_card.png) 2 fill/6px stretch;image-rendering:pixelated;color:#594237;font-size:13px;line-height:1.25;pointer-events:none;z-index:5}
+#plaque.hidden{display:none}
+#plaque .ptitle{margin:-2px auto 6px;width:85%;padding:5px 0 6px;text-align:center;font-weight:600;font-size:14px;color:#594237;background:url(assets/ui/journal/cal_nameplate.png) center/100% 100% no-repeat;image-rendering:pixelated}
+#plaque .pcount{text-align:center;font-size:12px;color:#7a5c52;margin:-2px 0 4px}
+#plaque .prow{display:flex;gap:8px;align-items:center;padding:3px 0;border-top:1px solid rgba(120,80,60,.25)}
+#plaque .prow:first-of-type{border-top:0}
+#plaque .prow img{width:33px;height:33px;image-rendering:pixelated;flex:none}
+#plaque .pq{width:33px;height:33px;flex:none;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:22px;color:#a07a66;background:rgba(150,100,70,.18)}
+#plaque b{font-weight:600}
+#plaque em{font-style:normal;font-size:11px;font-weight:600}
+#plaque small{display:block;font-size:11px;color:#7a5c52}#plaque p{margin:3px 0 0;font-size:12px;font-style:italic}
+.sheet[data-type=talk]{max-width:420px}.sheet[data-type=talk] .tname{font-weight:700;color:#a85a16;margin-bottom:6px}.sheet[data-type=talk] .tline{margin:0 0 12px;font-size:15px;line-height:1.35}.sheet[data-type=talk] .tnext{float:right}
+#plaque .pwhere{margin-top:5px;padding-top:4px;border-top:1px solid rgba(120,80,60,.25)}#plaque .pwhere b{font-size:12px}
