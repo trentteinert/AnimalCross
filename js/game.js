@@ -257,12 +257,14 @@ function drawChar(e, cx, cy, now) {
   if (holding) drawHoldIcon(e, cx, cy, now);
 }
 const snapDev = v => Math.round(v * DPR * Z) / (DPR * Z); // snap a fractional native-pixel offset to whole device pixels
-function wallClip(cx, cy) {   // rectangles (on screen) where the wall of an open doorway hides you: above the arch while you are on its stairs (down the curve of the frame), and the wall's top edge while you pass through it
+function wallClip(cx, cy) {   // rectangles (on screen) where the wall of an open doorway is in front of you: its top edge and the wall face down to the curve of the arch frame. Only the wall hides you: the floor beyond it and the doorway itself do not
   if (!W.objs) return null;
   for (const o of W.objs) if (o.k === 'archwall') {
     const s = o.strip, dome = s.y + s.h, x = Math.round(s.x - cx);
-    if (ME.y > dome && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 11) { ME.behindWall = true; const r = [[x, -16, s.w, dome - cy + 16]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r; }
-    if (ME.y >= s.y && ME.y <= dome && Math.abs(ME.x - o.x) <= 14) return [[x, s.y - cy, s.w, s.h]];
+    if (ME.y >= s.y && ME.y <= o.y + 2 && Math.abs(ME.x - o.x) <= 14) {
+      if (ME.y <= dome) ME.behindWall = true;   // (your feet are in the wall: no shadow or name there)
+      const r = [[x, s.y - cy, s.w, s.h]]; if (s.cols) for (let c = 0; c < s.cols.length; c++) if (s.cols[c] > 0) r.push([x + c, dome - cy, 1, s.cols[c]]); return r;
+    }
   }
   return null;
 }
