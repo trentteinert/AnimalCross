@@ -367,7 +367,7 @@ function drawLeaf(l, cx, cy) {
 // ---- a dithered ghost of you over whatever hides you (objects in front of you, the rim of a pit) --------------------------------------------------
 const GHOST_MODE = new URLSearchParams(location.search).get('ghost') || 'outline';   // how you show through things in front of you: 'fade' (the object turns see-through), 'outline' (a thin outline of you), 'dither' (a sparse ghost of you)
 const GHOST = { sil: null, mask: null, checker: null, tmp: null };
-const GHOST_BIG = new Set(['shop', 'camp', 'museumback', 'museumcols']);   // only walls and buildings show your outline when they hide you; benches, anvils, fires, plants and rocks do not
+const GHOST_BIG = new Set(['shop', 'camp', 'museumback', 'museumcols', 'wallocc']);   // only walls and buildings show your outline when they hide you; benches, anvils, fires, plants and rocks do not
 function behindAlpha(o) {   // 'fade' mode: an object drawn over you turns see-through while it covers you
   if (GHOST_MODE !== 'fade' || !o.spr || !ME || o.k === 'me' || o.k === 'tree' || o.k === 'decor' || o.nosel) return 1;   // (the top of a doorway arch stays solid: you walk under it)
   const s = o.spr, over = o.y > ME.y && ME.x + 9 > o.x - s.ax && ME.x - 9 < o.x - s.ax + s.width && ME.y > o.y - s.ay && ME.y - 46 < o.y;

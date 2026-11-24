@@ -267,12 +267,22 @@ function computeStairs() {   // a stairs arch with no rope across it can be walk
     let cols = null; if (tip) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; cols = []; for (let c = 0; c < tip.width; c++) { let r = 0; for (let y = tip.t0; y < tip.height; y++) if (d[(y * tip.width + c) * 4 + 3]) { r = y - tip.t0; break; } cols.push(r); } }   // for each column, how far the curved top of the frame is below its highest point: the corners above the curve are wall too
     if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
+function wallOccluders() {   // the face of each wall between rooms, cut from the ground picture (the arch's opening left out), drawn over whatever is north of the wall's foot: you, behind it
+  const L = MAPDATA && MAPDATA.walls; if (!L || !W.terrain) return;
+  for (const z of L) {
+    const w = z.x1 - z.x0, h = z.f1 - z.top, c = mk(w, h); c.g.drawImage(W.terrain, z.x0, z.top, w, h, 0, 0, w, h);
+    for (let i = 0; i < z.hole.length; i++) c.g.clearRect(z.door[0] + i - z.x0, z.hole[i] - z.top, 1, z.f1 - z.hole[i]);   // through the arch you see what is behind the wall
+    for (const o of W.solids) if (o.box && o.y >= z.f1 && o.x + o.box[0] < z.x1 && o.x + o.box[0] + o.box[2] > z.x0 && o.y + o.box[1] < z.f1) { const t = z.f1 - o.y; o.box = [o.box[0], t, o.box[2], o.box[3] - (t - o.box[1])]; }
+    W.solids = W.solids.filter(o => !o.box || o.box[3] > 0);   // furniture against the wall in the south room stops at the wall: it does not reach through it
+    for (let sx = 0; sx < w; sx += 32) { const sw = Math.min(32, w - sx), sl = mk(sw, h); sl.g.drawImage(c, sx, 0, sw, h, 0, 0, sw, h); sl.ax = 0; sl.ay = z.f0 - z.top; W.objs.push({ k: 'wallocc', x: z.x0 + sx, y: z.f0, spr: sl, nosel: true }); }   // (in strips, so the part on screen is always drawn)
+  }
+}
 function passageWalls() {   // a doorway cut through a wall (two rooms side by side): the wall's top edge and its face down to the curve of the arch hide you as you walk through, like the stairs' wall
   if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, bot: q.bot, pw: q.pw, bandb: q.bandb } });
 }
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
-  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); computeStairs(); passageWalls(); buildSiteRegions();
+  buildDist(); rebuildObjects(); W.terrain = renderTerrain(); computeStairs(); passageWalls(); wallOccluders(); buildSiteRegions();
   let sx = 0, sy = 0, n = 0; for (let i = 0; i < GRID.length; i++) if (GRID[i] === 5) { sx += (i % MW) * TS + 8; sy += ((i / MW) | 0) * TS + 8; n++; }
   W.hub = n ? { x: sx / n, y: sy / n } : { x: W.spawn.x, y: W.spawn.y };
 }
@@ -398,12 +408,17 @@ function museumSolidPix(x, y) {   // the museum's walls and frame are solid wher
   const sx = (id & 15) * 16 + (Math.floor(x) & 15), sy = (id >> 4) * 16 + (Math.floor(y) & 15), i = (sy * MSOL.w + sx) * 4, d = MSOL.d;
   return d[i + 3] < 10 || 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2] < 100;   // (dark slate frame and void; the carpets are lighter)
 }
+// A wall between two rooms, seen from the south (maps/museum.json 'walls'): its dark top is the top of a wall whose face runs down to the south room's floor. The north room's
+// floor goes on behind that face down to the wall's foot, so from the north you walk on behind the wall (it is drawn over you: see wallOccluders) until the foot, which is
+// solid except under the arch. No collider sits on the dark top.
+const wallZone = (px, py) => { const L = MAPDATA && MAPDATA.walls; if (L) for (const z of L) if (px >= z.x0 && px < z.x1 && py >= z.top && py < z.f1) return z; return null; };
+const wallZoneBlocks = (z, px, py) => py < z.f0 ? !(px >= z.open[0] && px < z.open[1]) : !(px >= z.door[0] && px < z.door[1]);
 function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk into the shallows (deep water still stops everyone); 'stone': a kicked stone ignores water and ledges (the caller deals with falling in)   // hw/hh: half width and height of the thing being moved (you by default; small stones pass their own)
   if (x < 10 || y < 10 || x > PW - 10 || y > PH - 10) return true;
   let zmin = 99, zmax = -1;
-  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
+  for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const wz = wallZone(x + o[0], y + o[1]); if (wz) { if (wade !== 'stone' && wallZoneBlocks(wz, x + o[0], y + o[1])) return true; continue; } const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
-  if (MGRID && wade !== 'stone') for (const o of [[-hw, 2], [hw, 2], [-hw, -hh], [hw, -hh]]) { const px = x + o[0], py = y + o[1]; if (!stairsAt(px, py) && museumSolidPix(px, py)) return true; }
+  if (MGRID && wade !== 'stone') for (const o of [[-hw, 2], [hw, 2], [-hw, -hh], [hw, -hh]]) { const px = x + o[0], py = y + o[1]; const wz = wallZone(px, py); if (wz) { if (wallZoneBlocks(wz, px, py)) return true; continue; } if (!stairsAt(px, py) && museumSolidPix(px, py)) return true; }
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
     const bx = o.x + o.box[0], by = o.y + o.box[1]; if (x < bx - 16 || x > bx + o.box[2] + 16 || y < by - 16 || y > by + o.box[3] + 16) continue;   // only the solids near you (judged by their own edges, so a wide building is not skipped)

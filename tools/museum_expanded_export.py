@@ -58,7 +58,7 @@ print('doorways through walls:', len(PASS))
 _rgb = canvas.convert('RGB')
 def _ring(x, y):
     r, g_, b_ = _rgb.getpixel((x, y)); return 0.3 * r + 0.59 * g_ + 0.11 * b_ < 190 and abs(r - g_) < 40 and abs(g_ - b_) < 40 and r > 60
-ARCHWALLS = []
+ARCHWALLS = []; WALLS = []
 def _dark(x, y):
     r, g_, b_ = _rgb.getpixel((x, y)); return r < 80 and g_ < 90 and b_ < 95
 _stairs = [S[i].getbbox() for i in (25, 18)]
@@ -94,7 +94,22 @@ for a_, b_, c_, d_ in PASS:
         bot.append(y)
     for k in range(len(bot)):   # the carpet is over the frame in its own columns: the frame is level there
         if xl + k in range(a_, c_): bot[k] = bot[max(0, a_ - xl - 1)]
-    ARCHWALLS.append({'x': xl, 'y': b_, 'w': xr + 1 - xl, 'h': dome - b_, 'cx': cx_, 'by': dome + 46, 'bot': bot, 'pw': [a_, c_], 'bandb': d_})
+    # A wall between two rooms, seen from the south: its dark top (b_..d_) is the top of a wall whose face runs down to the south room's floor. In this view the
+    # north room's floor goes on BEHIND the face, down to the wall's foot (as thick as the top). So: the north room is walkable down to the foot (you are hidden
+    # behind the face: the game draws the face over you), the foot is solid except under the arch, and the face is drawn over anything north of the foot.
+    flo = lambda x, y: (lambda p: p[0] > p[1] + 2)(_rgb.getpixel((x, y)))   # floor and carpet are warmer than the wall's cream, its grey-green dado and its dark top
+    f1 = next(y for y in range(d_, d_ + 160) if flo(xl - 4, y) and flo(xr + 4, y)); f0 = f1 - (d_ - b_)
+    nx0 = cx_
+    lit = lambda x, y: (lambda p: 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] >= 100)(_rgb.getpixel((x, y)))   # (the north room's floor ends at its dark side frames)
+    while lit(nx0 - 1, b_ - 2): nx0 -= 1
+    nx1 = cx_
+    while lit(nx1, b_ - 2): nx1 += 1
+    oL = cx_ - 12
+    while not _ring(oL - 1, f1 - 2): oL -= 1
+    oR = cx_ + 12
+    while not _ring(oR, f1 - 2): oR += 1
+    WALLS.append({'x0': nx0 - 10, 'x1': nx1 + 10, 'top': b_, 'f0': f0, 'f1': f1, 'open': [nx0, nx1], 'door': [oL, oR], 'hole': [bot[x - xl] if xl <= x <= xr else dome for x in range(oL, oR)]})
+    print('wall between rooms: top', b_, 'foot', f0, f1, 'north room x', nx0, nx1, 'door x', oL, oR)
 print('archwalls', [(q['x'], q['y'], q['w'], q['h']) for q in ARCHWALLS])
 for q in ARCHWALLS:   # the wall face beside a doorway is wall: its tiles are not floor (only the tiles the doorway itself runs through are)
     if q['bot'] is None: continue
@@ -353,6 +368,6 @@ sheet.save('assets/museum/decor.png'); json.dump(meta, open('assets/museum/decor
 mw, mh = cx1 - cx0, cy1 - cy0; chars = lambda row: ''.join(chr(48 + v) for v in row)
 tiles = [chars([grid[(cx0 + x, cy0 + y)] for x in range(mw)]) for y in range(mh)]; zero = ['0' * mw] * mh
 objs.append({'k': 'mexit', 'x': 544 - ox, 'y': 620 - oy, 'to': 'island'})
-json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'archwalls': [dict(q, x=q['x'] - ox, y=q['y'] - oy, cx=q['cx'] - ox, by=q['by'] - oy, bot=q['bot'] and [v - oy for v in q['bot']], pw=[q['pw'][0] - ox, q['pw'][1] - ox], bandb=q['bandb'] - oy) for q in ARCHWALLS], 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
+json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'walls': [dict(q, x0=q['x0'] - ox, x1=q['x1'] - ox, top=q['top'] - oy, f0=q['f0'] - oy, f1=q['f1'] - oy, open=[q['open'][0] - ox, q['open'][1] - ox], door=[q['door'][0] - ox, q['door'][1] - ox], hole=[v - oy for v in q['hole']]) for q in WALLS], 'archwalls': [dict(q, x=q['x'] - ox, y=q['y'] - oy, cx=q['cx'] - ox, by=q['by'] - oy, bot=q['bot'] and [v - oy for v in q['bot']], pw=[q['pw'][0] - ox, q['pw'][1] - ox], bandb=q['bandb'] - oy) for q in ARCHWALLS], 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
 open('js/museumver.js', 'w').write("const MUSEUM_V = '%s';   // written by the museum export scripts: changes whenever the museum's pictures do\n" % time.strftime('%Y%m%d%H%M%S'))
 print('maps/museum.json', mw, 'x', mh, len(objs), 'objects;', len(DECOR), 'decor pictures')
