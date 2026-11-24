@@ -38,6 +38,14 @@ function jbox(x, y, w, h, html, cls = '', attrs = '') { return `<div class="jb $
 
 // ---- the pages ------------------------------------------------------------------------------------------------------------------------------------
 // Each page is drawn into a slot: sx is where that slot's content area starts in the book (35 left, 134 right). A piece that was painted for the other side is shifted to fit.
+function jnine(name, sx, y, w, h) {   // a painted box that can be any height: its 2 pixel edges and corners are kept, the middle stretches (so the box grows to fit what is in it)
+  const p = jp(name); return `<div class="jb jnine" style="left:${jx(p.x + sx - JR_ORG[p.side || 'l'])};top:${jy(y)};width:${jc(w)};height:${jc(h)};border-image-source:url(assets/ui/journal/${name}.png)"></div>`;
+}
+JR.fitCard = function () {   // after the log page is drawn: how tall the card's writing really is; if the card is the wrong height, set it and draw the page again
+  const c = document.querySelector('#jrcont .jcard'); if (!c || JR.page !== 'log') return false; const last = c.lastElementChild; if (!last) return false;
+  const want = clamp(Math.ceil((last.offsetTop + last.offsetHeight) / JR.u) + 3, 46, 66), cur = Math.max(46, JR.cardH | 0);
+  if (want === cur || (JR.fitTries | 0) >= 2) { JR.fitTries = 0; return false; } JR.cardH = want; JR.fitTries = (JR.fitTries | 0) + 1; return true;
+};
 function jart(name, sx) { const p = jp(name); return jimg(name, sx - JR_ORG[p.side || 'l'], 0); }
 function jrect(name, k, sx) { const c = jp(name).cells[k], o = JR_ORG[jp(name).side || 'l']; return [c[0] - o + sx, c[1], c[2], c[3]]; }
 const jhead = (t, sx, x = 0, w = 77) => jbox(sx + x, 29, w, 8, `<span class="jh">${t}</span>`, 'jc');
@@ -61,12 +69,13 @@ function pageLog(side, sx) {
     return h;
   }
   const it = jlist(JR.tab.log)[JR.sel] || jlist(JR.tab.log)[0], ok = it && found(it.id), show = ok || (it && LOG_REVEAL), c = it && S.col[it.id];
-  let h = jart('clog_right', sx) + jart('clog_card', sx) + jart('clog_box', sx);
+  const cardH = Math.max(46, JR.cardH | 0), boxY = 31 + cardH + 2, boxH = clamp(122 - boxY, 26, 43);   // the card grows to fit what is written on it (JR.fitCard measures), and the stats box below gives up the room
+  let h = jart('clog_right', sx) + jnine('clog_card', sx, 31, 71, cardH) + jnine('clog_box', sx, boxY, 46, boxH);
   if (it) {
     const card = jp('clog_card'), box = jp('clog_box'), rar = it.r != null ? RAR[it.r] : null;
-    h += jbox(sx + card.x - 134, card.y, card.w, card.h, `<div class="jcard"><span class="${show ? '' : 'jdim'}">${jitemIcon(it.id, true)}</span><b style="color:${show && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${show ? it.name : '???'}</b><i>${show ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${show ? it.desc : ''}</p></div>`, 'jfill');
+    h += jbox(sx + card.x - 134, card.y, card.w, cardH, `<div class="jcard"><span class="${show ? '' : 'jdim'}">${jitemIcon(it.id, true)}</span><b style="color:${show && rar ? `color-mix(in srgb,${rar.c} 28%,#3a2a1e)` : '#594237'}">${show ? it.name : '???'}</b><i>${show ? (it.ex ? 'Exhibit piece: ' + it.set : rar ? rar.n : 'Salvage') : 'Not found yet'}</i><p>${show ? it.desc : ''}</p></div>`, 'jfill');
     const st = it.ex ? (ok ? `<span>FOUND <b>${c.n}</b></span><span class="jgot">YOU GOT THIS</span>` : '<span>NOT FOUND</span>') : it.r != null ? (ok ? `<span>FOUND <b>${c.n}</b></span><span>BEST <b>${c.best}%</b></span><div class="jbar"><i style="width:${c.best}%"></i></div>` : '<span>BEST <b>-</b></span>') : `<span>HAVE <b>${S.mats[it.id] | 0}</b></span>`;
-    h += jbox(sx + box.x - 134, box.y, box.w, box.h, `<div class="jstat">${st}</div>`, 'jfill');
+    h += jbox(sx + box.x - 134, boxY, box.w, boxH, `<div class="jstat">${st}</div>`, 'jfill');
   }
   return h;
 }
@@ -222,7 +231,7 @@ JR.content = function (instant) {
   else h += jbox(151, 12, 52, 7, `<span class="jh jtl">${pg[1]}</span>`, 'jc');   // the page name sits on the right-hand tab
   if (spread) h += fn('l', JR_ORG.l) + fn('r', JR_ORG.r); else h += fn(JR.side ? 'r' : 'l', JR_ORG.r) + jarrows();   // on a tall screen both halves of a section take turns on the right page
   const tmp = document.createElement('div'), token = JR.token = (JR.token || 0) + 1; tmp.innerHTML = h;
-  const swap = () => { if (token !== JR.token) return; const cont = document.getElementById('jrcont'); if (!cont) return; cont.replaceChildren(...tmp.childNodes); JR.drawHero(); };
+  const swap = () => { if (token !== JR.token) return; const cont = document.getElementById('jrcont'); if (!cont) return; cont.replaceChildren(...tmp.childNodes); JR.drawHero(); if (JR.fitCard()) JR.content(true); };
   const imgs = [...tmp.querySelectorAll('img')]; if (!imgs.length) return swap();
   Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => { }) : 0)).then(swap);
 };

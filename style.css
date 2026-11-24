@@ -229,6 +229,7 @@ body.lefty #bgame{right:auto;left:calc(var(--sal) + 22px + 84px + 14px)}
 #jrstage .jpgb{font-size:calc(var(--u)*5);font-weight:600;color:#60463e;cursor:pointer}#jrstage .jpgb.off{opacity:.3;cursor:default}#jrstage .jpgb em.jpgn{position:absolute;right:calc(var(--u)*.5);bottom:0;font-size:calc(var(--u)*2.6);font-style:normal}#jrstage .jgot{color:#8a5a16;font-weight:600}
 #jrstage .jtabdim{filter:brightness(.9) saturate(1.05)}
 #jrstage .jfill{padding:0}
+#jrstage .jnine{box-sizing:border-box;border:calc(var(--u)*2) solid transparent;border-image-slice:2 fill;border-image-repeat:stretch;image-rendering:pixelated;pointer-events:none}
 #jrstage .jcard{display:flex;flex-direction:column;align-items:center;width:100%;padding:calc(var(--u)*2) calc(var(--u)*2) 0;text-align:center}
 #jrstage .jcard b{font-size:calc(var(--u)*5);margin-top:calc(var(--u)*1)}
 #jrstage .jcard i{font-style:normal;font-size:calc(var(--u)*3.8);opacity:.8}
