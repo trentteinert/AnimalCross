@@ -63,10 +63,42 @@
 "w": 8,
 "h": 12
 },
+"cutlass_left": {
+"label": "Cutlass left",
+"set": "layer_15_4",
+"sx": 90,
+"sy": 0,
+"w": 6,
+"h": 19
+},
+"cutlass_right": {
+"label": "Cutlass right",
+"set": "layer_15_4",
+"sx": 97,
+"sy": 0,
+"w": 6,
+"h": 19
+},
+"longsword": {
+"label": "Longsword",
+"set": "layer_15_5",
+"sx": 104,
+"sy": 0,
+"w": 6,
+"h": 19
+},
+"shield": {
+"label": "Shield",
+"set": "layer_15_5",
+"sx": 111,
+"sy": 0,
+"w": 8,
+"h": 15
+},
 "emerald_ring": {
 "label": "Emerald ring",
 "set": "gem_rings",
-"sx": 90,
+"sx": 120,
 "sy": 0,
 "w": 6,
 "h": 7
@@ -74,7 +106,7 @@
 "saphire_ring": {
 "label": "Saphire ring",
 "set": "gem_rings",
-"sx": 97,
+"sx": 127,
 "sy": 0,
 "w": 6,
 "h": 7
@@ -82,7 +114,7 @@
 "ruby_ring": {
 "label": "Ruby ring",
 "set": "gem_rings",
-"sx": 104,
+"sx": 134,
 "sy": 0,
 "w": 6,
 "h": 7
@@ -90,7 +122,7 @@
 "diamond_ring": {
 "label": "Diamond ring",
 "set": "gem_rings",
-"sx": 111,
+"sx": 141,
 "sy": 0,
 "w": 6,
 "h": 7
@@ -98,7 +130,7 @@
 "ruby_amulet": {
 "label": "Ruby amulet",
 "set": "amulets",
-"sx": 118,
+"sx": 148,
 "sy": 0,
 "w": 10,
 "h": 8
@@ -106,7 +138,7 @@
 "diamond_amulet": {
 "label": "Diamond amulet",
 "set": "amulets",
-"sx": 129,
+"sx": 159,
 "sy": 0,
 "w": 5,
 "h": 10
@@ -114,7 +146,7 @@
 "saphire_amulet": {
 "label": "Saphire amulet",
 "set": "amulets",
-"sx": 135,
+"sx": 165,
 "sy": 0,
 "w": 8,
 "h": 7
@@ -122,7 +154,7 @@
 "emerald_amulet": {
 "label": "Emerald amulet",
 "set": "amulets",
-"sx": 144,
+"sx": 174,
 "sy": 0,
 "w": 7,
 "h": 8
@@ -130,7 +162,7 @@
 "large_arrowhead_2": {
 "label": "Large arrowhead 2",
 "set": "arrow_heads",
-"sx": 152,
+"sx": 182,
 "sy": 0,
 "w": 11,
 "h": 7
@@ -138,7 +170,7 @@
 "small_arrowhead": {
 "label": "Small arrowhead",
 "set": "arrow_heads",
-"sx": 164,
+"sx": 194,
 "sy": 0,
 "w": 11,
 "h": 3
@@ -146,7 +178,7 @@
 "meadium_arrowhead": {
 "label": "Meadium arrowhead",
 "set": "arrow_heads",
-"sx": 176,
+"sx": 206,
 "sy": 0,
 "w": 11,
 "h": 5
@@ -154,7 +186,7 @@
 "large_arrow_head": {
 "label": "Large arrow head",
 "set": "arrow_heads",
-"sx": 188,
+"sx": 218,
 "sy": 0,
 "w": 5,
 "h": 17
@@ -162,7 +194,7 @@
 "ex_statue_head": {
 "label": "Statue Head",
 "set": "statue",
-"sx": 194,
+"sx": 224,
 "sy": 0,
 "w": 9,
 "h": 10
@@ -170,7 +202,7 @@
 "ex_statue_torso": {
 "label": "Statue Torso",
 "set": "statue",
-"sx": 204,
+"sx": 234,
 "sy": 0,
 "w": 12,
 "h": 19
@@ -178,7 +210,7 @@
 "ex_statue_left_arm": {
 "label": "Statue Left arm",
 "set": "statue",
-"sx": 217,
+"sx": 247,
 "sy": 0,
 "w": 8,
 "h": 13
@@ -186,144 +218,144 @@
 "ex_statue_right_arm": {
 "label": "Statue Right arm",
 "set": "statue",
-"sx": 226,
-"sy": 0,
+"sx": 0,
+"sy": 24,
 "w": 5,
 "h": 23
 },
 "ex_statue_left_leg": {
 "label": "Statue Left leg",
 "set": "statue",
-"sx": 232,
-"sy": 0,
+"sx": 6,
+"sy": 24,
 "w": 12,
 "h": 33
 },
 "ex_statue_right_leg": {
 "label": "Statue Right leg",
 "set": "statue",
-"sx": 245,
-"sy": 0,
+"sx": 19,
+"sy": 24,
 "w": 8,
 "h": 33
 },
 "ex_monument_base": {
 "label": "Monument base",
 "set": "monument",
-"sx": 0,
-"sy": 34,
+"sx": 28,
+"sy": 24,
 "w": 33,
 "h": 25
 },
 "ex_monument_middle": {
 "label": "Monument middle",
 "set": "monument",
-"sx": 34,
-"sy": 34,
+"sx": 62,
+"sy": 24,
 "w": 33,
 "h": 41
 },
 "ex_monument_top": {
 "label": "Monument top",
 "set": "monument",
-"sx": 68,
-"sy": 34,
+"sx": 96,
+"sy": 24,
 "w": 33,
 "h": 49
 },
 "ex_ritual_center": {
 "label": "Ritual centerpiece",
 "set": "ritual",
-"sx": 102,
-"sy": 34,
+"sx": 130,
+"sy": 24,
 "w": 14,
 "h": 17
 },
 "ex_ritual_stone1": {
 "label": "Ritual stone 1",
 "set": "ritual",
-"sx": 117,
-"sy": 34,
+"sx": 145,
+"sy": 24,
 "w": 7,
 "h": 5
 },
 "ex_ritual_stone2": {
 "label": "Ritual stone 2",
 "set": "ritual",
-"sx": 125,
-"sy": 34,
+"sx": 153,
+"sy": 24,
 "w": 9,
 "h": 5
 },
 "ex_ritual_stone3": {
 "label": "Ritual stone 3",
 "set": "ritual",
-"sx": 135,
-"sy": 34,
+"sx": 163,
+"sy": 24,
 "w": 5,
 "h": 4
 },
 "ex_ritual_stone4": {
 "label": "Ritual stone 4",
 "set": "ritual",
-"sx": 141,
-"sy": 34,
+"sx": 169,
+"sy": 24,
 "w": 4,
 "h": 4
 },
 "ex_ritual_stone5": {
 "label": "Ritual stone 5",
 "set": "ritual",
-"sx": 146,
-"sy": 34,
+"sx": 174,
+"sy": 24,
 "w": 4,
 "h": 4
 },
 "ex_ritual_stone6": {
 "label": "Ritual stone 6",
 "set": "ritual",
-"sx": 151,
-"sy": 34,
+"sx": 179,
+"sy": 24,
 "w": 4,
 "h": 4
 },
 "ex_ritual_stone7": {
 "label": "Ritual stone 7",
 "set": "ritual",
-"sx": 156,
-"sy": 34,
+"sx": 184,
+"sy": 24,
 "w": 5,
 "h": 4
 },
 "ex_ritual_stone8": {
 "label": "Ritual stone 8",
 "set": "ritual",
-"sx": 162,
-"sy": 34,
+"sx": 190,
+"sy": 24,
 "w": 9,
 "h": 5
 },
 "ex_ritual_stone9": {
 "label": "Ritual stone 9",
 "set": "ritual",
-"sx": 172,
-"sy": 34,
+"sx": 200,
+"sy": 24,
 "w": 7,
 "h": 5
 },
 "cerimonial_vase": {
 "label": "Cerimonial vase",
 "set": "cerimonial_vase",
-"sx": 180,
-"sy": 34,
+"sx": 208,
+"sy": 24,
 "w": 16,
 "h": 28
 },
 "painted_cerimonial_vase": {
 "label": "Painted cerimonial vase",
 "set": "cerimonial_vase",
-"sx": 197,
-"sy": 34,
+"sx": 225,
+"sy": 24,
 "w": 16,
 "h": 29
 }

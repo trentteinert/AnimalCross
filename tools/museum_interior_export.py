@@ -154,6 +154,7 @@ json.dump({'size': 16, 'cols': COLS, 'count': len(tset), 'walk': walk, 'tmpl': T
 CASES = {'case_1x1': 'Artifacts_1x1', 'case_2x1': 'Artifacts_2x1', 'case_2x2': 'Artifacts_2x2', 'case_3x2': 'Artifacts_3x2'}
 MGROUP = {'case_1x1': '1*1 (3)', 'case_2x1': '2x1', 'case_2x2': '2x2', 'case_3x2': '3x2'}   # the same case in Museum_interior.aseprite (hidden, with the items placed in it)
 SPLIT = {'Busts'}                                                                         # groups whose pictures are separate items
+SPLIT_SINGLE = {'Layer 15 (4)': (('cutlass_left', 'Cutlass left'), ('cutlass_right', 'Cutlass right')), 'Layer 15 (5)': (('longsword', 'Longsword'), ('shield', 'Shield'))}   # two weapons in one layer: each is its own find
 EXHIBITS = {   # permanent exhibits: stages in the order you would build them. 'add' = each stage adds a piece to the last; 'swap' = each stage is its own picture
     'Standing sculpture': ('add', ['Left leg', 'Right leg', 'Torso', 'Left arm', 'Rightarm', 'Head'], ['Shadow'], ['Shadow', 'Completed Sculpture']),
     'Carvel monument': ('swap', [['Carved monument bottom'], ['Carved monument middle']], [], ['Carved monument complete']),
@@ -211,7 +212,13 @@ for cn, fn in CASES.items():
             else: stg = [[ids[s] for s in st] for st in steps]
             entries.append((n, [ids[s] for s in done] if done else stg[-1], stg))
         elif AL[i]['type'] == 1: entries.append((n, leaves(AL, i), None))
-        else: entries.append((n, [i], None))
+        else:
+            entries.append((n, [i], None))
+            if n in SPLIT_SINGLE:   # one layer that holds two objects side by side (left, right): cut apart at the empty column between them
+                im = AI[i]; bb = im.getbbox(); cols_ = [any(im.getpixel((x, y))[3] for y in range(bb[1], bb[3])) for x in range(bb[0], bb[2])]
+                gaps = [x for x in range(1, len(cols_) - 1) if not cols_[x]]; cut = gaps[len(gaps) // 2] + bb[0] if gaps else (bb[0] + bb[2]) // 2
+                for (k_, lab_), box in zip(SPLIT_SINGLE[n], ((bb[0], bb[1], cut, bb[3]), (cut, bb[1], bb[2], bb[3]))):
+                    part = Image.new('RGBA', im.size); part.paste(im.crop(box), box[:2]); PIECES[k_] = {'label': lab_, 'set': slug(n), 'img': part}
     common = {}
     for n, ids, stg in entries:
         im = stack(AI, ids, w, h); b = im.getbbox(); dy = mdy[cn].get(key(im))
