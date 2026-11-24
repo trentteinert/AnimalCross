@@ -404,7 +404,6 @@ function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk
   for (const o of [[-hw, 0], [hw, 0], [-hw, -hh], [hw, -hh]]) { const t = stairsAt(x + o[0], y + o[1]) ? 5 : typeAt(x + o[0], y + o[1]); if (wade !== 'stone' && (t === 0 || ((t === 1 || t === 6) && !wade))) return true; const z = pitZ(x + o[0], y + o[1]); if (z < zmin) zmin = z; if (z > zmax) zmax = z; }
   if (wade !== 'stone' && zmax - zmin > 0.55) return true;   // a step in the ground (the wall of a pit) can't be walked over; ramps rise gently enough
   if (MGRID && wade !== 'stone') for (const o of [[-hw, 2], [hw, 2], [-hw, -hh], [hw, -hh]]) { const px = x + o[0], py = y + o[1]; if (!stairsAt(px, py) && museumSolidPix(px, py)) return true; }
-  if (MAPDATA && MAPDATA.archwalls && wade !== 'stone') for (const q of MAPDATA.archwalls) { const dm = q.y + q.h; for (const px of [x - hw, x + hw]) if (px >= q.x && px < q.x + q.w && y > q.y && y - hh < (q.bot ? q.bot[Math.floor(px - q.x)] : dm) && (px < q.pw[0] || px >= q.pw[1])) return true; }   // the wall beside a doorway (down to the arch): you can only walk through the doorway itself
   const x0 = x - hw, x1 = x + hw, y0 = y - hh, y1 = y;
   for (const o of W.solids) {
     const bx = o.x + o.box[0], by = o.y + o.box[1]; if (x < bx - 16 || x > bx + o.box[2] + 16 || y < by - 16 || y > by + o.box[3] + 16) continue;   // only the solids near you (judged by their own edges, so a wide building is not skipped)

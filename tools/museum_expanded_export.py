@@ -96,6 +96,11 @@ for a_, b_, c_, d_ in PASS:
         if xl + k in range(a_, c_): bot[k] = bot[max(0, a_ - xl - 1)]
     ARCHWALLS.append({'x': xl, 'y': b_, 'w': xr + 1 - xl, 'h': dome - b_, 'cx': cx_, 'by': dome + 46, 'bot': bot, 'pw': [a_, c_], 'bandb': d_})
 print('archwalls', [(q['x'], q['y'], q['w'], q['h']) for q in ARCHWALLS])
+for q in ARCHWALLS:   # the wall face beside a doorway is wall: its tiles are not floor (only the tiles the doorway itself runs through are)
+    if q['bot'] is None: continue
+    for cc in range(q['x'] // 16, (q['x'] + q['w'] - 1) // 16 + 1):
+        if cc * 16 + 16 > q['pw'][0] and cc * 16 < q['pw'][1]: continue
+        for rr in range((q['bandb'] + 15) // 16, (q['y'] + q['h'] - 1) // 16 + 1): walkset.discard((cc, rr))   # (only the cells south of the dark top edge)
 for a_, b_, c_, d_ in PASS:
     for cc in range(a_ // 16, (c_ - 1) // 16 + 1):
         for rr in range(b_ // 16, (d_ - 1) // 16 + 1): walkset.add((cc, rr))
