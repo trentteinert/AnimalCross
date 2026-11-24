@@ -55,6 +55,28 @@ for yy in range(EH):
                         if 0 <= q[0] < EH and 0 <= q[1] < EW and gap[q] and not seen_g[q]: seen_g[q] = True; st_.append(q)
             if len(pts) >= 6: PASS.append([min(p_[1] for p_ in pts) - 1, min(p_[0] for p_ in pts) - 1, max(p_[1] for p_ in pts) + 2, max(p_[0] for p_ in pts) + 2])
 print('doorways through walls:', len(PASS))
+_rgb = canvas.convert('RGB')
+def _ring(x, y):
+    r, g_, b_ = _rgb.getpixel((x, y)); return 0.3 * r + 0.59 * g_ + 0.11 * b_ < 190 and abs(r - g_) < 40 and abs(g_ - b_) < 40 and r > 60
+ARCHWALLS = []
+for a_, b_, c_, d_ in PASS:
+    cx_ = (a_ + c_) // 2; dome = None
+    for y in range(d_, d_ + 40):
+        if _ring(cx_ - 14, y): dome = y; break
+    if dome is None: ARCHWALLS.append({'x': a_, 'y': b_, 'w': c_ - a_, 'h': d_ - b_, 'cx': cx_, 'by': d_ + 24, 'cols': None}); continue
+    xl = next(x for x in range(cx_ - 14, cx_ - 80, -1) if not _ring(x, dome + 14) and _ring(x - 1, dome + 14)) - 1 if False else None
+    xl = cx_ - 14
+    while xl > cx_ - 80 and not _ring(xl, dome + 14): xl -= 1
+    xr = cx_ + 14
+    while xr < cx_ + 80 and not _ring(xr, dome + 14): xr += 1
+    cols_ = []
+    for x in range(xl, xr + 1):
+        c = 14
+        for y in range(dome, dome + 14):
+            if _ring(x, y): c = y - dome; break
+        cols_.append(c)
+    ARCHWALLS.append({'x': xl, 'y': b_, 'w': xr + 1 - xl, 'h': dome - b_, 'cx': cx_, 'by': dome + 26, 'cols': cols_})
+print('archwalls', [(q['x'], q['y'], q['w'], q['h']) for q in ARCHWALLS])
 for a_, b_, c_, d_ in PASS:
     for cc in range(a_ // 16, (c_ - 1) // 16 + 1):
         for rr in range(b_ // 16, (d_ - 1) // 16 + 1): walkset.add((cc, rr))
@@ -119,7 +141,7 @@ for i, kind in PROP.items():
 # wall frame over both). What is left of them is an invisible marker prop (where the doorway is, for the stairs' ramp and the wall that hides you) and the curved top of the frame, which is drawn over you.
 import numpy as np
 for i, nmx in ((25, 'arch_welcome'), (18, 'arch_east')):
-    sb = S[i].getbbox(); walls = [j for j in ROOMLAYERS if j > i and S[j].getpixel((sb[0] + 1, sb[1] + 1))[3] > 0]
+    sb = S[i].getbbox(); walls = [30] if i == 25 else [j for j in ROOMLAYERS if j > i and S[j].getpixel((sb[0] + 1, sb[1] + 1))[3] > 0]   # (the wall with the doorway cut out)
     cov = np.zeros((EH, EW), bool)
     for j in walls: cov |= np.array(S[j].getchannel('A')) > 0
     hole = np.zeros((EH, EW), bool); hole[sb[1]:sb[3], sb[0]:sb[2]] = ~cov[sb[1]:sb[3], sb[0]:sb[2]]
@@ -307,6 +329,6 @@ sheet.save('assets/museum/decor.png'); json.dump(meta, open('assets/museum/decor
 mw, mh = cx1 - cx0, cy1 - cy0; chars = lambda row: ''.join(chr(48 + v) for v in row)
 tiles = [chars([grid[(cx0 + x, cy0 + y)] for x in range(mw)]) for y in range(mh)]; zero = ['0' * mw] * mh
 objs.append({'k': 'mexit', 'x': 544 - ox, 'y': 620 - oy, 'to': 'island'})
-json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
+json.dump({'v': 1, 'w': mw, 'h': mh, 'theme': 'museum', 'tiles': tiles, 'deck': zero, 'site': zero, 'pit': zero, 'pier': None, 'structs': [], 'spawn': {'x': 544 - ox, 'y': 556 - oy}, 'archwalls': [dict(q, x=q['x'] - ox, y=q['y'] - oy, cx=q['cx'] - ox, by=q['by'] - oy) for q in ARCHWALLS], 'passages': [[a_ - ox, b_ - oy, c_ - ox, d_ - oy] for a_, b_, c_, d_ in PASS], 'objects': objs}, open('maps/museum.json', 'w'), separators=(',', ':'))
 open('js/museumver.js', 'w').write("const MUSEUM_V = '%s';   // written by the museum export scripts: changes whenever the museum's pictures do\n" % time.strftime('%Y%m%d%H%M%S'))
 print('maps/museum.json', mw, 'x', mh, len(objs), 'objects;', len(DECOR), 'decor pictures')

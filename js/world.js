@@ -267,8 +267,8 @@ function computeStairs() {   // a stairs arch with no rope across it can be walk
     let cols = null; if (tip) { const d = tip.g.getImageData(0, 0, tip.width, tip.height).data; cols = []; for (let c = 0; c < tip.width; c++) { let r = 0; for (let y = tip.t0; y < tip.height; y++) if (d[(y * tip.width + c) * 4 + 3]) { r = y - tip.t0; break; } cols.push(r); } }   // for each column, how far the curved top of the frame is below its highest point: the corners above the curve are wall too
     if (dome > yt) W.objs.push({ k: 'archwall', x: o.x, y: o.y, sy: o.y - 6, nosel: true, strip: { x: o.x - o.spr.ax, y: yt, w: o.spr.width, h: dome - yt, cols } }); }   // up to the corridor floor above (through the frame at the top of the doorway)
 }
-function passageWalls() {   // a doorway cut through a wall's dark top edge (two rooms side by side): the wall hides you from the top as you walk through, like the stairs' wall
-  if (MAPDATA && MAPDATA.passages) for (const q of MAPDATA.passages) W.objs.push({ k: 'archwall', x: (q[0] + q[2]) / 2, y: q[3] + 24, sy: q[3], nosel: true, strip: { x: q[0], y: q[1], w: q[2] - q[0], h: q[3] - q[1], cols: null } });
+function passageWalls() {   // a doorway cut through a wall (two rooms side by side): the wall's top edge and its face down to the curve of the arch hide you as you walk through, like the stairs' wall
+  if (MAPDATA && MAPDATA.archwalls) for (const q of MAPDATA.archwalls) W.objs.push({ k: 'archwall', x: q.cx, y: q.by, sy: q.y, nosel: true, strip: { x: q.x, y: q.y, w: q.w, h: q.h, cols: q.cols } });
 }
 const stairsAt = (x, y) => { if (W.stairs) for (const s of W.stairs) if (x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1) return s; return null; };
 function rebuildAll() {
