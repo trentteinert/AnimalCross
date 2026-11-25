@@ -30,7 +30,7 @@ function rollDig(tier, depth, wild) {   // depth: how far down the dug spot is (
   }
   if (kind === 'artifact') {
     const w = (wild ? ART_WILD : ART_W[tier] || ART_W[1]).slice(); w[0] *= Math.max(0.2, 1 - 0.25 * depth); w[2] *= 1 + 0.8 * depth;
-    const rar = pickW(w), a = !wild && !st.sdigs ? ARTIFACTS[0] : ART_BY_R[rar][Math.floor(Math.random() * ART_BY_R[rar].length)];
+    const rar = pickW(w), a = !wild && !st.sdigs ? ITEM.jug : ART_BY_R[rar][Math.floor(Math.random() * ART_BY_R[rar].length)];
     const potential = clamp(Math.round((wild ? rnd(28, 66) : rnd(40, 88)) - a.r * 4 + brush().pres + depth * 6), 5, 100);   // the best this find could be: rarer things are a little more fragile, brushes help. How well you brush decides how much of it you keep
     return { kind, id: a.id, pct: potential, potential, wild, tier: hasTiers(a.id) ? rollTier(tier, depth, wild) : 1 };
   }

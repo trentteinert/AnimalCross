@@ -45,7 +45,7 @@ UI.plaque = function (o) {
     const it = ITEM[id], ok = found(id), c = S.col[id], r = RAR[it.r] || RAR[0], rc = ['#6f747b', '#3f8a4a', '#2f6fae'][it.r] || '#6f747b', t = ok && hasTiers(id) ? bestTier(id) : 0;
     const pic = ok ? `<img src="${itemURL(id, t || 1)}" alt="">` : '<i class="pq">?</i>';
     const stat = ok ? (it.ex ? 'In your collection' : `Found ${c.n} &middot; best ${c.best}% intact${t ? ' &middot; ' + esc(tierName(id, t)) : ''}`) : 'Not found yet';
-    return `<div class="prow">${pic}<div><b>${ok ? esc(it.name) : '???'}</b> <em style="color:${rc}">${r.n}</em><small>${stat}</small>${ok && ids.length === 1 && it.desc ? `<p>${esc(it.desc)}</p>` : ''}</div></div>`;
+    return `<div class="prow">${pic}<div><b>${ok ? esc(it.name) : '???'}</b> <em style="color:${rc}">${r.n}</em>${it.cat && !it.ex ? ` <em class="pcat">${esc(CAT_NAME[it.cat])}</em>` : ''}<small>${stat}</small>${ok && ids.length === 1 && it.desc ? `<p>${esc(it.desc)}</p>` : ''}</div></div>`;
   };
   el.innerHTML = `<div class="ptitle">${esc(title)}</div>${ids.length > 1 ? `<div class="pcount">${have} of ${ids.length} found</div>` : ''}${ids.map(row).join('')}${(() => { const w = [...new Set(ids.filter(id => !found(id)).map(whereFound))]; return w.length ? `<div class="pwhere"><b>Where to look</b>${w.map(x => `<small>${esc(x)}</small>`).join('')}</div>` : ''; })()}`;
   el.classList.remove('hidden');
