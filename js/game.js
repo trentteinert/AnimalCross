@@ -342,7 +342,7 @@ function render(now) {
   const sk = SHK.t > 0 ? SHK.a * SHK.t / SHK.d : 0, cx = Math.round(cam.x + (sk ? (Math.random() * 2 - 1) * sk : 0)), cy = Math.round(cam.y + (sk ? (Math.random() * 2 - 1) * sk : 0)), K = DPR * Z;
   // the world is drawn on whole native pixels, then the whole scene is slid by the camera's fractional part (in device pixels): the camera glides instead of stepping
   g.setTransform(K, 0, 0, K, Math.round((cx - cam.x) * K), Math.round((cy - cam.y) * K)); g.imageSmoothingEnabled = false;
-  g.fillStyle = W.theme === 'museum' ? '#14161c' : '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy);
+  g.fillStyle = W.theme === 'museum' ? '#14161c' : '#2c5a86'; g.fillRect(-2, -2, VW + 4, VH + 4); g.drawImage(W.terrain, -cx, -cy); drawWater(cx, cy, now);   // the animated water over the ground (js/water.js)
   if (fxOn()) fxWater(cx, cy, now);
   drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now); drawPrints(cx, cy, Math.min(0.1, Math.max(0, now - (drawPrints.last || now)))); drawPrints.last = now;
   const sb = Math.floor(now * 2);

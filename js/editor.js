@@ -298,7 +298,7 @@ function outline(x, y, w, h, col) { g.fillStyle = col; g.fillRect(x, y, w, 1); g
 function edRender(now) {
   Z = ED.zoom; VW = innerWidth / Z; VH = innerHeight / Z; g.setTransform(DPR * Z, 0, 0, DPR * Z, 0, 0); g.imageSmoothingEnabled = false;
   const cx = Math.round(ED.cam.x), cy = Math.round(ED.cam.y);
-  g.fillStyle = '#121a27'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy);
+  g.fillStyle = '#121a27'; g.fillRect(0, 0, VW, VH); g.drawImage(W.terrain, -cx, -cy); drawWater(cx, cy, performance.now() / 1000);
   if (fxOn()) fxWater(cx, cy, now);
   const L = W.objs.filter(o => o.x > cx - 80 && o.x < cx + VW + 80 && o.y > cy - 10 && o.y < cy + VH + 100).sort((a, b) => (a.sy ?? a.y) - (b.sy ?? b.y));
   for (const o of L) drawEnt(o, cx, cy, now); drawCrowns(cx, cy, now);

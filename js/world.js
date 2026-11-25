@@ -91,21 +91,22 @@ function renderMuseum() {   // the interior: every tile drawn from the museum ti
 }
 function renderTerrain() {
   if (W.theme === 'museum' && MGRID) return renderMuseum();
-  const A = atlasFor(W.theme), c = mk(PW, PH); let cliffM = null;   // cliffM: where cliff grass was drawn (its shadow falls on the water below it)
+  const A = atlasFor(W.theme), c = mk(PW, PH), WON = waterOn(); let cliffM = null;   // cliffM: where cliff grass was drawn (its shadow falls on the water below it)
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) c.g.drawImage(A, Math.floor(hash2(tx, ty, 21) * 3) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
     if (L === 3 && !t.includes(4)) continue;   // dirt is only laid where a dirt tile is near: under plain grass edges it would peek out past the grass
     const wet = t.some(q => q === 0 || q === 1);   // grass meeting open water here: a little cliff, and no beach under it
-    for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L && !(L === 2 && wet && t[k] === 3)) m |= 1 << k;
+    for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : (LVL[t[k]] >= L || (L === 2 && WON && isOpenWater(t[k]))) && !(L === 2 && wet && t[k] === 3)) m |= 1 << k;   // (with the animated water, sand lies under it: the moving edges show the beach)
     if (!m) continue;
     if (L === 4 && wet && m !== 15 && ASSET.img.grass_cliff) { c.g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); (cliffM || (cliffM = mk(PW, PH))).g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); continue; }   // (tools/src/Cliff_grass_tiles.aseprite)
     const hv = hash2(i, j, 30 + L), col = m === 15 ? (VARIETY[L] && ASSET.img[VARIETY[L]] ? variantCol(L, hash2(i, j, 77), i, j) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  if (cliffM) cliffShadow(c, cliffM);
-  groundPatches(c); groundDetails(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
+  if (cliffM && !WON) cliffShadow(c, cliffM);   // (the animated water draws the cliffs' shadow itself, js/water.js)
+  groundPatches(c); groundDetails(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); if (!WON) drawDeck(c);
+  waterBuild(cliffM); return c;
 }
 // Light and shadow patches on the ground: big soft-edged blobs of one lighter and one darker shade laid over the plain colour of grass and of dirt wherever it shows
 // (the shades are the swatches under each tile set: tools/src/Grass_tiles.aseprite, tools/src/Dirt_tiles.aseprite). Their shapes come from smooth noise in world pixels
