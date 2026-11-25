@@ -107,12 +107,12 @@ function renderTerrain() {
 // (the shades are the swatches under each tile set: tools/src/Grass_tiles.aseprite, tools/src/Dirt_tiles.aseprite). Their shapes come from smooth noise in world pixels
 // (three sizes: the blobs, their lobes, the ragged pixel edge), so they ignore the tile grid and the same spot always looks the same.
 const GROUND_SHADES = [
-  { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116], seed: 811 },
-  { name: 'dirt', base: [173, 130, 101], lo: [161, 123, 98], hi: [178, 138, 111], seed: 831 }];
+  { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116], seed: 811, sizes: [46, 19, 6] },
+  { name: 'dirt', base: [173, 130, 101], lo: [167, 127, 100], hi: [176, 134, 106], seed: 831, sizes: [30, 13, 5] }];   // dirt: the swatch shades taken halfway back to the base (softer), and smaller patches
 function groundPatches(c) {
   const id = c.g.getImageData(0, 0, PW, PH), d = id.data, sm = t => t * t * (3 - 2 * t);
   for (const G of GROUND_SHADES) {
-    G.octs = [[46, 0.62], [19, 0.3], [6, 0.08]].map(([s, w], k) => {   // a lattice of random values for each size (each ground has its own, so grass and dirt patches do not line up)
+    G.octs = [0.62, 0.3, 0.08].map((w, k) => { const s = G.sizes[k];   // a lattice of random values for each size (each ground has its own, so grass and dirt patches do not line up)
       const gw = Math.ceil(PW / s) + 2, gh = Math.ceil(PH / s) + 2, v = new Float32Array(gw * gh);
       for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) v[y * gw + x] = hash2(x, y, G.seed + k);
       return { s, w, gw, v };
