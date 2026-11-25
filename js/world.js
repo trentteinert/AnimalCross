@@ -108,7 +108,7 @@ function renderTerrain() {
 // (three sizes: the blobs, their lobes, the ragged pixel edge), so they ignore the tile grid and the same spot always looks the same.
 const GROUND_SHADES = [
   { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116], seed: 811, sizes: [46, 19, 6] },
-  { name: 'dirt', base: [173, 130, 101], lo: [167, 127, 100], hi: [176, 134, 106], seed: 831, sizes: [30, 13, 5] }];   // dirt: the swatch shades taken halfway back to the base (softer), and smaller patches
+  { name: 'dirt', base: [173, 130, 101], lo: [169, 128, 100], hi: [175, 133, 104], seed: 831, sizes: [52, 21, 6] }];   // dirt: the swatch shades a third of the way from the base (very soft), big patches
 function groundPatches(c) {
   const id = c.g.getImageData(0, 0, PW, PH), d = id.data, sm = t => t * t * (3 - 2 * t);
   for (const G of GROUND_SHADES) {
