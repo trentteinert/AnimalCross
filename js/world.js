@@ -91,7 +91,7 @@ function renderMuseum() {   // the interior: every tile drawn from the museum ti
 }
 function renderTerrain() {
   if (W.theme === 'museum' && MGRID) return renderMuseum();
-  const A = atlasFor(W.theme), c = mk(PW, PH);
+  const A = atlasFor(W.theme), c = mk(PW, PH); let cliffM = null;   // cliffM: where cliff grass was drawn (its shadow falls on the water below it)
   for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) c.g.drawImage(A, Math.floor(hash2(tx, ty, 21) * 3) * 16, 0, 16, 16, tx * 16, ty * 16, 16, 16);
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
@@ -99,11 +99,12 @@ function renderTerrain() {
     const wet = t.some(q => q === 0 || q === 1);   // grass meeting open water here: a little cliff, and no beach under it
     for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L && !(L === 2 && wet && t[k] === 3)) m |= 1 << k;
     if (!m) continue;
-    if (L === 4 && wet && m !== 15 && ASSET.img.grass_cliff) { c.g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); continue; }   // (tools/src/Cliff_grass_tiles.aseprite)
+    if (L === 4 && wet && m !== 15 && ASSET.img.grass_cliff) { c.g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); (cliffM || (cliffM = mk(PW, PH))).g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); continue; }   // (tools/src/Cliff_grass_tiles.aseprite)
     const hv = hash2(i, j, 30 + L), col = m === 15 ? (VARIETY[L] && ASSET.img[VARIETY[L]] ? variantCol(L, hash2(i, j, 77), i, j) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
+  if (cliffM) cliffShadow(c, cliffM);
   groundPatches(c); groundDetails(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
 }
 // Light and shadow patches on the ground: big soft-edged blobs of one lighter and one darker shade laid over the plain colour of grass and of dirt wherever it shows
@@ -132,6 +133,18 @@ function groundPatches(c) {
     }
     n += (hash2(x, y, G.seed + 9) - 0.5) * 0.02;   // a few loose pixels along the edges, like the hand-drawn patches
     const col = n > 0.6 && G.hi ? G.hi : n < 0.39 ? G.lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
+  }
+  c.g.putImageData(id, 0, 0);
+}
+const CLIFF_SHADOW = [0.6, 0.6, 0.68, 0.68, 0.68, 0.8, 0.8, 0.9];   // the cliff's shadow on the water: how much each row below its edge is darkened (two hard steps and a faint one, pixel-art style)
+function cliffShadow(c, cm) {   // the water just below a grass cliff is in its shadow
+  const id = c.g.getImageData(0, 0, PW, PH), d = id.data, md = cm.g.getImageData(0, 0, PW, PH).data, N = CLIFF_SHADOW.length;
+  for (let x = 0; x < PW; x++) for (let y = 1; y < PH; y++) {
+    if (!md[((y - 1) * PW + x) * 4 + 3] || md[(y * PW + x) * 4 + 3]) continue;   // the bottom edge of the cliff in this column
+    for (let k = 0; k < N && y + k < PH; k++) {
+      const yy = y + k, t = typeAt(x, yy); if (t !== 0 && t !== 1) break; if (md[(yy * PW + x) * 4 + 3]) break;
+      const i = (yy * PW + x) * 4, f = CLIFF_SHADOW[k]; d[i] = d[i] * f; d[i + 1] = d[i + 1] * f; d[i + 2] = d[i + 2] * f;
+    }
   }
   c.g.putImageData(id, 0, 0);
 }
