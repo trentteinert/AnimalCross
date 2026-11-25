@@ -6,7 +6,7 @@
 const WATER = { sd: null, val: null, shade: null, over: null, caus: null, noise: null, cv: null, sv: null };
 const WCOL = { shore: [96, 158, 150], mid: [52, 118, 132], deep: [36, 84, 106], caus: [150, 206, 204], foam: [228, 241, 236], spark: [246, 252, 250] };
 const WAVE = { low: -1.5, high: 4.5, period: 5.2, along: 0.045, rough: 1.4, foam: 1.6, wetA: 46, fps: 7 };   // the waves on the shore (pixels; seconds): how far back and up they go, how long one takes, how fast it travels along the coast, how uneven its edge is, how thick the foam, how dark the wet sand
-const WAVE_CLIFF = { low: -1.6, high: 0, period: 3.6, along: 0.06, rough: 0.8, foam: 1.1, wetA: 0, fps: 7, dotted: true };   // against a grass cliff: the water only bobs a little under it, with a broken line of foam (it never runs up onto the grass)
+const WAVE_CLIFF = { low: -1.6, high: 0, period: 3.6, along: 0.06, rough: 0.8, foam: 1.1, wetA: 0, fps: 7, dotted: true, foamFace: 0.32, foamSide: 0.08 };   // foamFace / foamSide: how many of the foam pixels show under a cliff's face (grey stone) and along its sides   // against a grass cliff: the water only bobs a little under it, with a broken line of foam (it never runs up onto the grass)
 const waterOn = () => W.theme !== 'museum' && W.theme !== 'cave' && !!ASSET.img.water_anim && typeof WATER_ANIM !== 'undefined';
 const isOpenWater = t => t === 0 || t === 1;
 
@@ -27,7 +27,7 @@ function waterTextures() {   // a tileable caustic pattern (cell edges, 1 pixel 
   }
 }
 
-function waterBuild(cliffM) {   // called by renderTerrain: how deep the water is per tile, the cliffs' shadow on it, and what stands above it
+function waterBuild(cliffM, ground) {   // called by renderTerrain: how deep the water is per tile, the cliffs' shadow on it, and what stands above it
   if (!waterOn()) { WATER.val = null; return; }
   waterTextures();
   const val = new Float32Array(MW * MH);   // 0 on land, the shallows a little, open water fully
@@ -50,7 +50,9 @@ function waterBuild(cliffM) {   // called by renderTerrain: how deep the water i
       for (let k = 0; k <= N && k <= y; k++) if (md[((y - k) * PW + x - 1) * 4 + 3]) { WATER.shade[y * PW + x] = Math.round(CLIFF_SHADOW[Math.max(0, k - 1)] * 255); break; }
     }
   }
-  const over = mk(PW, PH); if (cliffM) over.g.drawImage(cliffM, 0, 0); drawDeck(over); WATER.over = over;   // the grass cliffs and the piers stand above the water
+  const over = mk(PW, PH);   // the grass cliffs as they are on the finished ground (with the grass's shadow patches and little sprites), then the piers
+  if (cliffM) { over.g.drawImage(ground || cliffM, 0, 0); over.g.globalCompositeOperation = 'destination-in'; over.g.drawImage(cliffM, 0, 0); over.g.globalCompositeOperation = 'source-over'; }
+  drawDeck(over); WATER.over = over;   // the grass cliffs and the piers stand above the water
   const ct = new Uint8Array(MW * MH);   // tiles at a grass cliff: water next to grass, and that grass
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const t = GRID[y * MW + x]; if (!isOpenWater(t) && t !== 3) continue;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= MW || yy >= MH) continue; const u = GRID[yy * MW + xx]; if ((isOpenWater(t) && u === 3) || (t === 3 && isOpenWater(u))) ct[y * MW + x] = 1; } }
@@ -62,6 +64,9 @@ function waterBuild(cliffM) {   // called by renderTerrain: how deep the water i
     for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) { const i = y * PW + x; if (!D[i]) continue; let v = D[i]; if (x > 0) v = Math.min(v, D[i - 1] + 3); if (y > 0) { v = Math.min(v, D[i - PW] + 3); if (x > 0) v = Math.min(v, D[i - PW - 1] + 4); if (x < PW - 1) v = Math.min(v, D[i - PW + 1] + 4); } D[i] = v; }
     for (let y = PH - 1; y >= 0; y--) for (let x = PW - 1; x >= 0; x--) { const i = y * PW + x; if (!D[i]) continue; let v = D[i]; if (x < PW - 1) v = Math.min(v, D[i + 1] + 3); if (y < PH - 1) { v = Math.min(v, D[i + PW] + 3); if (x < PW - 1) v = Math.min(v, D[i + PW + 1] + 4); if (x > 0) v = Math.min(v, D[i + PW - 1] + 4); } D[i] = v; }
     WATER.cd = D;
+    const lip = new Uint8Array(N);   // the foot of a cliff's face (the grey stone shows: the cliff is right above), not its sides
+    for (let y = 1; y < PH; y++) for (let x = 0; x < PW; x++) if (!md[(y * PW + x) * 4 + 3]) for (let k = 1; k <= 3 && k <= y; k++) if (md[((y - k) * PW + x) * 4 + 3]) { lip[y * PW + x] = 1; break; }
+    WATER.lip = lip;
   }
   waterCoast();
 }
@@ -121,7 +126,7 @@ function drawWater(cx, cy, now) {
       let r, gr, b;
       const foamW = coming ? WV.foam : WV.foam * 0.6;
       const atCliff = WV === WAVE_CLIFF && WATER.cd, cdv = atCliff ? WATER.cd[pi] / 3 : 99;
-      if (atCliff ? (cdv < 3 && cdv <= 1 + (lvl(WV, wx, wy, now) - WV.low) * 0.9 && hash2(wx, wy, ta) < 0.6) : (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55))) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
+      if (atCliff ? (cdv < 2.4 && cdv <= 0.8 + (lvl(WV, wx, wy, now) - WV.low) * 0.6 && hash2(wx, wy, ta) < (WATER.lip[pi] ? WAVE_CLIFF.foamFace : WAVE_CLIFF.foamSide)) : (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55))) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
       else {
         const d = waterDepth(wx, wy), e = d < 0.42 ? d / 0.42 : 1, f2 = d < 0.42 ? 0 : (d - 0.42) / 0.58;
         r = C.shore[0] + (C.mid[0] - C.shore[0]) * e + (C.deep[0] - C.mid[0]) * f2; gr = C.shore[1] + (C.mid[1] - C.shore[1]) * e + (C.deep[1] - C.mid[1]) * f2; b = C.shore[2] + (C.mid[2] - C.shore[2]) * e + (C.deep[2] - C.mid[2]) * f2;

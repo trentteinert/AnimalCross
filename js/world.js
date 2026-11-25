@@ -106,7 +106,7 @@ function renderTerrain() {
   }
   if (cliffM && !WON) cliffShadow(c, cliffM);   // (the animated water draws the cliffs' shadow itself, js/water.js)
   groundPatches(c); groundDetails(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); if (!WON) drawDeck(c);
-  waterBuild(cliffM); return c;
+  waterBuild(cliffM, c); return c;
 }
 // Light and shadow patches on the ground: big soft-edged blobs of one lighter and one darker shade laid over the plain colour of grass and of dirt wherever it shows
 // (the shades are the swatches under each tile set: tools/src/Grass_tiles.aseprite, tools/src/Dirt_tiles.aseprite). Their shapes come from smooth noise in world pixels
