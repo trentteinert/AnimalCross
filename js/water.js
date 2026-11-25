@@ -5,7 +5,8 @@
 // then the things that stand above the water (grass cliffs, piers) are drawn again on top (WATER.over).
 const WATER = { sd: null, val: null, shade: null, over: null, caus: null, noise: null, cv: null, sv: null };
 const WCOL = { shore: [96, 158, 150], mid: [52, 118, 132], deep: [36, 84, 106], caus: [150, 206, 204], foam: [228, 241, 236], spark: [246, 252, 250] };
-const WAVE = { low: -1.5, high: 4.5, period: 3.4, along: 0.045, rough: 1.4, foam: 1.6, wetA: 46 };   // the waves on the shore (pixels; seconds): how far back and up they go, how long one takes, how fast it travels along the coast, how uneven its edge is, how thick the foam, how dark the wet sand
+const WAVE = { low: -1.5, high: 4.5, period: 5.2, along: 0.045, rough: 1.4, foam: 1.6, wetA: 46, fps: 7 };   // the waves on the shore (pixels; seconds): how far back and up they go, how long one takes, how fast it travels along the coast, how uneven its edge is, how thick the foam, how dark the wet sand
+const WAVE_CLIFF = { low: -1.6, high: 0, period: 3.6, along: 0.06, rough: 0.8, foam: 1.1, wetA: 0, fps: 7, dotted: true };   // against a grass cliff: the water only bobs a little under it, with a broken line of foam (it never runs up onto the grass)
 const waterOn = () => W.theme !== 'museum' && W.theme !== 'cave' && !!ASSET.img.water_anim && typeof WATER_ANIM !== 'undefined';
 const isOpenWater = t => t === 0 || t === 1;
 
@@ -50,6 +51,18 @@ function waterBuild(cliffM) {   // called by renderTerrain: how deep the water i
     }
   }
   const over = mk(PW, PH); if (cliffM) over.g.drawImage(cliffM, 0, 0); drawDeck(over); WATER.over = over;   // the grass cliffs and the piers stand above the water
+  const ct = new Uint8Array(MW * MH);   // tiles at a grass cliff: water next to grass, and that grass
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const t = GRID[y * MW + x]; if (!isOpenWater(t) && t !== 3) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= MW || yy >= MH) continue; const u = GRID[yy * MW + xx]; if ((isOpenWater(t) && u === 3) || (t === 3 && isOpenWater(u))) ct[y * MW + x] = 1; } }
+  WATER.cliffT = ct;
+  WATER.cd = null;
+  if (cliffM) {   // how far each pixel is from the cliffs as drawn (thirds of a pixel, capped): the foam at a cliff hugs its foot
+    const md = cliffM.g.getImageData(0, 0, PW, PH).data, N = PW * PH, D = new Uint8Array(N);
+    for (let i = 0; i < N; i++) D[i] = md[i * 4 + 3] ? 0 : 30;
+    for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) { const i = y * PW + x; if (!D[i]) continue; let v = D[i]; if (x > 0) v = Math.min(v, D[i - 1] + 3); if (y > 0) { v = Math.min(v, D[i - PW] + 3); if (x > 0) v = Math.min(v, D[i - PW - 1] + 4); if (x < PW - 1) v = Math.min(v, D[i - PW + 1] + 4); } D[i] = v; }
+    for (let y = PH - 1; y >= 0; y--) for (let x = PW - 1; x >= 0; x--) { const i = y * PW + x; if (!D[i]) continue; let v = D[i]; if (x < PW - 1) v = Math.min(v, D[i + 1] + 3); if (y < PH - 1) { v = Math.min(v, D[i + PW] + 3); if (x < PW - 1) v = Math.min(v, D[i + PW + 1] + 4); if (x > 0) v = Math.min(v, D[i + PW - 1] + 4); } D[i] = v; }
+    WATER.cd = D;
+  }
   waterCoast();
 }
 function waterCoast() {   // the coast as a distance field: for every pixel near it, how far it is from the shoreline (in quarter pixels; minus = in the water)
@@ -89,24 +102,26 @@ function drawWater(cx, cy, now) {
   // the waves: the water reaches up to a level that rises and falls over time (eased, a little uneven, travelling along the coast); a foam line rides
   // on its front (thick while it comes in, broken while it goes back) and the sand it has just left stays dark for a moment
   const out = WATER.cv.g.createImageData(w, h), o = out.data, CA = WATER.caus, NO = WATER.noise, SH = WATER.shade, SD = WATER.sd;
-  const tq = now * 3, ta = Math.floor(tq), tb = Math.floor(now * 5), C = WCOL, WV = WAVE, om = 2 * Math.PI / WV.period;
-  const lvl = (wx, wy, tt) => { const ph = wx * WV.along + wy * WV.along * 0.6 + NO[((wy >> 4) & 63) * 64 + ((wx >> 4) & 63)] * 5; const sn = Math.sin(tt * om - ph), e = Math.sign(sn) * Math.abs(sn) ** 0.6; return WV.low + (WV.high - WV.low) * (0.5 + 0.5 * e); };   // (eased: it lingers at the top and the bottom)
+  const tq = now * 3, ta = Math.floor(tq), tb = Math.floor(now * 5), C = WCOL, CT = WATER.cliffT;
+  const lvl = (WV, wx, wy, tt) => { tt = Math.floor(tt * WV.fps) / WV.fps; const om = 2 * Math.PI / WV.period, ph = wx * WV.along + wy * WV.along * 0.6 + NO[((wy >> 4) & 63) * 64 + ((wx >> 4) & 63)] * 5; const sn = Math.sin(tt * om - ph), e = Math.sign(sn) * Math.abs(sn) ** 0.6; return WV.low + (WV.high - WV.low) * (0.5 + 0.5 * e); };   // (eased: it lingers at the top and the bottom)
   for (let py = 0; py < h; py++) {
     const wy = y0 + py; if (wy < 0 || wy >= PH) continue;
     for (let px = 0; px < w; px++) {
       const wx = x0 + px; if (wx < 0 || wx >= PW) continue;
+      const WV = CT[(wy >> 4) * MW + (wx >> 4)] ? WAVE_CLIFF : WAVE;   // a cliff or a beach
       const pi = wy * PW + wx, sdv = SD[pi] / 4; if (sdv > WV.high + 2) continue;   // far up the beach: never reached
       const near = sdv > WV.low - WV.rough - WV.foam - 1;   // only the pixels the waves can reach need the wave worked out
-      const jit = near ? (NO[((wy >> 1) & 63) * 64 + (((wx >> 1) + ta) & 63)] - 0.5) * WV.rough : 0, L = near ? lvl(wx, wy, now) + jit : 99, coming = near && L >= lvl(wx, wy, now - 0.12) + jit;
+      const jit = near ? (NO[((wy >> 1) & 63) * 64 + (((wx >> 1) + ta) & 63)] - 0.5) * WV.rough : 0, L = near ? lvl(WV, wx, wy, now) + jit : 99, coming = near && L >= lvl(WV, wx, wy, now - 0.3) + jit;
       const si = (py * w + px) * 4;
       if (sdv > L) {   // above the water: wet sand where it was a moment ago
-        const Lw = Math.max(lvl(wx, wy, now - 0.5), lvl(wx, wy, now - 1)) + jit;
+        const Lw = WV.wetA ? Math.max(lvl(WV, wx, wy, now - 0.7), lvl(WV, wx, wy, now - 1.4)) + jit : -99;
         if (sdv < Lw && GRID[(wy >> 4) * MW + (wx >> 4)] === 2) { o[si] = 60; o[si + 1] = 40; o[si + 2] = 20; o[si + 3] = WV.wetA; }
         continue;
       }
       let r, gr, b;
       const foamW = coming ? WV.foam : WV.foam * 0.6;
-      if (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55)) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
+      const atCliff = WV === WAVE_CLIFF && WATER.cd, cdv = atCliff ? WATER.cd[pi] / 3 : 99;
+      if (atCliff ? (cdv < 3 && cdv <= 1 + (lvl(WV, wx, wy, now) - WV.low) * 0.9 && hash2(wx, wy, ta) < 0.6) : (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55))) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
       else {
         const d = waterDepth(wx, wy), e = d < 0.42 ? d / 0.42 : 1, f2 = d < 0.42 ? 0 : (d - 0.42) / 0.58;
         r = C.shore[0] + (C.mid[0] - C.shore[0]) * e + (C.deep[0] - C.mid[0]) * f2; gr = C.shore[1] + (C.mid[1] - C.shore[1]) * e + (C.deep[1] - C.mid[1]) * f2; b = C.shore[2] + (C.mid[2] - C.shore[2]) * e + (C.deep[2] - C.mid[2]) * f2;
