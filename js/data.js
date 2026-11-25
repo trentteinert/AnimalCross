@@ -92,11 +92,9 @@ const SALVAGE = [     // crafting materials: found while digging (scrap comes fr
 // what kind of thing each find is (the collection log is ordered by these, the card and the case plaques name it)
 const ART_CATS = [
   ['weaponry', 'Weaponry', ['ceremonial_dagger', 'ceremonial_cutlass', 'cutlass_left', 'cutlass_right', 'longsword', 'shield', 'small_arrowhead', 'meadium_arrowhead', 'large_arrowhead_2', 'large_arrow_head']],
-  ['pottery', 'Pottery & Vessels', ['jug', 'painted_clay_jug', 'ancient_bowl', 'bowl', 'ancient_urn', 'ancient_decorative_vase', 'serving_plater']],
-  ['jewelry', 'Jewelry & Adornment', ['signet_ring', 'emerald_ring', 'saphire_ring', 'ruby_ring', 'diamond_ring', 'emerald_amulet', 'saphire_amulet', 'ruby_amulet', 'diamond_amulet', 'fancy_broach', 'decorative_wooden_comb', 'mysterious_hat']],
-  ['trade', 'Trade & Writing', ['coin', 'clay_token', 'merchant_scale', 'ancient_tablet']],
-  ['everyday', 'Everyday Life', ['ancient_sickle', 'open_candleholder', 'caged_candleholder', 'bone_flute']],
-  ['ritual', 'Art & Ritual', ['bust', 'bust_2', 'sun_mask', 'cylindrical_standing_totem', 'horned_standing_totem', 'decorative_thrown']]];
+  ['pottery', 'Pottery', ['jug', 'painted_clay_jug', 'ancient_bowl', 'bowl', 'ancient_urn', 'ancient_decorative_vase', 'serving_plater']],
+  ['jewelry', 'Jewelry', ['signet_ring', 'emerald_ring', 'saphire_ring', 'ruby_ring', 'diamond_ring', 'emerald_amulet', 'saphire_amulet', 'ruby_amulet', 'diamond_amulet', 'fancy_broach', 'decorative_wooden_comb', 'mysterious_hat']],
+  ['ritual', 'Ritual & Arts', ['bust', 'bust_2', 'sun_mask', 'cylindrical_standing_totem', 'horned_standing_totem', 'decorative_thrown', 'coin', 'clay_token', 'merchant_scale', 'ancient_tablet', 'ancient_sickle', 'open_candleholder', 'caged_candleholder', 'bone_flute']]];
 const CAT_NAME = { exhibit: 'Exhibit Piece' }; ART_CATS.forEach(([k, n, ids]) => { CAT_NAME[k] = n; ids.forEach(id => { const a = ARTIFACTS.find(q => q.id === id); if (a) a.cat = k; }); });
 EXHIBITS.forEach(e => e.cat = 'exhibit');
 ARTIFACTS.sort((a, b) => ART_CATS.findIndex(c => c[0] === a.cat) - ART_CATS.findIndex(c => c[0] === b.cat) || a.r - b.r);   // grouped, commons first within a group (a stable sort keeps the order above otherwise)
