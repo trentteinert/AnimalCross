@@ -137,14 +137,12 @@ function groundPatches(c) {
   c.g.putImageData(id, 0, 0);
 }
 const CLIFF_SHADOW = [0.82, 0.82, 0.87, 0.87, 0.87, 0.92, 0.92, 0.96];   // the cliff's shadow on the water: how much each row below its edge is darkened (two hard steps and a faint one, pixel-art style)
-function cliffShadow(c, cm) {   // the water just below a grass cliff is in its shadow
+function cliffShadow(c, cm) {   // the water below and just right of a grass cliff is in its shadow (the light comes from above, a little from the left)
   const id = c.g.getImageData(0, 0, PW, PH), d = id.data, md = cm.g.getImageData(0, 0, PW, PH).data, N = CLIFF_SHADOW.length;
-  for (let x = 0; x < PW; x++) for (let y = 1; y < PH; y++) {
-    if (!md[((y - 1) * PW + x) * 4 + 3] || md[(y * PW + x) * 4 + 3]) continue;   // the bottom edge of the cliff in this column
-    const sx = x + 1; if (sx >= PW) continue;   // the light comes a little from the left: the shadow falls a pixel to the right
-    for (let k = 0; k < N && y + k < PH; k++) {
-      const yy = y + k, t = typeAt(sx, yy); if (t !== 0 && t !== 1) break; if (md[(yy * PW + sx) * 4 + 3]) continue;
-      const i = (yy * PW + sx) * 4, f = CLIFF_SHADOW[k]; d[i] = d[i] * f; d[i + 1] = d[i + 1] * f; d[i + 2] = d[i + 2] * f;
+  for (let y = 0; y < PH; y++) for (let x = 1; x < PW; x++) {
+    const t = GRID[(y >> 4) * MW + (x >> 4)]; if (t !== 0 && t !== 1) continue; if (md[(y * PW + x) * 4 + 3]) continue;   // open water, not under the cliff itself
+    for (let k = 0; k <= N && k <= y; k++) if (md[((y - k) * PW + x - 1) * 4 + 3]) {   // cliff a pixel to the left, k rows up: right beside a cliff side (k = 0) or under its edge
+      const i = (y * PW + x) * 4, f = CLIFF_SHADOW[Math.max(0, k - 1)]; d[i] *= f; d[i + 1] *= f; d[i + 2] *= f; break;
     }
   }
   c.g.putImageData(id, 0, 0);
