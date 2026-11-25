@@ -5,8 +5,8 @@
 // then the things that stand above the water (grass cliffs, piers) are drawn again on top (WATER.over).
 const WATER = { sd: null, val: null, shade: null, over: null, caus: null, noise: null, cv: null, sv: null };
 const WCOL = { shore: [96, 158, 150], mid: [52, 118, 132], deep: [36, 84, 106], caus: [150, 206, 204], foam: [228, 241, 236], spark: [246, 252, 250] };
-const WAVE = { low: -1.5, high: 4.5, period: 5.2, along: 0.045, rough: 1.4, foam: 1.6, wetA: 46, fps: 7 };   // the waves on the shore (pixels; seconds): how far back and up they go, how long one takes, how fast it travels along the coast, how uneven its edge is, how thick the foam, how dark the wet sand
-const WAVE_CLIFF = { low: -1.6, high: 0, period: 3.6, along: 0.06, rough: 0.8, foam: 1.1, wetA: 0, fps: 7, dotted: true, foamFace: 0.32, foamSide: 0.08 };   // foamFace / foamSide: how many of the foam pixels show under a cliff's face (grey stone) and along its sides   // against a grass cliff: the water only bobs a little under it, with a broken line of foam (it never runs up onto the grass)
+const WAVE = { low: -1.5, high: 4.5, period: 5.2, along: 0.045, rough: 1.4, foam: 1.6, wetA: 28, fps: 7 };   // the waves on the shore (pixels; seconds): how far back and up they go, how long one takes, how fast it travels along the coast, how uneven its edge is, how thick the foam, how dark the wet sand
+const WAVE_CLIFF = { low: -1.6, high: 0, period: 3.6, along: 0.06, rough: 0.8, foam: 1.1, wetA: 0, fps: 7, dotted: true, foamFace: 0.66, foamSide: 0.84 };   // foamFace / foamSide: under a cliff's face (grey stone) and along its sides, the foam shows in clumps where a slow noise is above this (higher = less foam)   // against a grass cliff: the water only bobs a little under it, with a broken line of foam (it never runs up onto the grass)
 const waterOn = () => W.theme !== 'museum' && W.theme !== 'cave' && !!ASSET.img.water_anim && typeof WATER_ANIM !== 'undefined';
 const isOpenWater = t => t === 0 || t === 1;
 
@@ -94,7 +94,7 @@ function waterCoast() {   // the coast as a distance field: for every pixel near
   WATER.sd = sd;
 }
 
-function waterDepth(wx, wy) {   // smooth depth at a world pixel: the tile values blended between tile centres (0 = shore, 1 = open water)
+function waterShade(wx, wy) {   // smooth depth at a world pixel: the tile values blended between tile centres (0 = shore, 1 = open water)
   const fx = (wx - 8) / 16, fy = (wy - 8) / 16, ix = Math.floor(fx), iy = Math.floor(fy), u = fx - ix, v = fy - iy, V = WATER.val;
   const at = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? 1 : V[y * MW + x];
   return (at(ix, iy) * (1 - u) + at(ix + 1, iy) * u) * (1 - v) + (at(ix, iy + 1) * (1 - u) + at(ix + 1, iy + 1) * u) * v;
@@ -126,9 +126,9 @@ function drawWater(cx, cy, now) {
       let r, gr, b;
       const foamW = coming ? WV.foam : WV.foam * 0.6;
       const atCliff = WV === WAVE_CLIFF && WATER.cd, cdv = atCliff ? WATER.cd[pi] / 3 : 99;
-      if (atCliff ? (cdv < 2.4 && cdv <= 0.8 + (lvl(WV, wx, wy, now) - WV.low) * 0.6 && hash2(wx, wy, ta) < (WATER.lip[pi] ? WAVE_CLIFF.foamFace : WAVE_CLIFF.foamSide)) : (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55))) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
+      if (atCliff ? (cdv < 2.4 && cdv <= 0.8 + (lvl(WV, wx, wy, now) - WV.low) * 0.6 && NO[((((wy >> 1) + (tb >> 2)) & 63) * 64) + (((wx >> 1) + (ta >> 1)) & 63)] > (WATER.lip[pi] ? WAVE_CLIFF.foamFace : WAVE_CLIFF.foamSide)) : (sdv > L - foamW && (coming || hash2(wx, wy, ta) < 0.55))) { r = C.foam[0]; gr = C.foam[1]; b = C.foam[2]; }   // the foam on the wave's front
       else {
-        const d = waterDepth(wx, wy), e = d < 0.42 ? d / 0.42 : 1, f2 = d < 0.42 ? 0 : (d - 0.42) / 0.58;
+        const d = waterShade(wx, wy), e = d < 0.42 ? d / 0.42 : 1, f2 = d < 0.42 ? 0 : (d - 0.42) / 0.58;
         r = C.shore[0] + (C.mid[0] - C.shore[0]) * e + (C.deep[0] - C.mid[0]) * f2; gr = C.shore[1] + (C.mid[1] - C.shore[1]) * e + (C.deep[1] - C.mid[1]) * f2; b = C.shore[2] + (C.mid[2] - C.shore[2]) * e + (C.deep[2] - C.mid[2]) * f2;
         if (sdv > -2) { const k = 0.35 * (1 - (sdv + 2) / (L + 2.001)); r += (C.foam[0] - r) * (0.35 - k); gr += (C.foam[1] - gr) * (0.35 - k); b += (C.foam[2] - b) * (0.35 - k); }   // thin water over the sand is lighter
         const n1 = NO[(((wy >> 1) + ta) & 63) * 64 + ((wx >> 1) & 63)], n2 = NO[((wy >> 1) & 63) * 64 + (((wx >> 1) + tb) & 63)];   // two scrolling noises bend the pattern (whole pixels: it stays pixel art)
