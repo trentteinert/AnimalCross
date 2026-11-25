@@ -11,7 +11,7 @@ function loadAssets(cb) {
   let left = Object.keys(list).length + 10; const failed = [];
   const total = left, done = () => { loadProgress(0.7 * (1 - --left / total)); if (left === 0) { ASSET.ok = !failed.length; cb(failed); } };
   const mv = typeof MUSEUM_V === 'string' ? '?v=' + MUSEUM_V : '';   // the museum's pictures and their lists change together: a new version number makes a browser fetch all of them again (never a new picture with an old list)
-  for (const k in list) { if (list[k].includes('assets/museum/')) list[k] += mv; const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
+  for (const k in list) { if (list[k].includes('assets/museum/') || list[k].includes('assets/tiles/')) list[k] += mv; const im = new Image(); im.onload = () => { ASSET.img[k] = im; done(); }; im.onerror = () => { failed.push(k); done(); }; im.src = list[k]; }
   fetch('assets/museum/tileset.json' + mv).then(r => r.json()).then(j => { ASSET.mTiles = j; done(); }).catch(() => { ASSET.mTiles = null; done(); });
   fetch('assets/museum/items.json' + mv).then(r => r.json()).then(j => { ASSET.mItems = j; done(); }).catch(() => { ASSET.mItems = null; done(); });
   fetch('assets/museum/pieces.json' + mv).then(r => r.json()).then(j => { ASSET.mPieces = j; done(); }).catch(() => { ASSET.mPieces = null; done(); });

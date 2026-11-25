@@ -1,1 +1,1 @@
-const MUSEUM_V = '20261124221145';   // written by the museum export scripts: changes whenever the museum's pictures do
+const MUSEUM_V = '20261125065611';   // written by the export scripts: changes whenever the museum's (or the ground tiles') pictures do, so browsers fetch them again
