@@ -101,15 +101,34 @@ function renderTerrain() {
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
+  grassPatches(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
+}
+// Light and shadow patches on the grass: big soft-edged blobs of one lighter and one darker shade (tools/src/Grass_tiles.aseprite: shadow, base midtone, highlight),
+// laid over the plain grass colour wherever it shows. Their shapes come from smooth noise in world pixels (three sizes: the blobs, their lobes, the ragged pixel edge),
+// so they ignore the tile grid and the same spot always looks the same.
+const GRASS_SHADE = { base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116] };
+function grassPatches(c) {
+  const id = c.g.getImageData(0, 0, PW, PH), d = id.data, B = GRASS_SHADE.base, lo = GRASS_SHADE.lo, hi = GRASS_SHADE.hi;
+  const octs = [[46, 0.62, 811], [19, 0.27, 812], [6, 0.08, 813]].map(([s, w, seed]) => {   // a lattice of random values for each size
+    const gw = Math.ceil(PW / s) + 2, gh = Math.ceil(PH / s) + 2, v = new Float32Array(gw * gh);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) v[y * gw + x] = hash2(x, y, seed);
+    return { s, w, gw, v };
+  });
+  const sm = t => t * t * (3 - 2 * t);
+  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+    const i = (y * PW + x) * 4; if (d[i] !== B[0] || d[i + 1] !== B[1] || d[i + 2] !== B[2]) continue;   // only the plain grass colour (never the tile edges, dirt, sand...)
+    let n = 0;
+    for (const o of octs) {
+      const fx = x / o.s, fy = y / o.s, ix = fx | 0, iy = fy | 0, u = sm(fx - ix), w = sm(fy - iy), v = o.v, gw = o.gw, k = iy * gw + ix;
+      n += o.w * ((v[k] * (1 - u) + v[k + 1] * u) * (1 - w) + (v[k + gw] * (1 - u) + v[k + gw + 1] * u) * w);
+    }
+    n += (hash2(x, y, 814) - 0.5) * 0.02;   // a few loose pixels along the edges, like the hand-drawn patches
+    const col = n > 0.6 ? hi : n < 0.39 ? lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
+  }
+  c.g.putImageData(id, 0, 0);
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
-  const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#5e8438'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#6a9040'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#5e8438'); PX(t, 3, k & 1, '#8fb853'); return t; });
-  for (let i = 0; i < 160; i++) { // very soft tonal patches so big meadows are not one flat colour
-    const x = hash2(i, 1, 501) * PW, y = hash2(i, 2, 501) * PH, tx = Math.floor(x / TS), ty = Math.floor(y / TS);
-    if (GRID[ty * MW + tx] !== 3 || DISTG[ty * MW + tx] < 4) continue;
-    EL(c, Math.round(x), Math.round(y), 10 + hash2(i, 3, 501) * 10, 7 + hash2(i, 4, 501) * 6, i & 1 ? 'rgba(214,170,64,0.06)' : 'rgba(60,110,50,0.06)');
-  }
+  const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#7d9257'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#879d5d'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#7d9257'); PX(t, 3, k & 1, '#a7bb83'); return t; });   // (in the grass palette)
   for (let ty = 1; ty < MH - 1; ty++) for (let tx = 1; tx < MW - 1; tx++) {
     const t = GRID[ty * MW + tx], ox = tx * TS, oy = ty * TS, d = DISTG[ty * MW + tx], h = k => hash2(tx, ty, 600 + k);
     const same = GRID[ty * MW + tx - 1] === t && GRID[ty * MW + tx + 1] === t && GRID[(ty - 1) * MW + tx] === t && GRID[(ty + 1) * MW + tx] === t;
