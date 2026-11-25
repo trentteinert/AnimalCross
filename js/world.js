@@ -101,13 +101,13 @@ function renderTerrain() {
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  groundPatches(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
+  groundPatches(c); groundDetails(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
 }
 // Light and shadow patches on the ground: big soft-edged blobs of one lighter and one darker shade laid over the plain colour of grass and of dirt wherever it shows
 // (the shades are the swatches under each tile set: tools/src/Grass_tiles.aseprite, tools/src/Dirt_tiles.aseprite). Their shapes come from smooth noise in world pixels
 // (three sizes: the blobs, their lobes, the ragged pixel edge), so they ignore the tile grid and the same spot always looks the same.
 const GROUND_SHADES = [
-  { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116], seed: 811, sizes: [46, 19, 6] },
+  { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: null, seed: 811, sizes: [72, 29, 7] },   // grass: shadow patches only (no highlight), big
   { name: 'dirt', base: [173, 130, 101], lo: [169, 128, 100], hi: [175, 133, 104], seed: 831, sizes: [52, 21, 6] }];   // dirt: the swatch shades a third of the way from the base (very soft), big patches
 function groundPatches(c) {
   const id = c.g.getImageData(0, 0, PW, PH), d = id.data, sm = t => t * t * (3 - 2 * t);
@@ -127,9 +127,21 @@ function groundPatches(c) {
       n += o.w * ((v[k] * (1 - u) + v[k + 1] * u) * (1 - w) + (v[k + gw] * (1 - u) + v[k + gw + 1] * u) * w);
     }
     n += (hash2(x, y, G.seed + 9) - 0.5) * 0.02;   // a few loose pixels along the edges, like the hand-drawn patches
-    const col = n > 0.6 ? G.hi : n < 0.39 ? G.lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
+    const col = n > 0.6 && G.hi ? G.hi : n < 0.39 ? G.lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
   }
   c.g.putImageData(id, 0, 0);
+}
+function groundDetails(c) {   // the little grass sprites (tools/grass_detail_export.py) scattered over grass, away from its edges: one decision per tile, so editing one tile never reshuffles the rest
+  const im = ASSET.img.grass_detail; if (!im || typeof GRASS_DETAIL === 'undefined') return;
+  const grass = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH && GRID[y * MW + x] === 3;
+  for (let ty = 1; ty < MH - 1; ty++) for (let tx = 1; tx < MW - 1; tx++) {
+    if (hash2(tx, ty, 851) > 0.16) continue; let ok = true;
+    for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1; dx++) if (!grass(tx + dx, ty + dy)) { ok = false; break; }
+    if (!ok) continue;
+    const r = GRASS_DETAIL[Math.floor(hash2(tx, ty, 852) * GRASS_DETAIL.length)], x = tx * TS + Math.floor(hash2(tx, ty, 853) * (TS - r[2])), y = ty * TS + Math.floor(hash2(tx, ty, 854) * (TS - r[3]));
+    if (hash2(tx, ty, 855) < 0.5) { c.g.save(); c.g.translate(x + r[2], y); c.g.scale(-1, 1); c.g.drawImage(im, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); c.g.restore(); }   // half of them mirrored
+    else c.g.drawImage(im, r[0], r[1], r[2], r[3], x, y, r[2], r[3]);
+  }
 }
 function decorate(c) { // every decision is a per-tile hash so editing one tile never reshuffles the rest of the map
   const tufts = [0, 1, 2].map(k => { const t = mk(7, 5); RC(t, 1, 2, 1, 3, '#7d9257'); RC(t, 3, k & 1, 1, 5 - (k & 1), '#879d5d'); RC(t, 5, 2 - (k >> 1), 1, 3 + (k >> 1), '#7d9257'); PX(t, 3, k & 1, '#a7bb83'); return t; });   // (in the grass palette)
