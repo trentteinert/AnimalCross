@@ -101,29 +101,33 @@ function renderTerrain() {
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
-  grassPatches(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
+  groundPatches(c); if (FEATURES.groundDetail) decorate(c); drawSites(c); drawPits(c); drawDeck(c); return c;
 }
-// Light and shadow patches on the grass: big soft-edged blobs of one lighter and one darker shade (tools/src/Grass_tiles.aseprite: shadow, base midtone, highlight),
-// laid over the plain grass colour wherever it shows. Their shapes come from smooth noise in world pixels (three sizes: the blobs, their lobes, the ragged pixel edge),
-// so they ignore the tile grid and the same spot always looks the same.
-const GRASS_SHADE = { base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116] };
-function grassPatches(c) {
-  const id = c.g.getImageData(0, 0, PW, PH), d = id.data, B = GRASS_SHADE.base, lo = GRASS_SHADE.lo, hi = GRASS_SHADE.hi;
-  const octs = [[46, 0.62, 811], [19, 0.27, 812], [6, 0.08, 813]].map(([s, w, seed]) => {   // a lattice of random values for each size
-    const gw = Math.ceil(PW / s) + 2, gh = Math.ceil(PH / s) + 2, v = new Float32Array(gw * gh);
-    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) v[y * gw + x] = hash2(x, y, seed);
-    return { s, w, gw, v };
-  });
-  const sm = t => t * t * (3 - 2 * t);
+// Light and shadow patches on the ground: big soft-edged blobs of one lighter and one darker shade laid over the plain colour of grass and of dirt wherever it shows
+// (the shades are the swatches under each tile set: tools/src/Grass_tiles.aseprite, tools/src/Dirt_tiles.aseprite). Their shapes come from smooth noise in world pixels
+// (three sizes: the blobs, their lobes, the ragged pixel edge), so they ignore the tile grid and the same spot always looks the same.
+const GROUND_SHADES = [
+  { name: 'grass', base: [145, 166, 106], lo: [139, 160, 99], hi: [152, 172, 116], seed: 811 },
+  { name: 'dirt', base: [173, 130, 101], lo: [161, 123, 98], hi: [178, 138, 111], seed: 831 }];
+function groundPatches(c) {
+  const id = c.g.getImageData(0, 0, PW, PH), d = id.data, sm = t => t * t * (3 - 2 * t);
+  for (const G of GROUND_SHADES) {
+    G.octs = [[46, 0.62], [19, 0.3], [6, 0.08]].map(([s, w], k) => {   // a lattice of random values for each size (each ground has its own, so grass and dirt patches do not line up)
+      const gw = Math.ceil(PW / s) + 2, gh = Math.ceil(PH / s) + 2, v = new Float32Array(gw * gh);
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) v[y * gw + x] = hash2(x, y, G.seed + k);
+      return { s, w, gw, v };
+    });
+  }
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
-    const i = (y * PW + x) * 4; if (d[i] !== B[0] || d[i + 1] !== B[1] || d[i + 2] !== B[2]) continue;   // only the plain grass colour (never the tile edges, dirt, sand...)
-    let n = 0;
-    for (const o of octs) {
+    const i = (y * PW + x) * 4; let G = null;
+    for (const g of GROUND_SHADES) if (d[i] === g.base[0] && d[i + 1] === g.base[1] && d[i + 2] === g.base[2]) { G = g; break; }   // only the plain colour (never the tile edges)
+    if (!G) continue; let n = 0;
+    for (const o of G.octs) {
       const fx = x / o.s, fy = y / o.s, ix = fx | 0, iy = fy | 0, u = sm(fx - ix), w = sm(fy - iy), v = o.v, gw = o.gw, k = iy * gw + ix;
       n += o.w * ((v[k] * (1 - u) + v[k + 1] * u) * (1 - w) + (v[k + gw] * (1 - u) + v[k + gw + 1] * u) * w);
     }
-    n += (hash2(x, y, 814) - 0.5) * 0.02;   // a few loose pixels along the edges, like the hand-drawn patches
-    const col = n > 0.6 ? hi : n < 0.39 ? lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
+    n += (hash2(x, y, G.seed + 9) - 0.5) * 0.02;   // a few loose pixels along the edges, like the hand-drawn patches
+    const col = n > 0.6 ? G.hi : n < 0.39 ? G.lo : null; if (col) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
   }
   c.g.putImageData(id, 0, 0);
 }
