@@ -96,8 +96,11 @@ function renderTerrain() {
   for (let L = 1; L <= 6; L++) for (let j = 0; j <= MH; j++) for (let i = 0; i <= MW; i++) {
     const t = [tileAt(i - 1, j - 1), tileAt(i, j - 1), tileAt(i - 1, j), tileAt(i, j)]; let m = 0;
     if (L === 3 && !t.includes(4)) continue;   // dirt is only laid where a dirt tile is near: under plain grass edges it would peek out past the grass
-    for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L) m |= 1 << k;
-    if (!m) continue; const hv = hash2(i, j, 30 + L), col = m === 15 ? (VARIETY[L] && ASSET.img[VARIETY[L]] ? variantCol(L, hash2(i, j, 77), i, j) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
+    const wet = t.some(q => q === 0 || q === 1);   // grass meeting open water here: a little cliff, and no beach under it
+    for (let k = 0; k < 4; k++) if (L === 6 ? t[k] === 6 : LVL[t[k]] >= L && !(L === 2 && wet && t[k] === 3)) m |= 1 << k;
+    if (!m) continue;
+    if (L === 4 && wet && m !== 15 && ASSET.img.grass_cliff) { c.g.drawImage(ASSET.img.grass_cliff, m * 16, 0, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16); continue; }   // (tools/src/Cliff_grass_tiles.aseprite)
+    const hv = hash2(i, j, 30 + L), col = m === 15 ? (VARIETY[L] && ASSET.img[VARIETY[L]] ? variantCol(L, hash2(i, j, 77), i, j) : 32 + (hv > 0.9 ? 3 : Math.floor(hv / 0.9 * 3))) : m + 16 * (hv > 0.5 ? 1 : 0);
     if (m === 15 && VARIETY[L] && ASSET.img[VARIETY[L]] && hash2(i, j, 91) < 0.5) { c.g.save(); c.g.translate(i * 16 + 8, j * 16 - 8); c.g.scale(-1, 1); c.g.drawImage(A, col * 16, L * 16, 16, 16, 0, 0, 16, 16); c.g.restore(); }   // half of the interior tiles of sand, grass and dirt are mirrored (edges never are)
     else c.g.drawImage(A, col * 16, L * 16, 16, 16, i * 16 - 8, j * 16 - 8, 16, 16);
   }
@@ -468,11 +471,17 @@ function blockedAt(x, y, hw = 3, hh = 3, wade = false) {   // wade: you can walk
   }
   return false;
 }
+const wetT = t => t === 0 || t === 1;
+function cliffStep(e, nx, ny) {   // grass that meets open water is a little cliff: you can not step from it into the water, or climb up onto it from the water (from sand you can wade in)
+  if (MGRID) return false; const a = typeAt(e.x, e.y);
+  for (const [ox, oy] of [[-3, 0], [3, 0], [-3, -3], [3, -3]]) { const b = typeAt(nx + ox, ny + oy); if ((a === 3 && wetT(b)) || (wetT(a) && b === 3)) return true; }
+  return false;
+}
 function moveEnt(e, dx, dy) {
   let moved = false;
   const wd = e === ME;
-  if (dx && !blockedAt(e.x + dx, e.y, 3, 3, wd)) { e.x += dx; moved = true; }
-  if (dy && !blockedAt(e.x, e.y + dy, 3, 3, wd)) { e.y += dy; moved = true; }
+  if (dx && !blockedAt(e.x + dx, e.y, 3, 3, wd) && !cliffStep(e, e.x + dx, e.y)) { e.x += dx; moved = true; }
+  if (dy && !blockedAt(e.x, e.y + dy, 3, 3, wd) && !cliffStep(e, e.x, e.y + dy)) { e.y += dy; moved = true; }
   return moved;
 }
 function distToBox(x, y, o) {
