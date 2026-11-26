@@ -158,6 +158,13 @@ function buildSprites() {
     const shadow = cut(im, T.shadow); shadow.g.globalCompositeOperation = 'source-in'; shadow.g.fillStyle = '#0c1a0c'; shadow.g.fillRect(0, 0, shadow.width, shadow.height); shadow.ax = -T.shadow.ox; shadow.ay = -T.shadow.oy;
     SPR.tree = { trunk, crown, shadow };
   }
+  SPR.trees = [];   // the tree varieties (tools/tree_export.py, assets/props/trees.json): the same three pieces each
+  if (ASSET.trees && ASSET.img.trees) for (const T2 of ASSET.trees) {
+    const im2 = ASSET.img.trees, trunk = cut(im2, T2.trunk); trunk.ax = T2.trunk.ax; trunk.ay = T2.trunk.ay;
+    const crown = cut(im2, T2.crown); crown.ax = -T2.crown.ox; crown.ay = -T2.crown.oy;
+    const shadow = cut(im2, T2.shadow); shadow.g.globalCompositeOperation = 'source-in'; shadow.g.fillStyle = '#0c1a0c'; shadow.g.fillRect(0, 0, shadow.width, shadow.height); shadow.ax = -T2.shadow.ox; shadow.ay = -T2.shadow.oy;
+    SPR.trees.push({ trunk, crown, shadow, name: T2.name });
+  }
   if (ASSET.img.shop_stall) {   // the merchant's stall is three same-size layers sharing one anchor (bottom of the counter): ground shadow, shopkeeper (behind the counter) and the stall itself
     const L = {}; for (const k of ['stall', 'merchant', 'shadow']) { const im = ASSET.img['shop_' + k], c = mk(im.width, im.height); c.g.drawImage(im, 0, 0); c.ax = 27; c.ay = 65; L[k] = c; }
     SPR.shop = L.stall; SPR.shop.merchant = L.merchant; SPR.shop.shadow = L.shadow;

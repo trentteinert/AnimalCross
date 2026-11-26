@@ -281,7 +281,8 @@ function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
-    case 'tree': if (!SPR.tree) return; o = { k: 'tree', spr: SPR.tree.trunk, crown: SPR.tree.crown, shadow: SPR.tree.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break;
+    case 'tree': { const TV = SPR.trees && SPR.trees.length ? SPR.trees[s.t != null ? clamp(s.t | 0, 0, SPR.trees.length - 1) : Math.floor(hash2(s.x | 0, s.y | 0, 43) * SPR.trees.length)] : SPR.tree; if (!TV) return;   // which variety: the map's choice (t), or mixed by place
+      o = { k: 'tree', spr: TV.trunk, crown: TV.crown, shadow: TV.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break; }
     case 'shop': if (!SPR.shop) return; o = { k: 'shop', spr: SPR.shop }; break;
     case 'anvil': if (!SPR.anvil) return; o = { k: 'anvil', spr: SPR.anvil }; break;
     case 'hammer': if (!SPR.hammer) return; o = { k: 'hammer', spr: SPR.hammer }; break;
