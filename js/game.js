@@ -347,7 +347,7 @@ function render(now) {
   drawLockedShade(cx, cy); drawHoles(cx, cy); drawDigMarker(cx, cy, now); drawPrints(cx, cy, Math.min(0.1, Math.max(0, now - (drawPrints.last || now)))); drawPrints.last = now;
   const sb = Math.floor(now * 2);
   g.fillStyle = 'rgba(255,255,255,0.55)';
-  for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (W.theme !== 'museum' && hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
+  for (let i = 0; i < 70; i++) { const x = cx + hash2(i, sb, 31) * VW, y = cy + hash2(i, sb, 32) * VH; if (W.theme !== 'museum' && !WATER.val && hash2(i, sb, 33) < 0.55 && isWater(x, y)) g.fillRect(Math.round(x - cx), Math.round(y - cy), 2, 1); }
   for (const r of RP) {
     const u = r.t / r.max, rx = 2 + u * (r.big ? 10 : 7), ry = rx * 0.5; g.fillStyle = `rgba(235,248,252,${(1 - u) * 0.8})`;
     for (let i = 0; i < 16; i++) { const a = i * 0.3927; g.fillRect(Math.round(r.x + Math.cos(a) * rx - cx), Math.round(r.y + Math.sin(a) * ry - cy), 1, 1); }
