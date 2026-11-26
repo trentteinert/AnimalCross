@@ -110,7 +110,7 @@ function drawWater(cx, cy, now) {
   // the waves: the water reaches up to a level that rises and falls over time (eased, a little uneven, travelling along the coast); a foam line rides
   // on its front (thick while it comes in, broken while it goes back) and the sand it has just left stays dark for a moment
   const out = WATER.cv.g.createImageData(w, h), o = out.data, CA = WATER.caus, NO = WATER.noise, SH = WATER.shade, SD = WATER.sd;
-  const tq = now * 3, ta = Math.floor(tq), tb = Math.floor(now * 5), C = WCOL, CT = WATER.cliffT, pulse = 0.55 + 0.45 * Math.sin(now * 0.7);   // pulse: the caustic pattern slowly comes and goes
+  const tq = now * 3, ta = Math.floor(tq), tb = Math.floor(now * 5), C = WCOL, CT = WATER.cliffT, pulse = 0.72 + 0.28 * Math.sin(now * 0.7);   // pulse: the caustic pattern slowly comes and goes
   const lvl = (WV, wx, wy, tt) => { tt = Math.floor(tt * WV.fps) / WV.fps; const om = 2 * Math.PI / WV.period, ph = wx * WV.along + wy * WV.along * 0.6 + NO[((wy >> 4) & 63) * 64 + ((wx >> 4) & 63)] * 5; const sn = Math.sin(tt * om - ph), e = Math.sign(sn) * Math.abs(sn) ** 0.6; return WV.low + (WV.high - WV.low) * (0.5 + 0.5 * e); };   // (eased: it lingers at the top and the bottom)
   for (let py = 0; py < h; py++) {
     const wy = y0 + py; if (wy < 0 || wy >= PH) continue;
@@ -138,9 +138,15 @@ function drawWater(cx, cy, now) {
         const ux = (wx + Math.floor(n1 * 6) - 3) & 63, uy = (Math.floor(wy * 1.2) + Math.floor(n2 * 6) - 3) & 63;
         const fade = NO[(((wy >> 3) + (ta >> 3)) & 63) * 64 + (((wx >> 3) + (tb >> 2)) & 63)];   // a slow fade over parts of the pattern, so it does not look like one repeating net
         if (CA[uy * 64 + ux] && fade > 0.3) {
-          const k = (0.1 - 0.04 * d) * Math.min(1, (fade - 0.3) * 4) * pulse;   // faint, and it fades in and out r += (C.caus[0] - r) * k; gr += (C.caus[1] - gr) * k; b += (C.caus[2] - b) * k;
+          const k = (0.2 - 0.05 * d) * Math.min(1, (fade - 0.3) * 4) * pulse;   // it fades in and out
+          r += (C.caus[0] - r) * k; gr += (C.caus[1] - gr) * k; b += (C.caus[2] - b) * k;
           const s2 = NO[(((wy >> 2) + tb) & 63) * 64 + (((wx >> 2) + ta) & 63)] + NO[(((wy >> 2) - ta + 31) & 63) * 64 + (((wx >> 2) - tb + 17) & 63)];   // noises scrolling opposite ways: where both are high, a sparkle
           if (s2 > 1.72 && pulse > 0.5) { r += (C.spark[0] - r) * 0.6; gr += (C.spark[1] - gr) * 0.6; b += (C.spark[2] - b) * 0.6; }   // a few soft glints
+        }
+        if (d > 0.25) {   // little wave crests: short light dashes in rows that drift slowly and come and go
+          const row = wy + Math.floor(NO[((wx >> 3) & 63) * 64 + ((wy >> 3) & 63)] * 10) + (tb >> 3);
+          const ri = Math.floor(row / 13), u = wx + ri * 5 - (tb >> 2), seg = Math.floor(u / 9);
+          if (row % 13 === 0 && (u % 9 + 9) % 9 < 4 && hash2(seg, ri, 905) < 0.3 && hash2(seg, ri, 906 + Math.floor(now * 0.6 + hash2(seg, ri, 907) * 3)) < 0.65) { const k = 0.22 * Math.min(1, (d - 0.25) * 3); r += (C.caus[0] - r) * k; gr += (C.caus[1] - gr) * k; b += (C.caus[2] - b) * k; }
         }
         const sh = SH[pi]; if (sh < 255) { const q = sh / 255; r *= q; gr *= q; b *= q; }
       }
