@@ -281,7 +281,7 @@ function instantiate(s) {
   let o;
   switch (s.k) {
     case 'camp': o = { k: 'camp', spr: SPR.camp }; break;
-    case 'tree': { const TV = SPR.trees && SPR.trees.length ? SPR.trees[s.t != null ? clamp(s.t | 0, 0, SPR.trees.length - 1) : Math.floor(hash2(s.x | 0, s.y | 0, 43) * SPR.trees.length)] : SPR.tree; if (!TV) return;   // which variety: the map's choice (t), or mixed by place
+    case 'tree': { const TV = SPR.trees && SPR.trees.length ? SPR.trees[s.t != null ? clamp(s.t | 0, 0, SPR.trees.length - 1) : treePick(hash2(s.x | 0, s.y | 0, 43))] : SPR.tree; if (!TV) return;   // which variety: the map's choice (t), or mixed by place
       o = { k: 'tree', spr: TV.trunk, crown: TV.crown, shadow: TV.shadow, bare: (s.v | 0) === 1, ph: hash2(s.x | 0, s.y | 0, 41) * 6.28, shake: 0, lt: 1 + hash2(s.x | 0, s.y | 0, 42) * 5 }; break; }
     case 'shop': if (!SPR.shop) return; o = { k: 'shop', spr: SPR.shop }; break;
     case 'anvil': if (!SPR.anvil) return; o = { k: 'anvil', spr: SPR.anvil }; break;
@@ -306,6 +306,8 @@ function instantiate(s) {
   if (o.k === 'mprop' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'mprop', x: o.x, y: o.y, box: b });   // cases, the stage and the board are solid where they are painted
   if (o.k === 'museum' && o.spr.col) for (const b of o.spr.col) W.solids.push({ k: 'museum', x: o.x, y: o.y, box: b });   // the museum's walls and columns, from its collision picture
 }
+const TREE_WEIGHT = { 'Warm tree (5)': 0.08 };   // how common each tree variety is (1 = normal): the autumn birch (far right in tools/src/Forest_tree.aseprite) is rare
+function treePick(h) { const w = SPR.trees.map(t => TREE_WEIGHT[t.name] != null ? TREE_WEIGHT[t.name] : 1), tot = w.reduce((a, b) => a + b, 0); let x = h * tot; for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return i; } return w.length - 1; }
 function rebuildObjects() {
   W.objs = []; W.solids = []; W.trees = []; W.bushes = []; W.lamps = []; W.fires = []; W.glows = []; W.patches = []; 
   MAPDATA.objects.forEach(instantiate);
